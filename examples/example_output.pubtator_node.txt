@@ -1,0 +1,901 @@
+Gene$tnf-alpha	21926
+Chemical$ketone bodies	MESH:D007657
+Gene$cyp1a1	24296
+Species$grapes	-
+Chemical$18f-fdg	MESH:D019788
+Chemical$polyphenols	MESH:D059808
+Species$lemon balm	-
+Gene$iga	973
+Disease$crisis	MESH:D001752
+Gene$neutrophil elastase	1991
+ProteinMutation$l55m	tmVar:p|SUB|L|55|M;HGVS:p.L55M;VariantGroup:1;CorrespondingGene:5444;RS#:854560;CorrespondingSpecies:9606;CA#:123413
+Disease$tuberculosis	MESH:D014376
+Chemical$disulphide	-
+Gene$iglv3-19	28797
+Gene$cav1	25404
+Disease$and disease	MESH:D004194
+Disease$neural damage	MESH:D015441
+Disease$oncologic	MESH:D000072716
+Gene$coa ligase	-
+Gene$ifn alpha, gamma and lambda	3439;3458
+Chemical$polyunsaturated fatty acid	MESH:D005231
+Species$sars-cov-2 virus	-
+Species$b. aeruginosa	1038079
+Gene$angiotensin-converting enzyme ii	-
+Chemical$sesquiterpenoids lactones	-
+Disease$severe acute respiratory syndrome-related coronavirus 2 (sars-cov-2) infection	MESH:D000086382
+Gene$toll-like receptor 4	7099
+Disease$amyloidogenesis	-
+Disease$systemic and lung inflammation	MESH:D011014
+Gene$melittin	-
+Species$vitis vinifera	29760
+Disease$musculoskeletal disorders	MESH:D009140
+Disease$viremia	MESH:D014766
+Gene$lipoprotein-associated phospholipase a2	7941
+Gene$ahr	11622
+Disease$kidney dysfunction	MESH:D007674
+Gene$tg-c	7052
+Gene$mir-223-	407008
+Gene$galectin-3	3958
+Chemical$luminol	MESH:D008165
+CellLine$mrc-5	CVCL:0440
+Disease$multiple sclerosis	MESH:D009103
+Gene$trialkylsulfonium hydrolase	-
+Gene$mapk14	1432
+Disease$morbid obesity	MESH:D009767
+Disease$tissue damage	MESH:D017695
+Species$lonicerae japonicae flos	-
+Disease$carcinogenesis	MESH:D063646
+Chemical$pgx	MESH:D011464
+Disease$aortic aneurysms	MESH:D001014
+Chemical$, palmitoyl-2-oleoyl-sn-glycero-3-phosphocholine	-
+Chemical$rhizoma polygonati	-
+Chemical$lycopene	MESH:D000077276
+Gene$tnfsf12	8742
+Disease$eating disorders	MESH:D001068
+Chemical$diazinon	MESH:D003976
+Disease$acute myocardial infarction	MESH:D009203
+Chemical$acylcarnitines	MESH:C116917
+Chemical$quinones	MESH:D011809
+Disease$acute pericarditis	MESH:D010493
+Species$hsa	1884613
+Disease$weight loss	MESH:D015431
+Species$grape	-
+Gene$mapk1	5594
+Gene$il10	3586
+Gene$serum albumin	213
+Gene$cd14	697482
+Chemical$osi	-
+Chemical$chisel	-
+Gene$s-protein	7448
+Chemical$compounds	-
+Disease$embryo	MESH:D020964
+Gene$defa3	1668
+Disease$myocarditis	MESH:D009205
+Gene$myeloperoxidase	17523
+Gene$transmembrane serine protease 2	7113
+Gene$scavenger receptor class b type 1	949
+Chemical$ticagrelor	MESH:D000077486
+Disease$brain cancer	MESH:D001932
+Gene$phospholipase a2	5319
+Gene$apc	324
+Disease$systemic lupus erythematosus	MESH:D008180
+Disease$complement	MESH:D007153
+Gene$ifi35	70110
+Chemical$quercetin-3-o-neohesperidoside	-
+Chemical$d-4f	-
+Chemical$oxpl	-
+Gene$apoh	350
+Disease$proinflammatory	-
+Gene$hif-1alpha	3091
+Disease$dyspnoea	-
+Disease$depressive disorders	MESH:D003866
+Chemical$dep	-
+Disease$hepatotoxicity	-
+Chemical$organophosphates	MESH:D010755
+Gene$apolipoprotein a-i	30355
+Disease$inflammatory airway diseases	MESH:D007249
+Gene$apolipoprotein e	348
+Disease$diphtheria	MESH:D004165
+Species$a. vulgaris	-
+Gene$hsp27	3315
+Gene$selenoprotein p	6414
+Chemical$anthocyanins	MESH:D000872
+Gene$phospholipid transfer protein	5360
+Gene$lox-1	4973
+Chemical$bile acids	MESH:D001647
+Disease$liver homeostasis and disease	MESH:D008107
+Chemical$urea	MESH:D014508
+Disease$coronary artery disease	MESH:D003324
+Disease$metabolic and vascular diseases	MESH:D014652
+Disease$drug	MESH:D000081015
+Disease$mental disease	MESH:D008607
+Gene$jnk	5599
+Disease$gestational diabetes mellitus	MESH:D016640
+Gene$bex2	84707
+Gene$heat shock protein 60	282676
+Disease$neuroimmunotoxic	-
+Species$green and black cumin	-
+Chemical$hydroxytyrosol	MESH:C005975
+Disease$lymphopenia	MESH:D008231
+Chemical$heme	MESH:D006418
+Disease$vitreoretinal diseases	MESH:D012164
+Gene$gli1	2735
+Disease$autoimmune prothrombotic disease	MESH:D001327
+Disease$influenza pandemic h1n1 infection	MESH:D007251
+Gene$aryl hydrocarbon receptor	25690
+Gene$heme oxygenase-1	3162
+Chemical$oleuropein	MESH:C002769
+Gene$cd16	720006
+Disease$acute coronary syndrome	MESH:D054058
+Chemical$polyethylene glycol	MESH:D011092
+Disease$nephritis	MESH:D009393
+Chemical$oldenlandia diffusa	-
+Chemical$lipid rafts	-
+Gene$mannan binding lectin serine protease 1	5648
+Chemical$pvdf	MESH:C024865
+Gene$beta-catenin	1499
+Chemical$mercury	MESH:D008628
+Chemical$herbal medications	-
+Gene$transferrin receptor protein 1	7037
+Gene$apolipoprotein a-i and a-ii	335;336
+Chemical$dextran	MESH:D003911
+Gene$complement c1r	715
+Species$aronia melanocarpa	661339
+Disease$mental and physical trauma	MESH:D000070617
+Chemical$azoles	MESH:D001393
+Disease$chronic obstructive pulmonary disease	MESH:D029424
+Gene$cyp3a4	1576
+Gene$mir-2113	100302164
+Chemical$dithiol	MESH:C004848
+Chemical$sugars	MESH:D000073893
+Gene$apolipoproteins	-
+Chemical$jin yin hua	-
+Gene$ace2 receptors	-
+Disease$skin cutaneous melanoma	MESH:C562393
+Chemical$omega-3 polyunsaturated fatty acids	-
+Species$coronaviruses	-
+Gene$tgf-beta	21803
+Gene$fibrinogen	2244
+CellLine$vero e6	CVCL:0574
+Disease$nephrotoxicity	-
+Disease$paralysis	MESH:D010243
+Species$artemisiae vulgaris herba	-
+Chemical$chloroquine	MESH:D002738
+Chemical$evans blue	MESH:D005070
+Disease$-related	MESH:D019973
+Gene$annexins ii and v	302;308
+Disease$hdl dysfunction	MESH:D052456
+Chemical$lutein,	MESH:D014975
+Disease$organ damage	MESH:D000092124
+Disease$non	MESH:C580335
+Disease$banlangen	-
+Disease$psycho-social	OMIM:300082
+Gene$huwe1	10075
+Disease$learning or neurodevelopmental disorder	MESH:D007859
+Disease$psychiatric illness	MESH:D001523
+Chemical$a. vulgaris herb extracts	-
+Gene$hepatocyte nuclear factor 4 alpha	3172
+Disease$prostate and pancreatic cancer	MESH:D011471
+Species$humanity	-
+Species$mtb) infection	-
+Disease$chronic kidney disease	MESH:D051436
+Disease$ts	MESH:D005879
+Disease$nt	-
+Species$lavender	39329
+Chemical$alcohol	MESH:D000438
+Disease$alcohol use	MESH:D000437
+Disease$hodgkin lymphoma	MESH:D006689
+Chemical$water	MESH:D014867
+Gene$caspase-1	834
+Disease$infectious and autoimmune disease	MESH:D003141
+Chemical$lipid peroxides	MESH:D008054
+Chemical$pegylated curcumin derivatives	-
+Species$severe acute respiratory syndrome coronavirus	694009
+Gene$itih2	3698
+Disease$hereditary nonpolyposis colorectal cancer	MESH:D003123
+Disease$breast cancer	MESH:D001943
+Chemical$tamarixetin	MESH:C508967
+Disease$non-hodgkin lymphoma	MESH:D008228
+Disease$alcoholic and non-alcoholic fatty liver diseases	MESH:D065626
+Gene$c-reactive protein	1401
+Gene$cyp	9360
+Disease$irritable bowel syndrome	MESH:D043183
+Gene$hsp70	15511
+Disease$h1n1	-
+Disease$chronic rhinosinusitis	MESH:D000092562
+Chemical$n-acetyl-l-leucine	MESH:C088117
+Disease$idiopathic epiretinal membrane formation	MESH:D019773
+Disease$cf	MESH:D003550
+Gene$apolipoprotein a-ii	336
+Chemical$trans-3-indoleacrylic acid	MESH:C001446
+Disease$ischemic heart disease	MESH:D017202
+Gene$ho-1	15368
+Chemical$pectin	MESH:D010368
+Disease$musculoskeletal, cardiovascular, gastrointestinal, renal, hepatic, and metabolic disorders	MESH:D024821
+Species$human immunodeficiency virus	12721
+Gene$fetuin-a	197
+Chemical$pah	-
+Gene$e3 ligase	-
+Chemical$hdl-c.	-
+Chemical$am extract	-
+Gene$receptor for advanced glycation end products	-
+Chemical$oleic acid	MESH:D019301
+CellLine$huvec	CVCL:2959
+Chemical$creatinine kinase	-
+Chemical$s1p	-
+Chemical$tetrapyrrole	MESH:D045725
+Chemical$glutathione	MESH:D005978
+Chemical$potentially toxic elements	-
+Disease$thrombocytopenia	MESH:D013921
+Chemical$tetrachlorvinphos	MESH:D013751
+Disease$atopic dermatitis	MESH:D003876
+Gene$cytochrome c	54205
+Disease$myocardial fatigue	MESH:D005221
+Chemical$carbohydrates	MESH:D002241
+Disease$colorectal cancer	MESH:D015179
+Chemical$bilirubin	MESH:D001663
+Disease$immune-inflammatory diseases	MESH:D007154
+Species$sambucus nigra	4202
+Disease$occlusion of the coronary artery	MESH:D054059
+Chemical$remdesivir	MESH:C000606551
+Gene$nlr family pyrin domain containing 3	114548
+Chemical$5-aminosalicyclic acid	-
+Species$bv	55884
+Gene$high-mobility group box 1	3146
+Disease$extra-pulmonary tuberculosis	MESH:D000092225
+Species$moor macaques	90383
+Species$sambucus canadensis	57008
+Species$of	227390
+Gene$angiotensin	-
+Disease$lupus anticoagulant	MESH:C531622
+DNAMutation$c > t	tmVar:c|SUB|C||T;VariantGroup:1;CorrespondingGene:5444;CorrespondingSpecies:9606
+Chemical$9-methyluric acid	MESH:C470581
+Disease$tumor necrosis factor	MESH:C536657
+Species$ferry	-
+Chemical$biophenols	-
+Gene$ebn	3785
+Gene$gli2	2736
+Chemical$reactive oxygen and nitrogen species	-
+Disease$systolic dysfunction	MESH:D006331
+Gene$rela	5970
+Species$saussurea lappa	324593
+Chemical$ptes	-
+Disease$poisoning	MESH:D011041
+Disease$neurocognitive	MESH:D019965
+Chemical$glucolipid	-
+Gene$interferon-gamma	3458
+Disease$edible bird's nest	MESH:D001715
+Chemical$choline	MESH:D002794
+Gene$cytb	4519
+Disease$traditional chinese medicine	MESH:C562377
+Disease$rheumatologic diseases	MESH:D012216
+Chemical$thiobarbituric acid reactive substances	MESH:D017392
+Chemical$esters	MESH:D004952
+Chemical$sfjdc	-
+Chemical$arachidonic acid	MESH:D016718
+Gene$plg	5340
+Disease$hyperglycemia	MESH:D006943
+Gene$mir137	406928
+Gene$agp	-
+Disease$hyperlipidemia	MESH:D006949
+Gene$toll-like receptors 2 and 4	7097;7099
+Disease$uremia	MESH:D014511
+Chemical$phosphatidylcholine	MESH:D010713
+Chemical$popc	MESH:C065191
+Chemical$quercetin	MESH:D011794
+Gene$occludin	18260
+Disease$lung adenocarcinoma	MESH:D000077192
+Disease$severe acute respiratory syndrome	MESH:D045169
+Disease$hypoalbuminemia	MESH:D034141
+Disease$lycopene	-
+Chemical$malondialdehyde	MESH:D008315
+Chemical$, 1-palmitoyl-2-oleoyl-sn-glycero-3-phosphocholine	MESH:C028694
+Gene$vegf	7422
+Disease$abnormal coagulation function	MESH:D001778
+Chemical$tt	-
+Chemical$cholesterol	MESH:D002784
+Disease$end-organ damage	MESH:C564816
+Chemical$kaempferol-3-o-alpha-l-rhamnoside	MESH:C477954
+Gene$sr-b	10575
+Gene$mir-155	406947
+Gene$zc3h12a	80149
+Disease$autism	MESH:D001321
+Gene$pon3	5446
+Disease$carcinogenicity	MESH:D011230
+Gene$orf3a	43740569
+Disease$sudden death	MESH:D003645
+Chemical$remsima	MESH:C000591237
+Disease$liver problems	MESH:D017093
+Disease$ulcerative colitis	MESH:D003093
+Disease$cardiotoxicity	MESH:D066126
+Gene$ubiquitin	-
+Species$korean red ginseng	-
+Chemical$diltiazem	MESH:D004110
+Disease$damage	MESH:D020263
+Chemical$infliximab	MESH:D000069285
+Chemical$diesel	-
+Species$cattle	9913
+Gene$angiotensin converting enzyme 2	59272
+Gene$mir-125a	406910
+Disease$acquired immunodeficiency syndrome-associated neurocognitive disorders	MESH:D000163
+Chemical$oxysterols	MESH:D000072376
+Chemical$maltodextrin	MESH:C008315
+Gene$cysteine-type endopeptidase	-
+Chemical$reactive oxygen species	MESH:D017382
+Species$human coronaviruses	2501931
+Gene$bnc2	54796
+Disease$cytokine release syndrome	MESH:D000080424
+Chemical$dexamethasone	MESH:D003907
+Chemical$n-acetylcysteine	MESH:D000111
+Chemical$biotoxins	-
+Chemical$density lipoprotein	-
+Chemical$benzidine	MESH:C029876
+Chemical$sphingosine-1-phosphate	MESH:C060506
+Disease$lung squamous carcinoma	MESH:D002294
+Chemical$ritonavir	MESH:D019438
+Chemical$nicotinic acids	MESH:D009539
+Disease$disorders of lipoprotein metabolism	MESH:C563618
+Gene$nuclear factor-kappa b	4790
+Disease$pulmonary damage	MESH:D008171
+Disease$impaired glucose metabolism	MESH:D044882
+Chemical$gsh tripeptide	-
+Disease$metastases	MESH:D009362
+Chemical$4-hydroxy-nonenal	MESH:C027576
+Gene$smoothened	6608
+SNP$rs361525	tmVar:rs361525;VariantGroup:0;CorrespondingGene:7124;RS#:361525;CorrespondingSpecies:9606
+Gene$s100a8	6279
+Disease$atherogenic dyslipidemia	MESH:D050171
+Chemical$huangjing	-
+Gene$apoc2	344
+Gene$apolipoprotein(a)	4018
+Chemical$organophosphate insecticides	-
+Gene$endothelial lipase	9388
+Gene$serum amyloid a-1	6288
+Disease$vascular dementia	MESH:D015140
+Disease$allergic rhinitis	MESH:D065631
+Gene$kng1	3827
+Disease$critically ill	MESH:D016638
+Chemical$lignans	MESH:D017705
+Disease$hyperlipidaemic	-
+Chemical$curcumin derivative 5	-
+Chemical$cephalosporin	MESH:D002511
+Gene$cd25	3559
+Chemical$cigb-258	-
+Chemical$lactose	MESH:D007785
+Chemical$darapladib	MESH:C529040
+Chemical$glutamine	MESH:D005973
+Disease$liver, kidney, lung and muscle injury	MESH:D055370
+Chemical$sulfhydryl	MESH:D013438
+Gene$l2hgdh	79944
+Disease$coronary artery spasm	MESH:D003329
+Gene$smad7	17131
+Gene$cyp1b1	13078
+Gene$sesn2	83667
+Disease$cancer-associated fibroblasts	MESH:D009369
+Disease$systemic vasculitis	MESH:D056647
+Disease$white matter hyperintensities	MESH:D056784
+Chemical$nitrates	MESH:D009566
+Gene$interleukin-17	-
+Chemical$sitagliptin	MESH:D000068900
+Disease$glutathione deficiency	MESH:C536835
+Gene$paraoxonase-2	5445
+Gene$p21/cip1	1026
+Chemical$didanosine	MESH:D016049
+Chemical$testosterone	MESH:D013739
+Species$myrtle	-
+Species$eucalyptus	3932
+Species$brevundimonas aeruginosa	-
+Gene$hrg	3273
+Disease$neutropenia	MESH:D009503
+Species$mycobacterium tuberculosis (	1773
+Disease$aterial plagues	MESH:D010930
+Disease$lipid metabolism disorders	MESH:D052439
+Disease$mmr defects	MESH:C536928
+Chemical$polyphenolics	-
+Chemical$lipopolysaccharides	MESH:D008070
+Chemical$dimyristoyl phosphatidylcholine	MESH:D004134
+Disease$stillbirth	MESH:D050497
+Gene$mmp3	171045
+Chemical$calcium	MESH:D002118
+Species$akkermansia	239934
+Disease$anemia	MESH:D000740
+Gene$angiotensin-ii	183
+Species$lactobacillus	1578
+Chemical$lactone	MESH:D007783
+Disease$fatty liver disease	MESH:D005234
+Disease$pulmonary and hepatic	MESH:D056486
+Chemical$lms	-
+Disease$disorders	MESH:D009358
+Disease$aps	MESH:D016884
+Disease$coronary heart disease	MESH:D003327
+Disease$hyperglycaemic	-
+Chemical$lysophosphatidylcholine 22:6-sn2	-
+Disease$substance abuse	MESH:D019966
+Chemical$chinese medicines	-
+Chemical$lysophosphatidylethanolamines	MESH:C008301
+Species$rats	10116
+Gene$sr-a	4481
+Disease$long-term sequelae of covid-19	MESH:D000094024
+Species$spinach	3562
+Disease$inflammatory bowel disease	MESH:D015212
+Disease$cardiovascular, neurodegenerative, and inflammatory disorders	MESH:D019636
+Chemical$anthocyanosides	-
+CellLine$hepg2	CVCL:0027
+Disease$dyslipidaemia	-
+Disease$st-segment elevation myocardial infarction	MESH:D000072657
+Chemical$nt	-
+Species$h1n1	114727
+Gene$orm1	18405
+Chemical$fitc-dextran	MESH:C015219
+Gene$ve-cadherin	1003
+Disease$skin toxicity	MESH:D012871
+Chemical$tryptophan	MESH:D014364
+Disease$hypoxic	MESH:D002534
+Gene$atp binding cassette transporters a1 and g1	19
+Disease$diarrhea	MESH:D003967
+Chemical$xuanfeibaidu granule	-
+Gene$apoc-iii	345
+Gene$cxcl10	3627
+Species$bifidobacterium	1678
+Chemical$hdl-c	-
+Chemical$myricetin 3-rutinoside	-
+Gene$osteopontin	6696
+Disease$dementia	MESH:D003704
+Chemical$short-chain fatty acids	MESH:D005232
+Disease$angiogenesis disorders	MESH:D016510
+Chemical$phosphatidylinositol-(3,4)-bisphosphate	MESH:C060980
+Disease$neurotoxic agents	MESH:D020258
+Chemical$sialic acid	MESH:D019158
+Species$murine	10090
+Disease$gastrointestinal, cardiovascular, and endocrine diseases	MESH:D005767
+Chemical$malathion	MESH:D008294
+Chemical$oxidized	-
+Disease$insomnia	MESH:D007319
+Disease$pyrexia	MESH:D005334
+Disease$anxiety	MESH:D001007
+Disease$adenoma	MESH:D000236
+Chemical$alkaloids	MESH:D000470
+Disease$neurodegenerative and viral diseases	MESH:D014777
+Gene$adrenomedullin	133
+Gene$mst1	4485
+Gene$alpha-1 antitrypsin	5265
+Chemical$free radicals	MESH:D005609
+Species$sars-cov-2 infected	-
+Chemical$triterpenes	MESH:D014315
+Disease$mental health problems	MESH:D000076082
+Disease$major depressive disorder	MESH:D003865
+Disease$pulmonary tuberculosis	MESH:D014397
+Gene$mutyh	4595
+Disease$roi	-
+Gene$adamts-1	9510
+Gene$at1r	185
+Disease$latent tb infection	MESH:D055985
+Disease$hepatocellular carcinoma	MESH:D006528
+Chemical$citicoline	MESH:D003566
+Disease$hiv	MESH:D015658
+Disease$atopic allergic sensitization	MESH:D006969
+Chemical$tocilizumab	MESH:C502936
+Disease$injury	MESH:D014947
+Disease$cholera	MESH:D002771
+Gene$interleukin-6 receptor	3570
+Disease$systemic inflammatory response syndrome	MESH:D018746
+Disease$cell damage	MESH:D002280
+Disease$pyroptosis	-
+Species$severe acute respiratory syndrome coronavirus 2	2697049
+Gene$progranulin	2896
+Disease$covidomics	-
+Disease$insufficient physical activity	MESH:D000309
+SNP$rs705379	tmVar:rs705379;VariantGroup:0;CorrespondingGene:5444;RS#:705379;CorrespondingSpecies:9606
+Gene$pha	3930
+Species$garlic	4682
+Species$human serum albumin	-
+Disease$breast carcinogenesis	MESH:D061325
+Gene$alpha-synuclein	6622
+Chemical$baricitinib	MESH:C000596027
+Disease$chronic diseases	MESH:D002908
+Disease$platelet aggregation	MESH:D001791
+Chemical$oxylipins	MESH:D054883
+Disease$lung cancer	MESH:D008175
+Disease$periodontitis	MESH:D010518
+Disease$migraine	MESH:D008881
+Gene$tumor necrosis factor-alpha	7124
+Chemical$ferrous ions	-
+Chemical$imatinib	MESH:D000068877
+Chemical$kaempferol	MESH:C006552
+Gene$ts	-
+Gene$fcgammariib	2213
+Species$cytomegalovirus	10358
+Chemical$sulfur mustard gas	MESH:D009151
+Disease$respiratory and neurological diseases	MESH:D012140
+Chemical$gaba	MESH:D005680
+Disease$chronic pain	MESH:D059350
+Disease$sepsis	MESH:D018805
+Species$coronavirus	694013
+Species$hamsters	10026
+Chemical$nimesulide	MESH:C012655
+Chemical$sphingolipid	MESH:D013107
+Gene$cholesterol ester transfer protein	1071
+Disease$parkinson's diseases	MESH:D010300
+Gene$cxcl13	55985
+Disease$gliosis	MESH:D005911
+Chemical$antituberculosis medication	-
+Disease$rd	MESH:D000077733
+Chemical$saturated	-
+Species$rhodiola crenulata	242839
+Species$hiv	11676
+Chemical$glycerophospholipis	-
+Gene$apolipoprotein (apo) a-i	335
+Chemical$flavonoids	MESH:D005419
+Disease$neuroinflammation	MESH:D000090862
+Gene$akt	207
+Gene$amphiregulin	374
+CellLine$5637	CVCL:0126
+Chemical$heavy metals	MESH:D019216
+Chemical$verapamil	MESH:D014700
+Chemical$pinyin	-
+Species$ginger	94328
+Disease$bleeding	MESH:D006470
+Disease$infectious respiratory diseases	MESH:D012141
+Chemical$dopamine	MESH:D004298
+Disease$h1n1pdms	-
+Species$peppermint	34256
+Gene$aryldialkylphosphatase	-
+Disease$antisynthetase syndrome	MESH:C537778
+Chemical$acyl-homoserine lactones	MESH:D054742
+Gene$myosin light chain kinase	213435
+Gene$cd4	920
+Species$tobacco	4097
+Gene$ubd	24108
+Disease$occupational disease and injury	MESH:D009784
+Gene$arylesterase 1	5444
+Chemical$parathion	MESH:D010278
+Disease$h1ni	-
+Disease$developmental defects	MESH:D000094602
+Disease$diabetes mellitus types 1 and 2	MESH:D003924
+Chemical$resveratrol	MESH:D000077185
+Species$bergamot	-
+Species$bee venom	-
+Chemical$gssg	MESH:D019803
+Gene$silent information regulator type-1	23411
+Disease$malnutrition	MESH:D044342
+Disease$respiratory insufficiency	MESH:D012131
+Disease$neurological diseases	MESH:D020271
+Species$glycyrrhiza glabra linne	-
+Disease$diabetic retinopathy	MESH:D003930
+Chemical$molnupiravir	MESH:C000656703
+Disease$chest pain	MESH:D002637
+Disease$cerebrovascular diseases	MESH:D002561
+Disease$acute infection	MESH:D000208
+Chemical$lipids	MESH:D008055
+Gene$gatm	67092
+Disease$retinal sufferance	MESH:D012173
+Species$curcuma longa l. rhizome	-
+Chemical$curcumin	MESH:D003474
+Disease$rheumatoid arthritis	MESH:D001172
+Disease$gynecological diseases	MESH:D005831
+Chemical$ox-hdl	-
+Chemical$thymol	MESH:D013943
+Disease$pulmonary embolism	MESH:D011655
+Disease$caf	-
+Chemical$galidesivir	MESH:C517546
+Species$macaques	9539
+Chemical$od	-
+Chemical$colchicine	MESH:D003078
+Disease$oral cavity disorders	MESH:D009062
+Species$thyme	49992
+Chemical$ros	-
+Disease$cv	-
+Gene$glucagon-like peptide-1 receptor	2740
+Disease$bipolar disorder	MESH:D001714
+Chemical$sphingosine-1-phophate	-
+Gene$angiotensin converting enzyme-2 receptor	-
+Gene$gpr171	229323
+Gene$pregnancy zone protein	5858
+Disease$cough	MESH:D003371
+Disease$insulin resistance	MESH:D007333
+Chemical$caffeic acid	MESH:C040048
+Gene$gclm	2730
+Disease$mental neglect	MESH:D058069
+Chemical$5-asa	-
+Gene$butyrylcholinesterase	590
+Chemical$cupric ion	-
+Gene$tetranectin	7123
+Disease$neuronal injury	MESH:D009410
+Disease$epilepsy	MESH:D004827
+Disease$arterial obstruction	MESH:D001157
+Species$middle east respiratory syndrome coronavirus	1335626
+Chemical$flutamide	MESH:D005485
+Disease$multiorgan failure	MESH:D051437
+Chemical$agarose	MESH:D012685
+Chemical$n-epsilon-carboxymethyllysine	MESH:C048496
+Disease$cardiac oedema	MESH:D004489
+Species$grape marc	-
+Disease$colitis	MESH:D003092
+Gene$mtor	2475
+Disease$proteinuria	MESH:D011507
+Disease$loss of muscle mass	MESH:C536030
+Disease$siv	OMIM:270100
+Gene$protein phosphatase	-
+Disease$neurological aberrations	MESH:D002869
+Chemical$quercetin 3-rhamnoside	MESH:C012526
+Disease$fibrogenesis	-
+Species$punica granatum l.	22663
+Disease$cerebral ischemia	MESH:D002545
+Gene$hdl receptor	-
+Gene$il1-ra	3557
+Disease$acute respiratory distress syndrome	MESH:D012128
+Disease$endocrine disorders	MESH:D004700
+Disease$beta-amyloid	MESH:C000718787
+Chemical$pte	-
+Disease$non-communicable diseases	MESH:D000073296
+Chemical$peptides	MESH:D010455
+Disease$iga vasculitis	MESH:D011695
+Disease$neurological disorders	MESH:D009461
+Disease$obstructive sleep apnea	MESH:D020181
+Gene$lgals3bp	3959
+Disease$renal	MESH:D006030
+Gene$oxt	5020
+Disease$cia	MESH:D001169
+Disease$thrombotic complications	MESH:D013927
+Gene$lbp	3929
+Disease$systolic malfunction	MESH:D000092244
+Disease$atherosclerotic cardiovascular disease	MESH:D050197
+Chemical$pharmabiotics	-
+Disease$articular cartilage lesion	MESH:D002357
+Gene$transforming growth factor beta 1	7040
+Disease$retinitis pigmentosa	MESH:D012174
+Chemical$myricitrin	MESH:C008577
+Chemical$phenolic compounds	-
+Gene$g-protein coupled receptor	10663
+Disease$synovial hyperplasia	MESH:D006965
+Disease$infarction	MESH:D007238
+Disease$lymphoma	MESH:D008223
+Disease$alzheimer's disease	MESH:D000544
+Gene$von willebrand factor	7450
+Chemical$lysophospholipids	MESH:D008246
+Disease$liver fibrosis	MESH:D008103
+Species$escherichia coli	562
+Gene$kelch-like ech-associated protein 1	9817
+Species$influenza a	-
+Gene$interleukin (il)-1	3552
+Gene$jak2	3717
+Gene$group iii secretory phospholipase a2	-
+Chemical$evoo	-
+Disease$glomerulomegaly	-
+Disease$diabetic macular edema	MESH:D008269
+Gene$carboxypeptidase b2	1361
+Chemical$arsenic	MESH:D001151
+Disease$hypoxia	MESH:D000860
+Gene$acetate-coa	-
+Chemical$polyphenolic	-
+Disease$microbial diseases	MESH:D015163
+Disease$amyloidosis	MESH:D000686
+Disease$thrombotic microangiopathy	MESH:D057049
+Disease$pancreatic ductal adenocarcinoma	MESH:D021441
+Chemical$oxidized phospholipids	-
+Chemical$niclosamide	MESH:D009534
+Chemical$pdn	-
+Gene$retnla	57262
+Species$zebrafish	7955
+Chemical$oxygen	MESH:D010100
+Chemical$lianhua qingwen capsule	-
+Disease$bacterial	MESH:D001424
+Chemical$thiabendazole	MESH:D013827
+Disease$bacterial pneumonia	MESH:D018410
+Chemical$chinese medicine radix isatidis	-
+Chemical$tc	-
+Chemical$tgs	MESH:C026285
+Disease$atherosclerotic plaques	MESH:D058226
+Chemical$nitroglycerine	MESH:D005996
+Disease$health injuries	OMIM:603663
+Gene$alpha1-acid glycoprotein	-
+Disease$hyperinflammation	-
+Gene$casp8	841
+Gene$hsa-mir-421	693122
+Species$artemisia vulgaris l.	4220
+Disease$h1n1pdms infection	MESH:D007239
+Gene$wnt-5alpha	7474
+Gene$liver sinusoidal endothelial cell lectin	339390
+Chemical$h2o2	MESH:D006861
+Disease$myopericarditis	MESH:D010146
+Disease$sarcopenic obesity	MESH:D009765
+Disease$familial hypercholesterolemia	MESH:D006938
+Disease$hypertriglyceridemia	MESH:D015228
+Gene$ampk	5562
+Chemical$ruxolitinib	MESH:C540383
+Disease$vasospasm	MESH:D020301
+Disease$attention-deficit/hyperactivity disorder	MESH:D001289
+Species$sage	-
+Gene$brain-derived neurotrophic factor	627
+Gene$epcam	4072
+Chemical$indole-3-lactic acid	MESH:C024139
+Disease$respiratory viral infections	-
+Gene$interleukin (il)-1beta	3553
+Gene$iga1	3493
+Species$oldenlandia diffusa	254027
+Disease$mutyh defects	MESH:D000013
+Gene$creb	1385
+Disease$acute cardiac failure	MESH:D006333
+Disease$hypertension	MESH:D006973
+Disease$cardiorenal syndrome	MESH:D059347
+Gene$cyp4f2	8529
+Disease$cardiovascular and diabetes mellitus	MESH:D003920
+Gene$serum amyloid a	6287
+Gene$txn	7295
+Disease$post-exertional malaise	MESH:D000092202
+Disease$anti-phospholipid syndrome	MESH:D016736
+Disease$mind-brain disorders	MESH:D001927
+Gene$s100a9	6280
+Chemical$hydroxychloroquine	MESH:D006886
+Gene$peroxisome proliferator-activated receptor gamma	5468
+Disease$immune system dysregulation	OMIM:614878
+Gene$il-7	3574
+Chemical$serotonin	MESH:D012701
+CellLine$caco-2	CVCL:0025
+Chemical$glucose	MESH:D005947
+Disease$dyspnea	MESH:D004417
+Gene$renin	5972
+Disease$vasculitis	MESH:D014657
+Chemical$hexanoylglycine	MESH:C024571
+Disease$bladder cancer	MESH:D001749
+Chemical$gallic acid	MESH:D005707
+Species$influenza virus	-
+Gene$pct	796
+Gene$ptch	5727
+Disease$constrictive pericarditis	MESH:D010494
+Disease$occupational health and injury	MESH:D060051
+Chemical$chloramphenicol	MESH:D002701
+Chemical$inorganic mercury	-
+Gene$srxn1	140809
+Disease$skeletal muscle dysfunction	MESH:D009135
+Disease$acute kidney injury	MESH:D058186
+Gene$jak1/2	3716;3717
+Chemical$metformin hydrochloride	MESH:D008687
+Disease$respiratory and cardiovascular complications	MESH:D002318
+Gene$atp	51761
+Chemical$ncats-sm4705	-
+Disease$domestic violence	-
+Disease$impaired glucose tolerance	MESH:D018149
+Disease$age-related macular degeneration	MESH:D008268
+Chemical$saturated fatty acids	MESH:D005227
+Disease$end stage renal disease	MESH:D007676
+Species$panax ginseng	4054
+DNAMutation$a1c	tmVar:c|SUB|A|1|C;HGVS:c.1A>C;VariantGroup:0;CorrespondingGene:3630;CorrespondingSpecies:9606
+Chemical$lipid mediators	-
+Gene$mpro	8673700
+Chemical$p	MESH:D010758
+Chemical$disulfides	MESH:D004220
+Chemical$ldl-c	-
+Disease$acute death of coronavirus disease	MESH:D018352
+Gene$insulin	3630
+Gene$interleukin-8	3576
+Chemical$chinese herbal medicine	-
+Disease$exercise intolerance	MESH:C564972
+Chemical$essential oils	MESH:D009822
+Disease$galactose	MESH:D005693
+Chemical$favipiravir	MESH:C462182
+Disease$pre-eclampsia	MESH:D011225
+Disease$neurological complications	MESH:D002493
+Gene$mir-146a	406938
+SNP$rs662	tmVar:rs662;VariantGroup:0;CorrespondingGene:5444;RS#:662;CorrespondingSpecies:9606
+Gene$adenosylhomocysteinase	191
+Gene$ar	-
+Gene$fibronectin	2335
+Gene$cd8	925
+Chemical$iron	MESH:D007501
+Gene$l-specific intercellular adhesion molecule-3 grabbing non-integrin receptor	10332
+Disease$dna	MESH:D004266
+Disease$developmental delay	MESH:D002658
+Gene$apoc1	341
+Gene$ace	163
+CellLine$scaber	CVCL:3599
+Chemical$fluticasone propionate	MESH:D000068298
+Gene$il-18	3606
+Disease$gastrointestinal, or even multiple organ failure	MESH:D009102
+Chemical$glabridin	MESH:C107601
+Gene$acetylcholinesterase	43
+Chemical$tg	MESH:D013866
+Chemical$rhdl	-
+Gene$orf3	136991
+Chemical$zeaxanthin	MESH:D065146
+Disease$smoking	MESH:D015208
+Chemical$chinese herbs	-
+Chemical$epicatechin	MESH:D002392
+Gene$gli3	2737
+Gene$erk1/2	5595;5594
+Gene$glutamate-pyruvate transaminase	2875
+Chemical$extra virgin olive oil	-
+Chemical$chinese medicine	-
+Gene$inos	18126
+Disease$adverse drug reactions	MESH:D064420
+Chemical$triglycerides	MESH:D014280
+Chemical$paxlovid	MESH:C000719967
+Disease$vitreoretinal interface impairment	MESH:D058499
+Disease$skin melanoma	MESH:D008545
+Chemical$glyphosate	MESH:C010974
+Disease$sore throat	MESH:D010612
+Chemical$blood glucose	MESH:D001786
+Species$severe acute respiratory syndrome coronavirus virus respiratory type 2	-
+ProteinMutation$q192r	tmVar:p|SUB|Q|192|R;HGVS:p.Q192R;VariantGroup:0;CorrespondingGene:5444;RS#:662;CorrespondingSpecies:9606;CA#:123411
+Gene$nuclear factor erythroid 2-related factor 2	4780
+Gene$spike	43740568
+Gene$lcn2	3934
+Chemical$rutin	MESH:D012431
+Disease$metabolic disorders	MESH:D008659
+Chemical$density lipoproteins	-
+Gene$casp3	836
+Gene$low-density lipoprotein receptor-related protein-1	4035
+Chemical$creatinine	MESH:D003404
+Gene$trkb	4915
+Disease$apls	-
+Disease$arrhythmia	MESH:D001145
+Chemical$glycyrrhiza radix et rhizoma	-
+Chemical$phospholipids	MESH:D010743
+Chemical$fructose	MESH:D005632
+Chemical$omega-3 fatty acids	MESH:D015525
+Chemical$anthracycline drugs	-
+Disease$thromboembolic	MESH:D013923
+Species$rhizoma polygonati	-
+Gene$prothrombin	2147
+Gene$foxp3	50943
+Disease$ectopic renal lipid accumulation	MESH:D011017
+Gene$apoa-ii	11807
+Disease$cirrhosis	MESH:D005355
+Chemical$fd-4	-
+Gene$advanced glycation end products	-
+Disease$hyperinflammatory	-
+Gene$apolipoprotein b	338
+Disease$asthma	MESH:D001249
+Chemical$saturated fat	-
+Disease$plaque rupture	MESH:D012421
+Gene$ifi47	15953
+Gene$areg	11839
+Chemical$photofrin	MESH:D017323
+Gene$interleukin-6	3569
+Chemical$thiol-disulphide	-
+Gene$p53	7157
+Species$hamster	10034
+Disease$pancreatic cancer	MESH:D010190
+Gene$cx3cr1	693926
+Chemical$nitric oxide	MESH:D009569
+Species$ljf	-
+Gene$xrcc1	7515
+Disease$fibromyalgia	MESH:D005356
+Disease$angina	MESH:D000787
+Disease$hdl deficit	MESH:D013631
+Gene$banlangen	-
+Gene$mir-486-	619554
+Species$human influenza viruses	-
+Disease$tubulo-interstitial injury	MESH:D017563
+Species$common mugwort	-
+Disease$cbt	OMIM:190900
+Gene$chemokine (c-c motif) ligand 2	6347
+Disease$septic	MESH:D001170
+Disease$icu	-
+Disease$uremic	MESH:D006463
+Chemical$propolis	MESH:D011429
+Disease$dermatomyositis	MESH:D003882
+Disease$metabolic complication	MESH:D020739
+Gene$zo-1	21872
+Gene$cox-2	17709
+Gene$il-17	3605
+Gene$ifit3	15959
+Gene$mt-nd1	4535
+Disease$myalgic encephalomyelitis/chronic fatigue syndrome	MESH:D015673
+Gene$angiotensin-converting enzyme	1636
+Disease$polyarthritis	MESH:D001168
+Species$bees	7460
+Species$human	9606
+Disease$rotavirus infections	MESH:D012400
+Gene$e-cadherin	12550
+Disease$adverse childhood experiences	MESH:D003643
+Species$orange	-
+Disease$affective disorders	MESH:D019964
+Gene$smad2/3	4087;4088
+Chemical$sterol	MESH:D013261
+Chemical$phenolic phytochemicals	-
+Chemical$prenylated isoflavan	-
+Disease$amyloid plaques	MESH:D058225
+Chemical$shufeng jiedu capsule	-
+Chemical$fruit extract	-
