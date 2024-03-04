@@ -1,5 +1,6 @@
 # https://www.ncbi.nlm.nih.gov/research/pubtator3/api
 import argparse
+import json
 import sys
 import time
 from collections import OrderedDict
@@ -22,7 +23,7 @@ def run_query_pipeline(query, savepath, type: Literal["query", "pmids"],
     if type == "query":
         pmid_list = get_search_results(query, max_articles)
         output = batch_publication_query(
-            pmid_list, type="pmid", full_text=full_text)
+            pmid_list, type="pmids", full_text=full_text)
         if full_text:
             output = [convert_to_pubtator(i) for i in output]
         output_path = savepath / \
@@ -107,7 +108,7 @@ def parse_cite_response(res_text):
     return pmid_list
 
 
-def send_search_query(query, type: Literal["search", "cite"] = "cite"):
+def send_search_query(query, type: Literal["search", "cite"] = QUERY_METHOD):
     if type == "search":
         search_url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/search/"
     elif type == "cite":
@@ -147,7 +148,7 @@ def batch_publication_query(id_list, type, full_text=False):
             res = send_publication_query(
                 ",".join(id_list[start:end]), type=type, format=format, full_text=full_text)
             if request_successful(res):
-                output.append(res.json() if full_text else res.text)
+                output.extend(append_json_or_text(res, full_text))
             if end is not None:
                 pbar.update(PMID_REQUEST_SIZE)
             else:
@@ -164,6 +165,18 @@ def send_publication_query(article_id, type: Literal["pmids", "pmcids"], format,
     res = requests.get(pub_url, params=params)
     time.sleep(0.5)
     return res
+
+
+def append_json_or_text(res, full_text):
+    if full_text:
+        if len(res.text.split("\n")) > 2:
+            content = [json.loads(text) for text in res.text.split("\n")[:-1]]
+        else:
+            content = [res.json()]
+    else:
+        content = [res.text]
+
+    return content
 
 
 def convert_to_pubtator(res_json):
@@ -192,7 +205,7 @@ def create_pubtator_str(pmid, title, annotation_list, relation_list):
                      f"{relation['role2']}")
                     for relation in relation_list]
 
-    return title_str + "\n".join(annotation_str) + "\n" + "\n".join(relation_str)
+    return title_str + "\n".join(annotation_str) + "\n" + "\n".join(relation_str) + "\n\n"
 
 
 def get_biocjson_annotations(res_json):
@@ -204,7 +217,8 @@ def get_biocjson_annotations(res_json):
     for annotation_entries in [res_json["passages"][i]["annotations"] for i in range(n_passages)]:
         for annotation_entry in annotation_entries:
             each_annotation = {}
-            each_annotation["id"] = annotation_entry["infons"]["normalized_id"]
+            id = annotation_entry["infons"]["normalized_id"]
+            each_annotation["id"] = "-" if id == "None" or id is None else id
             each_annotation["type"] = annotation_entry["infons"]["type"]
             each_annotation["locations"] = annotation_entry["locations"][0]
 
