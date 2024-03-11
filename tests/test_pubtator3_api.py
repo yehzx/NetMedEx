@@ -6,7 +6,7 @@ sys.path.append("../pubtator")
 from pathlib import Path
 
 from pubtator3_api import (parse_cite_response, send_publication_query,
-                           send_search_query, get_biocjson_annotations)
+                           send_search_query, get_biocjson_annotations, convert_to_pubtator)
 
 TESTDATA_DIR = Path(__file__).parent / "test_data"
 
@@ -67,3 +67,13 @@ def test_full_text():
         annotation_list = []
 
     assert len(annotation_list) == expected_len
+
+
+def test_biocjson_pubtator_equal():
+    pubtator_path = TESTDATA_DIR / "pubtator3.37026113.pubtator"
+    biocjson_path = TESTDATA_DIR / "pubtator3.37026113.json"
+    
+    with open(pubtator_path) as pubtator, open(biocjson_path) as cjson:
+        pubtator = pubtator.read()
+        cjson = convert_to_pubtator(json.load(cjson))
+        assert cjson == pubtator
