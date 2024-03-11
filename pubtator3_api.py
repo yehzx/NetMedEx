@@ -221,16 +221,22 @@ def get_biocjson_annotations(res_json):
             each_annotation["id"] = "-" if id == "None" or id is None else id
             each_annotation["type"] = annotation_entry["infons"]["type"]
             each_annotation["locations"] = annotation_entry["locations"][0]
+            
+            if each_annotation["type"] in ("Disease", "Chemical"):
+                if each_annotation["id"] != "-":
+                    each_annotation["id"] = f"MESH:{id}"
 
             # In type == "species", the entity name is stored in "text"
             if each_annotation["type"] == "Species":
                 each_annotation["name"] = annotation_entry["text"]
             else:
-                try:
-                    each_annotation["name"] = annotation_entry["infons"]["name"]
-                except KeyError:
-                    each_annotation["name"] = annotation_entry["text"]
-
+                # TODO: decide whether to keep the standardized MeSH term or the
+                # text in articles
+                # try:
+                #     each_annotation["name"] = annotation_entry["infons"]["name"]
+                # except KeyError:
+                #     each_annotation["name"] = annotation_entry["text"]
+                each_annotation["name"] = annotation_entry["text"]
             annotation_list.append(each_annotation)
 
     return annotation_list
