@@ -67,14 +67,15 @@ def get_by_search(query, max_articles):
 
     # Get search results in different pages until the max_articles is reached
     current_page = 1
-    with tqdm(total=n_articles_to_request) as pbar:
-        while current_page * page_size < n_articles_to_request:
-            pbar.update(page_size)
-            current_page += 1
-            res = send_search_query_with_page(query, current_page)
-            if request_successful(res):
-                article_list.extend(get_article_ids(res.json()))
-        pbar.n = pbar.total
+    with requests.Session() as session:
+        with tqdm(total=n_articles_to_request) as pbar:
+            while current_page * page_size < n_articles_to_request:
+                pbar.update(page_size)
+                current_page += 1
+                res = send_search_query_with_page(query, current_page, session)
+                if request_successful(res):
+                    article_list.extend(get_article_ids(res.json()))
+            pbar.n = pbar.total
 
     return article_list[:n_articles_to_request]
 
@@ -118,11 +119,13 @@ def send_search_query(query, type: Literal["search", "cite"] = QUERY_METHOD):
     return res
 
 
-def send_search_query_with_page(query, page):
+def send_search_query_with_page(query, page, session=None):
     search_url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/search/"
-    res = requests.get(search_url, params={"text": query,
-                                           "sort": "score desc",
-                                           "page": page})
+    params = {"text": query,"sort": "score desc", "page": page}
+    if session is None:
+        res = requests.get(search_url, params=params)
+    else:
+        res = session.get(search_url, params=params)
     time.sleep(0.5)
     return res
 
@@ -135,34 +138,41 @@ def request_successful(res):
 
 
 def get_article_ids(res_json):
-    return [article.get("pmid") for article in res_json["results"]]
+    return [str(article.get("pmid")) for article in res_json["results"]]
 
 
 def batch_publication_query(id_list, type, full_text=False):
     output = []
     format = "biocjson" if full_text else "pubtator"
-    with tqdm(total=len(id_list)) as pbar:
-        for start in range(0, len(id_list), PMID_REQUEST_SIZE):
-            end = start + PMID_REQUEST_SIZE
-            end = end if end < len(id_list) else None
-            res = send_publication_query(
-                ",".join(id_list[start:end]), type=type, format=format, full_text=full_text)
-            if request_successful(res):
-                output.extend(append_json_or_text(res, full_text))
-            if end is not None:
-                pbar.update(PMID_REQUEST_SIZE)
-            else:
-                pbar.n = len(id_list)
+    with requests.Session() as session:
+        with tqdm(total=len(id_list)) as pbar:
+            for start in range(0, len(id_list), PMID_REQUEST_SIZE):
+                end = start + PMID_REQUEST_SIZE
+                end = end if end < len(id_list) else None
+                res = send_publication_query(
+                    ",".join(id_list[start:end]),
+                    type=type, format=format, full_text=full_text,
+                    session=session)
+                if request_successful(res):
+                    output.extend(append_json_or_text(res, full_text))
+                if end is not None:
+                    pbar.update(PMID_REQUEST_SIZE)
+                else:
+                    pbar.n = len(id_list)
 
     return output
 
 
-def send_publication_query(article_id, type: Literal["pmids", "pmcids"], format, full_text=False):
+def send_publication_query(article_id, type: Literal["pmids", "pmcids"], format,
+                           full_text=False, session=None):
     pub_url = f"https://www.ncbi.nlm.nih.gov/research/pubtator3-api/publications/export/{format}"
     params = {type: article_id}
     if full_text:
         params["full"] = "true"
-    res = requests.get(pub_url, params=params)
+    if session is None:
+        res = requests.get(pub_url, params=params)
+    else:
+        res = session.get(pub_url, params=params)
     time.sleep(0.5)
     return res
 
