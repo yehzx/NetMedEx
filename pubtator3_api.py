@@ -19,26 +19,31 @@ QUERY_METHOD = ["search", "cite"][1]
 
 
 def run_query_pipeline(query, savepath, type: Literal["query", "pmids"],
-                       name, max_articles=1000, full_text=False):
+                       name, max_articles=1000, full_text=False,
+                       standardized=False):
     if type == "query":
         pmid_list = get_search_results(query, max_articles)
-        output = batch_publication_query(
-            pmid_list, type="pmids", full_text=full_text)
-        if full_text:
-            output = [convert_to_pubtator(i) for i in output]
-        output_path = savepath / \
-            f"{query}.pubtator" if name is None else savepath / f"{name}.pubtator"
-        write_output(output, savepath=output_path)
+        if name is None:
+            output_path = savepath / f"{query}.pubtator"
+        else:
+            output_path = savepath / f"{name}.pubtator"
     elif type == "pmids":
-        output = batch_publication_query(
-            query, type="pmids", full_text=full_text)
-        if full_text:
-            output = [convert_to_pubtator(i) for i in output]
+        pmid_list = query
         now = datetime.now().strftime("%Y%m%d%H%M%S")
-        output_path = savepath / \
-            f"result_{now}.pubtator" if name is None else savepath / \
-            f"{name}.pubtator"
-        write_output(output, savepath=output_path)
+        if name is None:
+            output_path = savepath / f"result_{now}.pubtator"
+        else:
+            output_path = savepath / f"{name}.pubtator"
+        
+    output = batch_publication_query(pmid_list, type="pmids",
+                                     full_text=full_text,
+                                     standardized=standardized)
+    if standardized:
+        output = [convert_to_pubtator(i, retain_ori_text=False, role_type="name") for i in output]
+    elif full_text:
+        output = [convert_to_pubtator(i, retain_ori_text=True, role_type="name") for i in output]
+
+    write_output(output, savepath=output_path)
 
 
 def get_search_results(query, max_articles):
@@ -141,9 +146,9 @@ def get_article_ids(res_json):
     return [str(article.get("pmid")) for article in res_json["results"]]
 
 
-def batch_publication_query(id_list, type, full_text=False):
+def batch_publication_query(id_list, type, full_text=False, standardized=False):
     output = []
-    format = "biocjson" if full_text else "pubtator"
+    format = "biocjson" if standardized or full_text else "pubtator"
     with requests.Session() as session:
         with tqdm(total=len(id_list)) as pbar:
             for start in range(0, len(id_list), PMID_REQUEST_SIZE):
@@ -154,7 +159,7 @@ def batch_publication_query(id_list, type, full_text=False):
                     type=type, format=format, full_text=full_text,
                     session=session)
                 if request_successful(res):
-                    output.extend(append_json_or_text(res, full_text))
+                    output.extend(append_json_or_text(res, full_text, standardized))
                 if end is not None:
                     pbar.update(PMID_REQUEST_SIZE)
                 else:
@@ -177,8 +182,8 @@ def send_publication_query(article_id, type: Literal["pmids", "pmcids"], format,
     return res
 
 
-def append_json_or_text(res, full_text):
-    if full_text:
+def append_json_or_text(res, full_text, standardized):
+    if full_text or standardized:
         if len(res.text.split("\n")) > 2:
             content = [json.loads(text) for text in res.text.split("\n")[:-1]]
         else:
@@ -189,13 +194,12 @@ def append_json_or_text(res, full_text):
     return content
 
 
-def convert_to_pubtator(res_json):
+def convert_to_pubtator(res_json, retain_ori_text=True, role_type: Literal["identifier", "name"] = "identifier"):
     pmid = res_json["pmid"]
     title = res_json["passages"][0]["text"]
-    annotation_list = get_biocjson_annotations(res_json)
-    relation_list = get_biocjson_relations(res_json)
-    converted_str = create_pubtator_str(
-        pmid, title, annotation_list, relation_list)
+    annotation_list = get_biocjson_annotations(res_json, retain_ori_text)
+    relation_list = get_biocjson_relations(res_json, role_type)
+    converted_str = create_pubtator_str(pmid, title, annotation_list, relation_list)
 
     return converted_str
 
@@ -218,7 +222,7 @@ def create_pubtator_str(pmid, title, annotation_list, relation_list):
     return title_str + "\n".join(annotation_str) + "\n" + "\n".join(relation_str) + "\n\n"
 
 
-def get_biocjson_annotations(res_json):
+def get_biocjson_annotations(res_json, retain_ori_text):
     n_passages = len(res_json["passages"])
     passages_type = [res_json["passages"][i]["infons"]["type"]
                      for i in range(n_passages)]
@@ -240,25 +244,28 @@ def get_biocjson_annotations(res_json):
             if each_annotation["type"] == "Species":
                 each_annotation["name"] = annotation_entry["text"]
             else:
-                # TODO: decide whether to keep the standardized MeSH term or the
+                # Whether to keep the standardized MeSH term or the
                 # text in articles
-                # try:
-                #     each_annotation["name"] = annotation_entry["infons"]["name"]
-                # except KeyError:
-                #     each_annotation["name"] = annotation_entry["text"]
-                each_annotation["name"] = annotation_entry["text"]
+                # If retain_ori_text, keep the original text
+                if retain_ori_text:
+                    each_annotation["name"] = annotation_entry["text"]
+                else:
+                    try:
+                        each_annotation["name"] = annotation_entry["infons"]["name"]
+                    except KeyError:
+                        each_annotation["name"] = annotation_entry["text"]
             annotation_list.append(each_annotation)
 
     return annotation_list
 
 
-def get_biocjson_relations(res_json):
+def get_biocjson_relations(res_json, role_type):
     n_relations = len(res_json["relations"])
     relation_list = []
     for relation_entry in res_json["relations"]:
         each_relation = {}
-        each_relation["role1"] = relation_entry["infons"]["role1"]["identifier"]
-        each_relation["role2"] = relation_entry["infons"]["role2"]["identifier"]
+        each_relation["role1"] = relation_entry["infons"]["role1"][role_type]
+        each_relation["role2"] = relation_entry["infons"]["role2"][role_type]
         each_relation["type"] = relation_entry["infons"]["type"]
         relation_list.append(each_relation)
 
@@ -313,6 +320,8 @@ if __name__ == "__main__":
                         help="Maximal articles to request from the searching result (default: 1000)")
     parser.add_argument("--full_text", action="store_true",
                         help="Get full-text annotations")
+    parser.add_argument("--standardized_name", action="store_true",
+                        help="Obtain standardized names rather than the original text in articles")
     args = parser.parse_args()
 
     output_dir = Path(args.output)
@@ -325,7 +334,8 @@ if __name__ == "__main__":
                            type="query",
                            name=args.name,
                            max_articles=args.max_articles,
-                           full_text=args.full_text)
+                           full_text=args.full_text,
+                           standardized=args.standardized_name)
         sys.exit()
     elif args.pmids is not None:
         pmids = args.pmids.split(",")
@@ -339,4 +349,5 @@ if __name__ == "__main__":
                        type="pmids",
                        name=args.name,
                        max_articles=args.max_articles,
-                       full_text=args.full_text)
+                       full_text=args.full_text,
+                       standardized=args.standardized_name)
