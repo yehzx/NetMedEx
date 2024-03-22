@@ -1,13 +1,14 @@
-import networkx as nx
-from collections import defaultdict
-from typing import DefaultDict
-from itertools import count
 import re
-from lxml.etree import QName
-from lxml.builder import ElementMaker, E
-from lxml import etree
+import sys
 from argparse import ArgumentParser
+from collections import defaultdict
+from itertools import count
+from typing import DefaultDict
 
+import networkx as nx
+from lxml import etree
+from lxml.builder import E, ElementMaker
+from lxml.etree import QName
 
 XML_NAMESPACE = {
     "cy": "http://www.cytoscape.org",
@@ -19,7 +20,9 @@ for prefix, uri in XML_NAMESPACE.items():
     etree.register_namespace(prefix, uri)
 
 
-VARIANT_PATTERN = re.compile(r"CorrespondingGene:.*CorrespondingSpecies:\d+")
+# VARIANT_PATTERN = re.compile(r"CorrespondingGene:.*CorrespondingSpecies:\d+")
+VARIANT_PATTERN = re.compile(r"CorrespondingGene:\d+;RS#:\d+")
+DNAMUTATION_PATTERNS = re.compile(r"(tmVar:.*);(VariantGroup:\d+);(CorrespondingGene:\d+);(CorrespondingSpecies:\d+)")
 HGVS_PATTERN = re.compile(r"(HGVS:.*?);")
 # PARSE_LINE_TYPE = ["annotation", "relation"][1]
 TYPE_ATTR = {"string": {"type": "string", QName(XML_NAMESPACE["cy"], "type"): "String"},
@@ -52,7 +55,9 @@ def pubtator2cytoscape(filepath, savepath, args):
     remove_edges_by_weight(G, args.cut_weight)
     remove_isolated_nodes(G)
 
-    # pos = nx.spring_layout(G)
+    pos = nx.spring_layout(G, weight="scaled_weight")
+    nx.set_node_attributes(G, pos, "pos")
+
     save_xgmml(G, savepath) 
 
 
@@ -92,6 +97,9 @@ def parse_line(line, node_dict: dict, edge_dict: DefaultDict[tuple, list],
             parse_node_by_name(line, node_dict)
     elif line_type == "relation":
         pmid, relationship, name_1, name_2 = line.strip("\n").split("\t")
+        # TODO: better way to deal with DNAMutation 
+        name_1 = name_1.split("|")[0]
+        name_2 = name_2.split("|")[0]
         edge_dict[(name_1, name_2)].append({"pmid": pmid, "relationship": relationship, "xml_id": xml_id_counter()})
         node_in_relation.add(name_1)
         node_in_relation.add(name_2)
@@ -100,11 +108,14 @@ def parse_line(line, node_dict: dict, edge_dict: DefaultDict[tuple, list],
 def parse_node_by_mesh(line, node_dict):
     pmid, start, end, name, type, id = line.strip("\n").split("\t")
 
-    if type == "DNAMutation":
+    # Skip line with no id 
+    if id in ("", "-"):
         return
-    # FIXME: PubTator Association has strange ids for SNP and ProteinMutation
+    if type == "DNAMutation":
+        string = re.search(DNAMUTATION_PATTERNS, id)
+        tmvar, var_group, gene, species = string.group(1), string.group(2), string.group(3), string.group(4)
+        id = f"{gene};{species};{var_group};{tmvar.split('|')[0]}"
     elif type in ("SNP", "ProteinMutation"):
-            # [..., CorrespondingGene, Name, CorrespondingSpecies]
         string = re.search(VARIANT_PATTERN, id).group(0)
         string = string.split(";")
 
@@ -114,11 +125,10 @@ def parse_node_by_mesh(line, node_dict):
         elif type == "SNP":
             id = ";".join(reversed(string))
     else:
-        # FIXME: maybe try name mapping approach
         # Some genes contain more than one ID
         id = id.split(";")[0]
 
-    if id in node_dict:
+    if id in node_dict and type != node_dict[id]["type"]:
         current_line = {"id": id, "type": type, "name": name, "xml_id": xml_id_counter()}
         print(f"Found collision of MeSH:\n{node_dict[id]}\n{current_line}")
         print("Discard the latter\n")
@@ -130,7 +140,7 @@ def parse_node_by_mesh(line, node_dict):
 def parse_node_by_name(line, node_dict):
     pmid, start, end, name, type, id = line.strip("\n").split("\t")
 
-    if name in node_dict:
+    if name in node_dict and type != node_dict[name]["type"]:
         current_line = {"id": id, "type": type, "name": name, "xml_id": xml_id_counter()}
         print(f"Found collision of name:\n{node_dict[name]}\n{current_line}")
         print("Discard the latter\n")
@@ -251,10 +261,8 @@ def create_graphic_xml():
 def create_node_xml(G):
     node_collection = []
     for node in G.nodes(data=True):
-        try:
-            node_collection.append(_create_node_xml(node))
-        except Exception as e:
-            print(e)
+        node_collection.append(_create_node_xml(node))
+
     return node_collection
 
 
@@ -263,6 +271,7 @@ def _create_node_xml(node):
 
     _node_attr = {"id": node_attr["xml_id"], "label": node_attr["name"]}
     _graphics_attr = {"width": "0.0", "h": "35.0", "w": "35.0", "z": "0.0",
+                      "x": str(round(node_attr["pos"][0], 3)), "y": str(round(node_attr["pos"][1], 3)),
                       "type": node_attr["shape"], "outline": "#CCCCCC",
                       "fill": node_attr["color"]}
 
@@ -300,10 +309,7 @@ def _create_node_xml(node):
 def create_edge_xml(G):
     edge_collection = []
     for edge in G.edges(data=True):
-        try:
-            edge_collection.append(_create_edge_xml(edge, G))
-        except Exception as e:
-            print(e)
+        edge_collection.append(_create_edge_xml(edge, G))
 
     return edge_collection
 
@@ -372,7 +378,11 @@ if __name__ == "__main__":
     parser.add_argument("-i", "--index_by", choices=["mesh", "name"], default="mesh",
                         help="Which info nodes and edges are indexed by")
     args = parser.parse_args()
-    filepath = "./examples/example_output.pubtator"
+    # TODO: index_by name not yet implemented
+    if args.index_by == "name":
+        sys.exit()      
+
+    filepath = "./examples/example_output_1.pubtator"
     savepath = "./temp_xml.xgmml"
     pubtator2cytoscape(filepath, savepath, args)
 # nx.draw_networkx(G, pos=pos, with_labels=False, node_size=5)
