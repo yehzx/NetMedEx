@@ -4,7 +4,6 @@ import json
 import sys
 import time
 from collections import OrderedDict
-from datetime import datetime
 from pathlib import Path
 from typing import Literal
 
@@ -19,21 +18,12 @@ QUERY_METHOD = ["search", "cite"][1]
 DEBUG_MODE = False
 
 def run_query_pipeline(query, savepath, type: Literal["query", "pmids"],
-                       name, max_articles=1000, full_text=False,
+                       max_articles=1000, full_text=False,
                        standardized=False):
     if type == "query":
         pmid_list = get_search_results(query, max_articles)
-        if name is None:
-            output_path = savepath / f"{query}.pubtator"
-        else:
-            output_path = savepath / f"{name}.pubtator"
     elif type == "pmids":
         pmid_list = query
-        now = datetime.now().strftime("%Y%m%d%H%M%S")
-        if name is None:
-            output_path = savepath / f"result_{now}.pubtator"
-        else:
-            output_path = savepath / f"{name}.pubtator"
         
     output = batch_publication_query(pmid_list, type="pmids",
                                      full_text=full_text,
@@ -43,7 +33,7 @@ def run_query_pipeline(query, savepath, type: Literal["query", "pmids"],
     elif full_text:
         output = [convert_to_pubtator(i, retain_ori_text=True, role_type="identifier") for i in output]
 
-    write_output(output, savepath=output_path)
+    write_output(output, savepath=savepath)
 
 
 def get_search_results(query, max_articles):
@@ -318,14 +308,26 @@ def drop_if_not_num(id_list):
     return checked_list
 
 
+def create_savepath(output, type, **kwargs):
+    if args.output is None:
+        if type == "query":
+            savepath = Path(f"./query_{kwargs['name']}.pubtator")
+        elif type == "pmids":
+            pmids = kwargs["pmid_list"]
+            savepath = Path(f"./pmids_{pmids[0]}_total_{len(pmids)}.pubtator")
+    else:
+        savepath = Path(args.output)
+        savepath.parent.mkdir(parents=True, exist_ok=True)
+    
+    return savepath
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-q", "--query", default=None,
                         help="Query string")
-    parser.add_argument("-o", "--output", default="./",
-                        help="Output directory (default: ./)")
-    parser.add_argument("-n", "--name", default=None,
-                        help="Filename")
+    parser.add_argument("-o", "--output", default=None,
+                        help="Output path")
     parser.add_argument("-p", "--pmids", default=None, type=str,
                         help="PMIDs for the articles (comma-separated)")
     parser.add_argument("-f", "--pmid_file", default=None,
@@ -338,15 +340,12 @@ if __name__ == "__main__":
                         help="Obtain standardized names rather than the original text in articles")
     args = parser.parse_args()
 
-    output_dir = Path(args.output)
-    if not output_dir.is_dir():
-        raise Exception(f"{output_dir} is not a directory")
 
     if args.query is not None:
+        savepath = create_savepath(args.output, type="query", name=args.query)
         run_query_pipeline(query=args.query,
-                           savepath=output_dir,
+                           savepath=savepath,
                            type="query",
-                           name=args.name,
                            max_articles=args.max_articles,
                            full_text=args.full_text,
                            standardized=args.standardized_name)
@@ -358,10 +357,10 @@ if __name__ == "__main__":
     elif args.pmid_file is not None:
         pmids = load_pmids(args.pmid_file)
 
+    savepath = create_savepath(args.output, type="pmids", pmid_list=pmids)
     run_query_pipeline(query=pmids,
-                       savepath=output_dir,
+                       savepath=savepath,
                        type="pmids",
-                       name=args.name,
                        max_articles=args.max_articles,
                        full_text=args.full_text,
                        standardized=args.standardized_name)
