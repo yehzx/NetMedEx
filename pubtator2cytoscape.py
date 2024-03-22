@@ -46,7 +46,7 @@ SHAPE_MAP = {"Chemical": "ELLIPSE",
 
 def pubtator2cytoscape(filepath, savepath, args):
     G = nx.Graph()
-    result = parse_pubtator(filepath)
+    result = parse_pubtator(filepath, args.index_by)
     add_node_to_graph(G, result["node_dict"], result["node_in_relation"])
     add_edge_to_graph(G, result["edge_dict"])
     remove_edges_by_weight(G, args.cut_weight)
@@ -63,7 +63,7 @@ def save_xgmml(G: nx.Graph, savepath):
                 xml_declaration=True, standalone="yes", pretty_print=True))
 
 
-def parse_pubtator(filepath):
+def parse_pubtator(filepath, index_by):
     node_dict = {}
     edge_dict = defaultdict(list)
     node_in_relation = set()
@@ -71,7 +71,7 @@ def parse_pubtator(filepath):
         for line in f.readlines():
             if is_title(line):
                 continue
-            parse_line(line, node_dict, edge_dict, node_in_relation)
+            parse_line(line, node_dict, edge_dict, node_in_relation, index_by)
     
     return {"node_dict": node_dict,
             "node_in_relation": node_in_relation,
@@ -82,34 +82,61 @@ def is_title(line):
     return line.find("|t|") != -1
 
 
-def parse_line(line, node_dict: dict, edge_dict: DefaultDict[tuple, list], node_in_relation: set):
+def parse_line(line, node_dict: dict, edge_dict: DefaultDict[tuple, list],
+               node_in_relation: set, index_by):
     line_type = determine_line_type(line)
     if line_type == "annotation":
-        pmid, start, end, name, type, id = line.strip("\n").split("\t")
-
-        # FIXME: PubTator Association has strange ids for SNP and ProteinMutation
-        if type in ("SNP", "ProteinMutation"):
-            # [..., CorrespondingGene, Name, CorrespondingSpecies]
-            string = re.search(VARIANT_PATTERN, id).group(0)
-            string = string.split(";")
-
-            if type == "ProteinMutation":
-                hgvs = re.search(HGVS_PATTERN, id).group(1)
-                id = f"{string[1]};{hgvs};{string[0]}"
-            elif type == "SNP":
-                id = ";".join(reversed(string))
-        else:
-            # FIXME: maybe try name mapping approach
-            # Some genes contain more than one ID
-            id = id.split(";")[0]
-
-        node_dict.setdefault(
-            id, {"type": type, "name": name, "xml_id": xml_id_counter()})
+        if index_by == "mesh":
+            parse_node_by_mesh(line, node_dict)
+        elif index_by == "name":
+            parse_node_by_name(line, node_dict)
     elif line_type == "relation":
         pmid, relationship, name_1, name_2 = line.strip("\n").split("\t")
         edge_dict[(name_1, name_2)].append({"pmid": pmid, "relationship": relationship, "xml_id": xml_id_counter()})
         node_in_relation.add(name_1)
         node_in_relation.add(name_2)
+
+
+def parse_node_by_mesh(line, node_dict):
+    pmid, start, end, name, type, id = line.strip("\n").split("\t")
+
+    if type == "DNAMutation":
+        return
+    # FIXME: PubTator Association has strange ids for SNP and ProteinMutation
+    elif type in ("SNP", "ProteinMutation"):
+            # [..., CorrespondingGene, Name, CorrespondingSpecies]
+        string = re.search(VARIANT_PATTERN, id).group(0)
+        string = string.split(";")
+
+        if type == "ProteinMutation":
+            hgvs = re.search(HGVS_PATTERN, id).group(1)
+            id = f"{string[1]};{hgvs};{string[0]}"
+        elif type == "SNP":
+            id = ";".join(reversed(string))
+    else:
+        # FIXME: maybe try name mapping approach
+        # Some genes contain more than one ID
+        id = id.split(";")[0]
+
+    if id in node_dict:
+        current_line = {"id": id, "type": type, "name": name, "xml_id": xml_id_counter()}
+        print(f"Found collision of MeSH:\n{node_dict[id]}\n{current_line}")
+        print("Discard the latter\n")
+
+    node_dict.setdefault(
+        id, {"id": id, "type": type, "name": name, "xml_id": xml_id_counter()})
+
+
+def parse_node_by_name(line, node_dict):
+    pmid, start, end, name, type, id = line.strip("\n").split("\t")
+
+    if name in node_dict:
+        current_line = {"id": id, "type": type, "name": name, "xml_id": xml_id_counter()}
+        print(f"Found collision of name:\n{node_dict[name]}\n{current_line}")
+        print("Discard the latter\n")
+
+    node_dict.setdefault(
+        name, {"id": id, "type": type, "name": name, "xml_id": xml_id_counter()})
 
 
 def determine_line_type(line):
@@ -146,7 +173,7 @@ def add_node_to_graph(G: nx.Graph, node_dict, node_in_relation):
                        name=node_dict[id]["name"],
                        xml_id=node_dict[id]["xml_id"])
         except Exception:
-            pass 
+            print(f"Skip node: {id}")
 
 
 def add_edge_to_graph(G: nx.Graph, edge_counter):
@@ -159,7 +186,7 @@ def add_edge_to_graph(G: nx.Graph, edge_counter):
                     weight=len(unique_pmids),
                     pmids=",".join(list(unique_pmids)))
         except Exception:
-            pass
+            print(f"Skip edge: ({pair[0]}, {pair[1]})")
     
     # Scaled weight (scaled by max only)
     weights = nx.get_edge_attributes(G, "weight")
@@ -226,8 +253,8 @@ def create_node_xml(G):
     for node in G.nodes(data=True):
         try:
             node_collection.append(_create_node_xml(node))
-        except Exception:
-            pass
+        except Exception as e:
+            print(e)
     return node_collection
 
 
@@ -275,8 +302,8 @@ def create_edge_xml(G):
     for edge in G.edges(data=True):
         try:
             edge_collection.append(_create_edge_xml(edge, G))
-        except Exception:
-            pass
+        except Exception as e:
+            print(e)
 
     return edge_collection
 
@@ -342,6 +369,8 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("-w", "--cut_weight", type=int, default=5,
                         help="Discard the edges with weight smaller than the specified value (default: 5)")
+    parser.add_argument("-i", "--index_by", choices=["mesh", "name"], default="mesh",
+                        help="Which info nodes and edges are indexed by")
     args = parser.parse_args()
     filepath = "./examples/example_output.pubtator"
     savepath = "./temp_xml.xgmml"
