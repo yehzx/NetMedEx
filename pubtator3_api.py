@@ -16,7 +16,7 @@ PMID_REQUEST_SIZE = 100
 QUERY_METHOD = ["search", "cite"][1]
 # Full text annotation is only availabe in `biocxml` and `biocjson` formats
 # RESPONSE_FORMAT = ["pubtator", "biocxml", "biocjson"][2]
-
+DEBUG_MODE = False
 
 def run_query_pipeline(query, savepath, type: Literal["query", "pmids"],
                        name, max_articles=1000, full_text=False,
@@ -39,9 +39,9 @@ def run_query_pipeline(query, savepath, type: Literal["query", "pmids"],
                                      full_text=full_text,
                                      standardized=standardized)
     if standardized:
-        output = [convert_to_pubtator(i, retain_ori_text=False, role_type="name") for i in output]
+        output = [convert_to_pubtator(i, retain_ori_text=False, role_type="identifier") for i in output]
     elif full_text:
-        output = [convert_to_pubtator(i, retain_ori_text=True, role_type="name") for i in output]
+        output = [convert_to_pubtator(i, retain_ori_text=True, role_type="identifier") for i in output]
 
     write_output(output, savepath=output_path)
 
@@ -71,6 +71,7 @@ def get_by_search(query, max_articles):
     n_articles_to_request = get_n_articles(max_articles, total_articles)
 
     # Get search results in different pages until the max_articles is reached
+    print("Obtaining article PMIDs...")
     current_page = 1
     with requests.Session() as session:
         with tqdm(total=n_articles_to_request) as pbar:
@@ -86,13 +87,14 @@ def get_by_search(query, max_articles):
 
 
 def get_n_articles(max_articles, total_articles):
-    print(f"Get {total_articles} articles")
+    print(f"Find {total_articles} articles")
     n_articles_to_request = max_articles if total_articles > max_articles else total_articles
     print(f"Requesting {n_articles_to_request} articles...")
     return n_articles_to_request
 
 
 def get_by_cite(query, max_articles):
+    print("Obtaining article PMIDs...")
     res = send_search_query(query, type="cite")
     if not request_successful(res):
         return OrderedDict()
@@ -164,7 +166,13 @@ def batch_publication_query(id_list, type, full_text=False, standardized=False):
                     pbar.update(PMID_REQUEST_SIZE)
                 else:
                     pbar.n = len(id_list)
-
+    
+    if DEBUG_MODE:
+        import json
+        with open("./dump.txt", "w") as f:
+            for o in output:
+                f.write(json.dumps(o))
+                f.write("\n")
     return output
 
 
@@ -227,33 +235,34 @@ def get_biocjson_annotations(res_json, retain_ori_text):
     passages_type = [res_json["passages"][i]["infons"]["type"]
                      for i in range(n_passages)]
     annotation_list = []
-    # TODO: extract from specific passages only?
+    # TODO: extract from specific passages only (if full_text)? 
     for annotation_entries in [res_json["passages"][i]["annotations"] for i in range(n_passages)]:
         for annotation_entry in annotation_entries:
             each_annotation = {}
-            id = annotation_entry["infons"]["normalized_id"]
+            try:
+                id = annotation_entry["infons"]["identifier"]
+            except:
+                id = "-" 
             each_annotation["id"] = "-" if id == "None" or id is None else id
             each_annotation["type"] = annotation_entry["infons"]["type"]
             each_annotation["locations"] = annotation_entry["locations"][0]
             
-            if each_annotation["type"] in ("Disease", "Chemical"):
-                if each_annotation["id"] != "-":
-                    each_annotation["id"] = f"MESH:{id}"
-
+            if retain_ori_text:
+                each_annotation["name"] = annotation_entry["text"]
             # In type == "species", the entity name is stored in "text"
-            if each_annotation["type"] == "Species":
+            elif each_annotation["type"] == "Species":
+                each_annotation["name"] = annotation_entry["text"]
+            # Variant can be either SNP, DNAMutation, or ProteinMutation
+            elif each_annotation["type"] == "Variant":
+                each_annotation["type"] = annotation_entry["infons"]["subtype"]
+                each_annotation["name"] = annotation_entry["infons"]["name"]
+            elif annotation_entry["infons"].get("database", "none") == "omim":
                 each_annotation["name"] = annotation_entry["text"]
             else:
-                # Whether to keep the standardized MeSH term or the
-                # text in articles
-                # If retain_ori_text, keep the original text
-                if retain_ori_text:
+                try:
+                    each_annotation["name"] = annotation_entry["infons"]["name"]
+                except KeyError:
                     each_annotation["name"] = annotation_entry["text"]
-                else:
-                    try:
-                        each_annotation["name"] = annotation_entry["infons"]["name"]
-                    except KeyError:
-                        each_annotation["name"] = annotation_entry["text"]
             annotation_list.append(each_annotation)
 
     return annotation_list
@@ -320,7 +329,7 @@ if __name__ == "__main__":
                         help="Maximal articles to request from the searching result (default: 1000)")
     parser.add_argument("--full_text", action="store_true",
                         help="Get full-text annotations")
-    parser.add_argument("--standardized_name", action="store_true",
+    parser.add_argument("--standardized_name", action="store_true", 
                         help="Obtain standardized names rather than the original text in articles")
     args = parser.parse_args()
 
