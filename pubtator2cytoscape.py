@@ -1,11 +1,12 @@
 import networkx as nx
-from collections import OrderedDict, defaultdict
-from typing import DefaultDict, List
+from collections import defaultdict
+from typing import DefaultDict
 from itertools import count
 import re
 from lxml.etree import QName
 from lxml.builder import ElementMaker, E
 from lxml import etree
+from argparse import ArgumentParser
 
 
 XML_NAMESPACE = {
@@ -43,11 +44,13 @@ SHAPE_MAP = {"Chemical": "ELLIPSE",
              "SNP": "OCTAGON"}
 
 
-def pubtator2cytoscape(filepath, savepath):
+def pubtator2cytoscape(filepath, savepath, args):
     G = nx.Graph()
     result = parse_pubtator(filepath)
     add_node_to_graph(G, result["node_dict"], result["node_in_relation"])
     add_edge_to_graph(G, result["edge_dict"])
+    remove_edges_by_weight(G, args.cut_weight)
+    remove_isolated_nodes(G)
 
     # pos = nx.spring_layout(G)
     save_xgmml(G, savepath) 
@@ -153,12 +156,30 @@ def add_edge_to_graph(G: nx.Graph, edge_counter):
         try:
             G.add_edge(pair[0], pair[1],
                     xml_id=records[0]["xml_id"],
-                    # TODO: try other types of weight determination
                     weight=len(unique_pmids),
                     pmids=",".join(list(unique_pmids)))
         except Exception:
             pass
+    
+    # Scaled weight (scaled by max only)
+    weights = nx.get_edge_attributes(G, "weight")
+    min_width = 1
+    max_width = 20
+    max_weight = max(weights.values())
+    for edge, weight in weights.items():
+        G.edges[edge]["scaled_weight"] = int(weight / max_weight * (max_width - min_width) + min_width)
 
+
+def remove_edges_by_weight(G: nx.Graph, cut_weight):
+    scaled_weights = nx.get_edge_attributes(G, "scaled_weight")
+    for edge, scaled_weight in scaled_weights.items():
+        if scaled_weight < cut_weight:
+            G.remove_edge(edge[0], edge[1])
+
+
+def remove_isolated_nodes(G: nx.Graph):
+    G.remove_nodes_from(list(nx.isolates(G)))
+        
 
 def create_graph_xml(G):
     _dummy_attr = {QName(XML_NAMESPACE["dc"], "dummy"): "",
@@ -270,7 +291,7 @@ def _create_edge_xml(edge, G):
                   QName(XML_NAMESPACE["cy"], "directed"): "1"
                   }
 
-    _graphics_attr = {"width": str(edge_attr["weight"]), "fill": "#848484"}
+    _graphics_attr = {"width": str(edge_attr["scaled_weight"]), "fill": "#848484"}
 
     edge = (
         E.edge(_edge_attr,
@@ -281,7 +302,7 @@ def _create_edge_xml(edge, G):
             E.att(name_value("interaction", "interacts with")),
             E.att(name_value("weight", str(edge_attr["weight"]), with_type="integer")),
             # TODO: implement scaled weight
-            # E.att(name_value("scaled weight", edge_attr["scaled weight"], with_type="integer")),
+            E.att(name_value("scaled weight", str(edge_attr["scaled_weight"]), with_type="integer")),
             E.att(name_value("pubmed id", edge_attr["pmids"])),
             E.graphics(_graphics_attr,
                 E.att(name_value("EDGE_TOOLTIP", "")),
@@ -318,8 +339,12 @@ def _create_edge_xml(edge, G):
 
 
 if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument("-w", "--cut_weight", type=int, default=5,
+                        help="Discard the edges with weight smaller than the specified value (default: 5)")
+    args = parser.parse_args()
     filepath = "./examples/example_output.pubtator"
     savepath = "./temp_xml.xgmml"
-    pubtator2cytoscape(filepath, savepath)
+    pubtator2cytoscape(filepath, savepath, args)
 # nx.draw_networkx(G, pos=pos, with_labels=False, node_size=5)
 # nx.write_graphml_lxml(G, "example_graph.graphml")
