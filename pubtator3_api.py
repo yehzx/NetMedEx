@@ -118,24 +118,32 @@ def parse_cite_response(res_text):
 
 def send_search_query(query, type: Literal["search", "cite"] = QUERY_METHOD):
     if type == "search":
-        search_url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/search/"
+        url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/search/"
     elif type == "cite":
-        search_url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/cite/tsv"
-    res = requests.get(search_url, params={"text": query})
+        url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/cite/tsv"
+    res = requests.get(url, params={"text": query})
     time.sleep(0.5)
     return res
 
 
 def send_search_query_with_page(query, page, session=None):
-    search_url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/search/"
+    url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/search/"
     params = {"text": query,"sort": "score desc", "page": page}
-    if session is None:
-        res = requests.get(search_url, params=params)
-    else:
-        res = session.get(search_url, params=params)
+    res = handle_session_get(url, params, session)
     time.sleep(0.5)
     return res
 
+
+def handle_session_get(url, params, session):
+    if session is None:
+        res = requests.get(url, params=params)
+    else:
+        try:
+            res = session.get(url, params=params)
+        except requests.exceptions.ConnectionError:
+            res = requests.get(url, params=params)
+
+    return res
 
 def request_successful(res):
     if res.status_code != 200:
@@ -178,14 +186,11 @@ def batch_publication_query(id_list, type, full_text=False, standardized=False):
 
 def send_publication_query(article_id, type: Literal["pmids", "pmcids"], format,
                            full_text=False, session=None):
-    pub_url = f"https://www.ncbi.nlm.nih.gov/research/pubtator3-api/publications/export/{format}"
+    url = f"https://www.ncbi.nlm.nih.gov/research/pubtator3-api/publications/export/{format}"
     params = {type: article_id}
     if full_text:
         params["full"] = "true"
-    if session is None:
-        res = requests.get(pub_url, params=params)
-    else:
-        res = session.get(pub_url, params=params)
+    res = handle_session_get(url, params, session)
     time.sleep(0.5)
     return res
 
