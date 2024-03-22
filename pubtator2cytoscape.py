@@ -55,7 +55,7 @@ def pubtator2cytoscape(filepath, savepath, args):
     remove_edges_by_weight(G, args.cut_weight)
     remove_isolated_nodes(G)
 
-    pos = nx.spring_layout(G, weight="scaled_weight")
+    pos = nx.spring_layout(G, weight="scaled_weight", scale=300)
     nx.set_node_attributes(G, pos, "pos")
 
     save_xgmml(G, savepath) 
@@ -97,7 +97,7 @@ def parse_line(line, node_dict: dict, edge_dict: DefaultDict[tuple, list],
             parse_node_by_name(line, node_dict)
     elif line_type == "relation":
         pmid, relationship, name_1, name_2 = line.strip("\n").split("\t")
-        # TODO: better way to deal with DNAMutation 
+        # TODO: better way to deal with DNAMutation notation inconsistency
         name_1 = name_1.split("|")[0]
         name_2 = name_2.split("|")[0]
         edge_dict[(name_1, name_2)].append({"pmid": pmid, "relationship": relationship, "xml_id": xml_id_counter()})
