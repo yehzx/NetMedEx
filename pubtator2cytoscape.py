@@ -4,7 +4,7 @@ from argparse import ArgumentParser
 from collections import defaultdict
 from itertools import count
 from typing import DefaultDict
-
+from pathlib import Path
 import networkx as nx
 from lxml import etree
 from lxml.builder import E, ElementMaker
@@ -55,7 +55,7 @@ def pubtator2cytoscape(filepath, savepath, args):
     remove_edges_by_weight(G, args.cut_weight)
     remove_isolated_nodes(G)
 
-    pos = nx.spring_layout(G, weight="scaled_weight", scale=300)
+    pos = nx.spring_layout(G, weight="scaled_weight", scale=300, k=0.25, iterations=15)
     nx.set_node_attributes(G, pos, "pos")
 
     save_xgmml(G, savepath) 
@@ -126,16 +126,32 @@ def parse_node_by_mesh(line, node_dict):
             id = ";".join(reversed(string))
     else:
         # Some genes contain more than one ID
-        id = id.split(";")[0]
+        id_list = id.split(";")
+        # Keep all ids in node attributes
+        id = id_list[0] if len(id_list) == 1 else id_list
 
+
+    if isinstance(id, list):
+        for single_id in id:
+            if not node_id_collision(node_dict, name, type, single_id):
+                node_dict.setdefault(single_id, {"id": ",".join(id),
+                                                 "type": type, "name": name,
+                                                 "xml_id": xml_id_counter()})
+    else:
+        node_dict.setdefault(id, {"id": id, "type": type,
+                                  "name": name, "xml_id": xml_id_counter()})
+
+
+def node_id_collision(node_dict, name, type, id):
+    is_collision = False
     if id in node_dict and type != node_dict[id]["type"]:
         current_line = {"id": id, "type": type, "name": name, "xml_id": xml_id_counter()}
         print(f"Found collision of MeSH:\n{node_dict[id]}\n{current_line}")
         print("Discard the latter\n")
+        is_collision =  True
 
-    node_dict.setdefault(
-        id, {"id": id, "type": type, "name": name, "xml_id": xml_id_counter()})
-
+    return is_collision
+    
 
 def parse_node_by_name(line, node_dict):
     pmid, start, end, name, type, id = line.strip("\n").split("\t")
@@ -182,7 +198,7 @@ def add_node_to_graph(G: nx.Graph, node_dict, node_in_relation):
                        type=node_dict[id]["type"],
                        name=node_dict[id]["name"],
                        xml_id=node_dict[id]["xml_id"])
-        except Exception:
+        except KeyError:
             print(f"Skip node: {id}")
 
 
@@ -373,17 +389,24 @@ def _create_edge_xml(edge, G):
 
 if __name__ == "__main__":
     parser = ArgumentParser()
+    parser.add_argument("-i", "--input", type=str,
+                        help="Path to the pubtator file")
+    parser.add_argument("-o", "--output", default=None, 
+                        help="Output path (default: [INPUT FILEPATH].xgmml)")
     parser.add_argument("-w", "--cut_weight", type=int, default=5,
                         help="Discard the edges with weight smaller than the specified value (default: 5)")
-    parser.add_argument("-i", "--index_by", choices=["mesh", "name"], default="mesh",
+    parser.add_argument("--index_by", choices=["mesh", "name"], default="mesh",
                         help="Which info nodes and edges are indexed by")
     args = parser.parse_args()
     # TODO: index_by name not yet implemented
     if args.index_by == "name":
         sys.exit()      
 
-    filepath = "./examples/example_output_1.pubtator"
-    savepath = "./temp_xml.xgmml"
-    pubtator2cytoscape(filepath, savepath, args)
-# nx.draw_networkx(G, pos=pos, with_labels=False, node_size=5)
-# nx.write_graphml_lxml(G, "example_graph.graphml")
+    input_filepath = Path(args.input)
+    if args.output is None:
+        output_filepath = input_filepath.with_suffix(".xgmml")
+    else:
+        output_filepath = Path(args.output)
+        output_filepath.parent.mkdir(parents=True, exist_ok=True)
+
+    pubtator2cytoscape(input_filepath, output_filepath, args)
