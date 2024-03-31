@@ -15,7 +15,8 @@ PMID_REQUEST_SIZE = 100
 QUERY_METHOD = ["search", "cite"][1]
 # Full text annotation is only availabe in `biocxml` and `biocjson` formats
 # RESPONSE_FORMAT = ["pubtator", "biocxml", "biocjson"][2]
-DEBUG_MODE = False
+DEBUG = False
+
 
 def run_query_pipeline(query, savepath, type: Literal["query", "pmids"],
                        max_articles=1000, full_text=False,
@@ -165,7 +166,7 @@ def batch_publication_query(id_list, type, full_text=False, standardized=False):
                 else:
                     pbar.n = len(id_list)
     
-    if DEBUG_MODE:
+    if DEBUG:
         import json
         with open("./dump.txt", "w") as f:
             for o in output:
