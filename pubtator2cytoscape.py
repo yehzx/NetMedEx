@@ -21,9 +21,13 @@ for prefix, uri in XML_NAMESPACE.items():
 
 
 # VARIANT_PATTERN = re.compile(r"CorrespondingGene:.*CorrespondingSpecies:\d+")
-VARIANT_PATTERN = re.compile(r"CorrespondingGene:\d+;RS#:\d+")
-DNAMUTATION_PATTERNS = re.compile(r"(tmVar:.*);(VariantGroup:\d+);(CorrespondingGene:\d+);(CorrespondingSpecies:\d+)")
-HGVS_PATTERN = re.compile(r"(HGVS:.*?);")
+MUTATION_PATTERNS = {"tmvar": re.compile(r"(tmVar:[^;]+)"),
+                     "hgvs": re.compile(r"(HGVS:[^;]+)"),
+                     "rs": re.compile(r"(RS#:[^;]+)"),
+                     "variantgroup": re.compile(r"(VariantGroup:[^;]+)"),
+                     "gene": re.compile(r"(CorrespondingGene:[^;]+)"),
+                     "species": re.compile(r"(CorrespondingSpecies:[^;]+)"),
+                     "ca": re.compile(r"(CA#:[^;]+)")}
 # PARSE_LINE_TYPE = ["annotation", "relation"][1]
 TYPE_ATTR = {"string": {"type": "string", QName(XML_NAMESPACE["cy"], "type"): "String"},
              "boolean": {"type": "boolean", QName(XML_NAMESPACE["cy"], "type"): "Boolean"},
@@ -111,19 +115,20 @@ def parse_node_by_mesh(line, node_dict):
     # Skip line with no id 
     if id in ("", "-"):
         return
-    if type == "DNAMutation":
-        string = re.search(DNAMUTATION_PATTERNS, id)
-        tmvar, var_group, gene, species = string.group(1), string.group(2), string.group(3), string.group(4)
-        id = f"{gene};{species};{var_group};{tmvar.split('|')[0]}"
-    elif type in ("SNP", "ProteinMutation"):
-        string = re.search(VARIANT_PATTERN, id).group(0)
-        string = string.split(";")
-
-        if type == "ProteinMutation":
-            hgvs = re.search(HGVS_PATTERN, id).group(1)
-            id = f"{string[1]};{hgvs};{string[0]}"
+    if type in ("DNAMutation", "ProteinMutation", "SNP"):
+        res = {}
+        for key, pattern in MUTATION_PATTERNS.items():
+            try:
+                res[key] = f"{re.search(pattern, id).group(1)};"
+            except AttributeError:
+                res[key] = ""
+        
+        if type == "DNAMutation":
+            id = f'{res["gene"]}{res["species"]}{res["variantgroup"]}{res["tmvar"].split("|")[0]}'.strip(";")
+        elif type == "ProteinMutation":
+            id = f'{res["rs"]}{res["hgvs"]}{res["gene"]}'.strip(";")
         elif type == "SNP":
-            id = ";".join(reversed(string))
+            id = f'{res["rs"]}{res["hgvs"]}{res["gene"]}'.strip(";")
     else:
         # Some genes contain more than one ID
         id_list = id.split(";")
