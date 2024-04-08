@@ -6,6 +6,7 @@ import time
 from collections import OrderedDict
 from pathlib import Path
 from typing import Literal
+import logging
 
 import requests
 from tqdm.auto import tqdm
@@ -15,7 +16,8 @@ PMID_REQUEST_SIZE = 100
 QUERY_METHOD = ["search", "cite"][1]
 # Full text annotation is only availabe in `biocxml` and `biocjson` formats
 # RESPONSE_FORMAT = ["pubtator", "biocxml", "biocjson"][2]
-DEBUG = False
+
+logger = logging.getLogger(__name__)
 
 
 def run_query_pipeline(query, savepath, type: Literal["query", "pmids"],
@@ -38,7 +40,7 @@ def run_query_pipeline(query, savepath, type: Literal["query", "pmids"],
 
 
 def get_search_results(query, max_articles):
-    print(f"Query: {query}")
+    logger.info(f"Query: {query}")
     if QUERY_METHOD == "search":
         article_list = get_by_search(query, max_articles)
     elif QUERY_METHOD == "cite":
@@ -62,7 +64,7 @@ def get_by_search(query, max_articles):
     n_articles_to_request = get_n_articles(max_articles, total_articles)
 
     # Get search results in different pages until the max_articles is reached
-    print("Obtaining article PMIDs...")
+    logger.info("Obtaining article PMIDs...")
     current_page = 1
     with requests.Session() as session:
         with tqdm(total=n_articles_to_request) as pbar:
@@ -78,22 +80,30 @@ def get_by_search(query, max_articles):
 
 
 def get_n_articles(max_articles, total_articles):
-    print(f"Find {total_articles} articles")
+    logger.info(f"Find {total_articles} articles")
     n_articles_to_request = max_articles if total_articles > max_articles else total_articles
-    print(f"Requesting {n_articles_to_request} articles...")
+    logger.info(f"Requesting {n_articles_to_request} articles...")
     return n_articles_to_request
 
 
 def get_by_cite(query, max_articles):
-    print("Obtaining article PMIDs...")
+    logger.info("Obtaining article PMIDs...")
     res = send_search_query(query, type="cite")
     if not request_successful(res):
-        return OrderedDict()
+        unsuccessful_query(res.status_code)
 
     pmid_list = parse_cite_response(res.text)
     n_articles_to_request = get_n_articles(max_articles, len(pmid_list))
 
     return pmid_list[:n_articles_to_request]
+
+
+def unsuccessful_query(status_code):
+    if status_code == 502:
+        logger.info("Possibly too many articles. Please try more specific queries.")
+    else:
+        logger.info("Please retry later.")
+    sys.exit()
 
 
 def parse_cite_response(res_text):
@@ -126,19 +136,18 @@ def send_search_query_with_page(query, page, session=None):
 
 
 def handle_session_get(url, params, session):
-    if session is None:
+    try:
+        res = session.get(url, params=params)
+    except Exception:
         res = requests.get(url, params=params)
-    else:
-        try:
-            res = session.get(url, params=params)
-        except requests.exceptions.ConnectionError:
-            res = requests.get(url, params=params)
 
     return res
 
+
 def request_successful(res):
     if res.status_code != 200:
-        print("Unsuccessful request")
+        logger.info("Unsuccessful request")
+        logger.debug(f"Response status code: {res.status_code}")
         return False
     return True
 
@@ -280,11 +289,11 @@ def get_biocjson_relations(res_json, role_type):
 def write_output(output, savepath: Path):
     with open(savepath, "w") as f:
         f.writelines(output)
-        print(f"Save to {str(savepath)}")
+        logger.info(f"Save to {str(savepath)}")
 
 
 def load_pmids(filepath):
-    print(f"Load PMIDs from: {filepath}")
+    logger.info(f"Load PMIDs from: {filepath}")
     with open(filepath) as f:
         pmids = []
         for line in f.readlines():
@@ -292,7 +301,7 @@ def load_pmids(filepath):
 
     pmids = drop_if_not_num(pmids)
 
-    print(f"Find {len(pmids)} PMIDs")
+    logger.info(f"Find {len(pmids)} PMIDs")
 
     return pmids
 
@@ -323,6 +332,16 @@ def create_savepath(output, type, **kwargs):
     return savepath
 
 
+def config_logger(is_debug):
+    if is_debug:
+        logging.basicConfig(format="%(asctime)s [%(levelname)s] %(message)s",
+                            datefmt="%Y-%m-%d %H:%M:%S",
+                            level=logging.DEBUG)
+    else:
+        logging.basicConfig(format="%(message)s",
+                            level=logging.INFO)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-q", "--query", default=None,
@@ -339,8 +358,13 @@ if __name__ == "__main__":
                         help="Get full-text annotations")
     parser.add_argument("--standardized_name", action="store_true", 
                         help="Obtain standardized names rather than the original text in articles")
+    parser.add_argument("--debug", action="store_true",
+                        help="Print debug information")
     args = parser.parse_args()
 
+    DEBUG = args.debug
+
+    config_logger(DEBUG)
 
     if args.query is not None:
         savepath = create_savepath(args.output, type="query", name=args.query)
@@ -354,7 +378,7 @@ if __name__ == "__main__":
     elif args.pmids is not None:
         pmids = args.pmids.split(",")
         pmids = drop_if_not_num(pmids)
-        print(f"Find {len(pmids)} PMIDs")
+        logger.info(f"Find {len(pmids)} PMIDs")
     elif args.pmid_file is not None:
         pmids = load_pmids(args.pmid_file)
 
