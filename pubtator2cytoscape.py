@@ -76,11 +76,25 @@ def parse_pubtator(filepath, index_by):
     node_dict = {}
     edge_dict = defaultdict(list)
     node_in_relation = set()
+    pmid_idx = -1
+    last_pmid = -1
+    node_dict_each = {}
     with open(filepath) as f:
         for line in f.readlines():
             if is_title(line):
+                pmid_idx += 1
                 continue
-            parse_line(line, node_dict, edge_dict, node_in_relation, index_by)
+            if index_by == "mesh":
+                parse_line_mesh(line, node_dict, edge_dict, node_in_relation)
+            elif index_by == "name":
+                if pmid_idx != last_pmid:
+                    last_pmid = pmid_idx
+                    add_name_to_total(node_dict_each, node_dict, edge_dict)
+                    node_dict_each = {}
+                parse_line_name(line, node_dict_each)
+        add_name_to_total(node_dict_each, node_dict, edge_dict)
+    if index_by == "name":
+        node_in_relation = set(node_dict.keys())
     
     return {"node_dict": node_dict,
             "node_in_relation": node_in_relation,
@@ -91,14 +105,11 @@ def is_title(line):
     return line.find("|t|") != -1
 
 
-def parse_line(line, node_dict: dict, edge_dict: DefaultDict[tuple, list],
-               node_in_relation: set, index_by):
+def parse_line_mesh(line, node_dict: dict, edge_dict: DefaultDict[tuple, list],
+               node_in_relation: set):
     line_type = determine_line_type(line)
     if line_type == "annotation":
-        if index_by == "mesh":
-            parse_node_by_mesh(line, node_dict)
-        elif index_by == "name":
-            parse_node_by_name(line, node_dict)
+        parse_node_by_mesh(line, node_dict)
     elif line_type == "relation":
         pmid, relationship, name_1, name_2 = line.strip("\n").split("\t")
         # TODO: better way to deal with DNAMutation notation inconsistency
@@ -156,18 +167,32 @@ def node_id_collision(node_dict, name, type, id):
         is_collision =  True
 
     return is_collision
-    
+
+
+def add_name_to_total(node_dict_each, node_dict, edge_dict):
+    for name_1 in node_dict_each.keys():
+        for name_2 in node_dict_each.keys():
+            if name_1 != name_2:
+                edge_dict[(name_1, name_2)].append({"pmid": node_dict_each[name_1]["pmid"], "xml_id": xml_id_counter()})
+    node_dict.update(node_dict_each)
+
+
+def parse_line_name(line, node_dict):
+    line_type = determine_line_type(line)
+    if line_type == "annotation":
+        parse_node_by_name(line, node_dict)
+
 
 def parse_node_by_name(line, node_dict):
     pmid, start, end, name, type, id = line.strip("\n").split("\t")
 
     if name in node_dict and type != node_dict[name]["type"]:
-        current_line = {"id": id, "type": type, "name": name, "xml_id": xml_id_counter()}
+        current_line = {"id": id, "type": type, "name": name, "pmid": pmid, "xml_id": xml_id_counter()}
         print(f"Found collision of name:\n{node_dict[name]}\n{current_line}")
         print("Discard the latter\n")
 
     node_dict.setdefault(
-        name, {"id": id, "type": type, "name": name, "xml_id": xml_id_counter()})
+        name, {"id": id, "type": type, "name": name, "pmid": pmid, "xml_id": xml_id_counter()})
 
 
 def determine_line_type(line):
@@ -224,8 +249,10 @@ def add_edge_to_graph(G: nx.Graph, edge_counter):
     min_width = 1
     max_width = 20
     max_weight = max(weights.values())
+    scale_factor = min(max_width / max_weight, 1)
     for edge, weight in weights.items():
-        G.edges[edge]["scaled_weight"] = int(weight / max_weight * (max_width - min_width) + min_width)
+        G.edges[edge]["scaled_weight"] = max(int(weight * scale_factor), min_width)
+        # G.edges[edge]["scaled_weight"] = int(weight / max_weight * (max_width - min_width) + min_width)
 
 
 def remove_edges_by_weight(G: nx.Graph, cut_weight):
@@ -404,8 +431,8 @@ if __name__ == "__main__":
                         help="Which info nodes and edges are indexed by")
     args = parser.parse_args()
     # TODO: index_by name not yet implemented
-    if args.index_by == "name":
-        sys.exit()      
+    # if args.index_by == "name":
+    #     sys.exit()      
 
     input_filepath = Path(args.input)
     if args.output is None:
