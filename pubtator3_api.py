@@ -16,7 +16,7 @@ PMID_REQUEST_SIZE = 100
 QUERY_METHOD = ["search", "cite"][1]
 # Full text annotation is only availabe in `biocxml` and `biocjson` formats
 # RESPONSE_FORMAT = ["pubtator", "biocxml", "biocjson"][2]
-
+debug = False
 logger = logging.getLogger(__name__)
 
 
@@ -174,8 +174,8 @@ def batch_publication_query(id_list, type, full_text=False, standardized=False):
                     pbar.update(PMID_REQUEST_SIZE)
                 else:
                     pbar.n = len(id_list)
-    
-    if DEBUG:
+    global debug 
+    if debug:
         import json
         with open("./dump.txt", "w") as f:
             for o in output:
@@ -208,13 +208,18 @@ def append_json_or_text(res, full_text, standardized):
 
 
 def convert_to_pubtator(res_json, retain_ori_text=True, role_type: Literal["identifier", "name"] = "identifier"):
-    pmid = res_json["pmid"]
-    title = res_json["passages"][0]["text"]
-    annotation_list = get_biocjson_annotations(res_json, retain_ori_text)
-    relation_list = get_biocjson_relations(res_json, role_type)
-    converted_str = create_pubtator_str(pmid, title, annotation_list, relation_list)
+    # 2024/05/26: PubTator has changed the format of the response
+    res_json = res_json["PubTator3"]
 
-    return converted_str
+    converted_strs = []
+    for each_res_json in res_json:
+        pmid = each_res_json["pmid"]
+        title = each_res_json["passages"][0]["text"]
+        annotation_list = get_biocjson_annotations(each_res_json, retain_ori_text)
+        relation_list = get_biocjson_relations(each_res_json, role_type)
+        converted_strs.append(create_pubtator_str(pmid, title, annotation_list, relation_list))
+
+    return "".join(converted_strs)
 
 
 def create_pubtator_str(pmid, title, annotation_list, relation_list):
@@ -361,10 +366,10 @@ if __name__ == "__main__":
     parser.add_argument("--debug", action="store_true",
                         help="Print debug information")
     args = parser.parse_args()
+    
+    debug = args.debug
 
-    DEBUG = args.debug
-
-    config_logger(DEBUG)
+    config_logger(debug)
 
     if args.query is not None:
         savepath = create_savepath(args.output, type="query", name=args.query)
