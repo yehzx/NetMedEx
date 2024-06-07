@@ -68,7 +68,7 @@ SHAPE_MAP = {
 def pubtator2cytoscape(filepath, savepath, args):
     G = nx.Graph()
     result = parse_pubtator(filepath, args.index_by)
-    add_node_to_graph(G, result["node_dict"], result["node_in_relation"], args)
+    add_node_to_graph(G, result["node_dict"], result["node_in_relation"])
     add_edge_to_graph(G, result["edge_dict"])
     remove_edges_by_weight(G, args.cut_weight)
     remove_isolated_nodes(G)
@@ -288,7 +288,7 @@ def name_value(name, value, with_type="string"):
     return attr
 
 
-def add_node_to_graph(G: nx.Graph, node_dict, node_in_relation, args):
+def add_node_to_graph(G: nx.Graph, node_dict, node_in_relation):
     # TODO: add feature: mark specific names
     marked = False
     for id in node_in_relation:
