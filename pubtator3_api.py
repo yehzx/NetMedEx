@@ -6,7 +6,6 @@ import time
 from pathlib import Path
 from typing import Literal
 import logging
-
 import requests
 from tqdm.auto import tqdm
 
@@ -223,6 +222,7 @@ def convert_to_pubtator(res_json, retain_ori_text=True, role_type: Literal["iden
 
 def create_pubtator_str(pmid, title, annotation_list, relation_list):
     title_str = f"{pmid}|t|{title}\n"
+    annotation_list.sort(key=lambda x: x["locations"]["offset"])
     annotation_str = [(f"{pmid}\t"
                        f"{annotation['locations']['offset']}\t"
                        f"{annotation['locations']['length'] + annotation['locations']['offset']}\t"
