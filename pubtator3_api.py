@@ -3,7 +3,6 @@ import argparse
 import json
 import sys
 import time
-from collections import OrderedDict
 from pathlib import Path
 from typing import Literal
 import logging
@@ -27,7 +26,7 @@ def run_query_pipeline(query, savepath, type: Literal["query", "pmids"],
         pmid_list = get_search_results(query, max_articles)
     elif type == "pmids":
         pmid_list = query
-        
+
     output = batch_publication_query(pmid_list, type="pmids",
                                      full_text=full_text,
                                      standardized=standardized)
@@ -129,7 +128,7 @@ def send_search_query(query, type: Literal["search", "cite"] = QUERY_METHOD):
 
 def send_search_query_with_page(query, page, session=None):
     url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/search/"
-    params = {"text": query,"sort": "score desc", "page": page}
+    params = {"text": query, "sort": "score desc", "page": page}
     res = handle_session_get(url, params, session)
     time.sleep(0.5)
     return res
@@ -174,7 +173,7 @@ def batch_publication_query(id_list, type, full_text=False, standardized=False):
                     pbar.update(PMID_REQUEST_SIZE)
                 else:
                     pbar.n = len(id_list)
-    global debug 
+    global debug
     if debug:
         import json
         with open("./dump.txt", "w") as f:
@@ -242,21 +241,21 @@ def create_pubtator_str(pmid, title, annotation_list, relation_list):
 
 def get_biocjson_annotations(res_json, retain_ori_text):
     n_passages = len(res_json["passages"])
-    passages_type = [res_json["passages"][i]["infons"]["type"]
-                     for i in range(n_passages)]
+    # passages_type = [res_json["passages"][i]["infons"]["type"]
+    #                  for i in range(n_passages)]
     annotation_list = []
-    # TODO: extract from specific passages only (if full_text)? 
+    # TODO: extract from specific passages only (if full_text)?
     for annotation_entries in [res_json["passages"][i]["annotations"] for i in range(n_passages)]:
         for annotation_entry in annotation_entries:
             each_annotation = {}
             try:
                 id = annotation_entry["infons"]["identifier"]
-            except:
-                id = "-" 
+            except Exception:
+                id = "-"
             each_annotation["id"] = "-" if id == "None" or id is None else id
             each_annotation["type"] = annotation_entry["infons"]["type"]
             each_annotation["locations"] = annotation_entry["locations"][0]
-            
+
             if retain_ori_text:
                 each_annotation["name"] = annotation_entry["text"]
             # In type == "species", the entity name is stored in "text"
@@ -279,7 +278,6 @@ def get_biocjson_annotations(res_json, retain_ori_text):
 
 
 def get_biocjson_relations(res_json, role_type):
-    n_relations = len(res_json["relations"])
     relation_list = []
     for relation_entry in res_json["relations"]:
         each_relation = {}
@@ -333,7 +331,7 @@ def create_savepath(output, type, **kwargs):
     else:
         savepath = Path(args.output)
         savepath.parent.mkdir(parents=True, exist_ok=True)
-    
+
     return savepath
 
 
@@ -361,12 +359,12 @@ if __name__ == "__main__":
                         help="Maximal articles to request from the searching result (default: 1000)")
     parser.add_argument("--full_text", action="store_true",
                         help="Get full-text annotations")
-    parser.add_argument("--standardized_name", action="store_true", 
+    parser.add_argument("--standardized_name", action="store_true",
                         help="Obtain standardized names rather than the original text in articles")
     parser.add_argument("--debug", action="store_true",
                         help="Print debug information")
     args = parser.parse_args()
-    
+
     debug = args.debug
 
     config_logger(debug)
