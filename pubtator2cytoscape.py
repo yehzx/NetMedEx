@@ -69,11 +69,13 @@ SHAPE_MAP = {
     "SNP": "OCTAGON"
 }
 
+mesh_info = {}
+
 
 def pubtator2cytoscape(filepath, savepath, args):
     G = nx.Graph()
     result = parse_pubtator(filepath, args.index_by)
-    add_node_to_graph(G, result["node_dict"], result["node_in_relation"])
+    add_node_to_graph(G, result["node_dict"], result["non_isolated_nodes"])
     add_edge_to_graph(G, result["edge_dict"], args.pmid_weight)
     remove_edges_by_weight(G, args.cut_weight)
     remove_isolated_nodes(G)
@@ -106,7 +108,7 @@ def save_xgmml(G: nx.Graph, savepath):
 def parse_pubtator(filepath, index_by):
     node_dict = {}
     edge_dict = defaultdict(list)
-    node_in_relation = set()
+    non_isolated_nodes = set()
     pmid = -1
     last_pmid = -1
     node_dict_each = {}
@@ -115,21 +117,25 @@ def parse_pubtator(filepath, index_by):
             if is_title(line):
                 pmid = find_pmid(line)
                 continue
-            if index_by == "mesh":
-                parse_line_mesh(line, node_dict, edge_dict, node_in_relation)
-            elif index_by == "name":
+            if index_by == "relation":
+                parse_line_relation(line, node_dict, edge_dict, non_isolated_nodes)
+            else:
                 if pmid != last_pmid:
-                    add_name_to_total(node_dict_each, edge_dict, last_pmid)
+                    create_complete_graph(node_dict_each, edge_dict, last_pmid)
                     last_pmid = pmid
                     node_dict_each = {}
-                parse_line_name(line, node_dict, node_dict_each)
-        add_name_to_total(node_dict_each, edge_dict, pmid)
-    if index_by == "name":
-        node_in_relation = set(node_dict.keys())
+                if get_line_type(line) == "annotation":
+                    if index_by == "name":
+                        add_node_by_name(line, node_dict, node_dict_each)
+                    elif index_by == "mesh":
+                        add_node_by_mesh(line, node_dict, node_dict_each)
+        create_complete_graph(node_dict_each, edge_dict, pmid)
+    if index_by in ("name", "mesh"):
+        non_isolated_nodes = set(node_dict.keys())
 
     return {
         "node_dict": node_dict,
-        "node_in_relation": node_in_relation,
+        "non_isolated_nodes": non_isolated_nodes,
         "edge_dict": edge_dict
     }
 
@@ -142,31 +148,37 @@ def find_pmid(line):
     return line.split("|t|")[0]
 
 
-def parse_line_mesh(line, node_dict: dict, edge_dict: DefaultDict[tuple, list],
-                    node_in_relation: set):
-    line_type = determine_line_type(line)
+def parse_line_relation(line, node_dict: dict,
+                        edge_dict: DefaultDict[tuple, list],
+                        non_isolated_nodes: set):
+    line_type = get_line_type(line)
     if line_type == "annotation":
-        parse_node_by_mesh(line, node_dict)
+        add_node_by_mesh(line, node_dict, {})
     elif line_type == "relation":
-        pmid, relationship, name_1, name_2 = line.strip("\n").split("\t")
-        # TODO: better way to deal with DNAMutation notation inconsistency
-        name_1 = name_1.split("|")[0]
-        name_2 = name_2.split("|")[0]
-        edge_dict[(name_1, name_2)].append({
+        create_edges_for_relations(line, edge_dict, non_isolated_nodes)
+
+
+def create_edges_for_relations(line, edge_dict, non_isolated_nodes):
+    pmid, relationship, name_1, name_2 = line.strip("\n").split("\t")
+    # TODO: better way to deal with DNAMutation notation inconsistency
+    name_1 = name_1.split("|")[0]
+    name_2 = name_2.split("|")[0]
+    edge_dict[(name_1, name_2)].append({
             "pmid": pmid,
             "relationship": relationship,
             "xml_id": xml_id_counter()
         })
-        node_in_relation.add(name_1)
-        node_in_relation.add(name_2)
+    non_isolated_nodes.add(name_1)
+    non_isolated_nodes.add(name_2)
 
 
-def parse_node_by_mesh(line, node_dict):
+def add_node_by_mesh(line, node_dict, node_dict_each):
     pmid, start, end, name, type, mesh = line.strip("\n").split("\t")
 
     # Skip line with no id
     if mesh in ("", "-"):
         return
+
     if type in ("DNAMutation", "ProteinMutation", "SNP"):
         res = {}
         for key, pattern in MUTATION_PATTERNS.items():
@@ -184,29 +196,23 @@ def parse_node_by_mesh(line, node_dict):
             mesh = f'{res["rs"]}{res["hgvs"]}{res["gene"]}'.strip(";")
         elif type == "SNP":
             mesh = f'{res["rs"]}{res["hgvs"]}{res["gene"]}'.strip(";")
-    else:
-        # Some genes contain more than one ID
+        mesh_list = [mesh]
+    elif type == "Gene":
         mesh_list = mesh.split(";")
-        # Keep all ids in node attributes
-        mesh = mesh_list[0] if len(mesh_list) == 1 else mesh_list
-
-    if isinstance(mesh, list):
-        for single_id in mesh:
-            if not node_id_collision(node_dict, name, type, single_id):
-                node_dict.setdefault(
-                    single_id, {
-                        "mesh": ",".join(mesh),
-                        "type": type,
-                        "name": name,
-                        "xml_id": xml_id_counter()
-                    })
     else:
-        node_dict.setdefault(mesh, {
-            "mesh": mesh,
-            "type": type,
-            "name": name,
-            "xml_id": xml_id_counter()
-        })
+        mesh_list = [mesh]
+
+    for each_mesh in mesh_list:
+        if not node_id_collision(node_dict, name, type, each_mesh):
+            node_dict.setdefault(
+                each_mesh, {
+                    "mesh": mesh,
+                    "type": type,
+                    "name": name,
+                    "xml_id": xml_id_counter()
+                })
+
+        node_dict_each[each_mesh] = node_dict[each_mesh]
 
 
 def node_id_collision(node_dict, name, type, id):
@@ -216,7 +222,6 @@ def node_id_collision(node_dict, name, type, id):
             "id": id,
             "type": type,
             "name": name,
-            "xml_id": xml_id_counter()
         }
         print(f"Found collision of MeSH:\n{node_dict[id]}\n{current_line}")
         print("Discard the latter\n")
@@ -225,7 +230,7 @@ def node_id_collision(node_dict, name, type, id):
     return is_collision
 
 
-def add_name_to_total(node_dict_each, edge_dict, pmid):
+def create_complete_graph(node_dict_each, edge_dict, pmid):
     for i, name_1 in enumerate(node_dict_each.keys()):
         for j, name_2 in enumerate(node_dict_each.keys()):
             if i >= j:
@@ -242,39 +247,38 @@ def add_name_to_total(node_dict_each, edge_dict, pmid):
                 })
 
 
-def parse_line_name(line, node_dict, node_dict_each):
-    line_type = determine_line_type(line)
-    if line_type == "annotation":
-        parse_node_by_name(line, node_dict, node_dict_each)
-
-
-def parse_node_by_name(line, node_dict, node_dict_each):
+def add_node_by_name(line, node_dict, node_dict_each):
+    global mesh_info
     pmid, start, end, name, type, mesh = line.strip("\n").split("\t")
 
     # Standardize names
     name = name.lower()
 
-    if name in node_dict and type != node_dict[name]["type"]:
-        current_line = {
-            "mesh": mesh,
-            "type": type,
-            "name": name,
-            "xml_id": xml_id_counter()
-        }
-        print(f"Found collision of name:\n{node_dict[name]}\n{current_line}")
-        print("Discard the latter\n")
-
-    node_dict.setdefault(name, {
+    node_info = {
         "mesh": mesh,
         "type": type,
         "name": name,
         "xml_id": xml_id_counter()
-    })
+    }
 
-    node_dict_each[name] = node_dict[name]
+    if name in node_dict and type != node_dict[name]["type"]:
+        print(f"Found collision of name:\n{node_dict[name]}\n{node_info}")
+        print("Discard the latter\n")
+
+    # Non-standardized terms
+    if mesh in ("-", ""):
+        node_dict.setdefault(name, node_info)
+        node_dict_each[name] = node_dict[name]
+    # Keep unique MeSH terms
+    elif mesh not in mesh_info:
+        mesh_info[mesh] = node_info
+        node_dict.setdefault(name, node_info)
+        node_dict_each[name] = node_dict[name]
+    else:
+        node_dict_each[mesh_info[mesh]["name"]] = mesh_info[mesh]
 
 
-def determine_line_type(line):
+def get_line_type(line):
     line_split_len = len(line.split("\t"))
     if line_split_len == 4:
         line_type = "relation"
@@ -297,10 +301,10 @@ def name_value(name, value, with_type="string"):
     return attr
 
 
-def add_node_to_graph(G: nx.Graph, node_dict, node_in_relation):
+def add_node_to_graph(G: nx.Graph, node_dict, non_isolated_nodes):
     # TODO: add feature: mark specific names
     marked = False
-    for id in node_in_relation:
+    for id in non_isolated_nodes:
         try:
             G.add_node(id,
                        color=COLOR_MAP[node_dict[id]["type"]],
@@ -565,16 +569,13 @@ if __name__ == "__main__":
         help="Discard the edges with weight smaller than the specified value (default: 5)"
     )
     parser.add_argument("--index_by",
-                        choices=["mesh", "name"],
-                        default="mesh",
-                        help="Which info nodes and edges are indexed by")
+                        choices=["mesh", "name", "relation"],
+                        default="name",
+                        help="Extract nodes and edges by")
     parser.add_argument("--pmid_weight",
                         default=None,
                         help="csv file for the weight of the edge from a PMID (default: 1)")
     args = parser.parse_args()
-    # TODO: index_by name not yet implemented
-    # if args.index_by == "name":
-    #     sys.exit()
 
     input_filepath = Path(args.input)
     if args.output is None:
