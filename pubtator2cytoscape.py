@@ -7,6 +7,7 @@ from pathlib import Path
 import networkx as nx
 from lxml import etree
 from lxml.builder import E
+import csv
 from lxml.etree import QName
 
 XML_NAMESPACE = {
@@ -42,6 +43,10 @@ TYPE_ATTR = {
         "type": "integer",
         QName(XML_NAMESPACE["cy"], "type"): "Integer"
     },
+    "double": {
+        "type": "double",
+        QName(XML_NAMESPACE["cy"], "type"): "Double"
+    },
 }
 COLOR_MAP = {
     "Chemical": "#67A9CF",
@@ -69,7 +74,7 @@ def pubtator2cytoscape(filepath, savepath, args):
     G = nx.Graph()
     result = parse_pubtator(filepath, args.index_by)
     add_node_to_graph(G, result["node_dict"], result["node_in_relation"])
-    add_edge_to_graph(G, result["edge_dict"])
+    add_edge_to_graph(G, result["edge_dict"], args.pmid_weight)
     remove_edges_by_weight(G, args.cut_weight)
     remove_isolated_nodes(G)
 
@@ -92,6 +97,10 @@ def save_xgmml(G: nx.Graph, savepath):
                            xml_declaration=True,
                            standalone="yes",
                            pretty_print=True))
+
+    print(f"# nodes: {G.number_of_nodes()}")
+    print(f"# edges: {G.number_of_edges()}")
+    print(f"Save graph to {savepath}")
 
 
 def parse_pubtator(filepath, index_by):
@@ -304,15 +313,23 @@ def add_node_to_graph(G: nx.Graph, node_dict, node_in_relation):
             print(f"Skip node: {id}")
 
 
-def add_edge_to_graph(G: nx.Graph, edge_counter):
+def add_edge_to_graph(G: nx.Graph, edge_counter, weight_csv):
+    weights = {}
+    if weight_csv is not None:
+        with open(weight_csv, newline="") as f:
+            reader = csv.reader(f)
+            for row in reader:
+                weights[row[0]] = float(row[1])
+
     for pair, records in edge_counter.items():
         pmids = [str(record["pmid"]) for record in records]
         unique_pmids = set(pmids)
+        edge_weight = round(sum([weights.get(pmid, 1) for pmid in unique_pmids]), 2)
         try:
             G.add_edge(pair[0],
                        pair[1],
                        xml_id=records[0]["xml_id"],
-                       weight=len(unique_pmids),
+                       weight=edge_weight,
                        pmids=",".join(list(unique_pmids)))
         except Exception:
             print(f"Skip edge: ({pair[0]}, {pair[1]})")
@@ -481,7 +498,7 @@ def _create_edge_xml(edge, G):
             E.att(
                 name_value("weight",
                            str(edge_attr["weight"]),
-                           with_type="integer")),
+                           with_type="double")),
             # TODO: implement scaled weight
             E.att(
                 name_value("scaled weight",
@@ -551,6 +568,9 @@ if __name__ == "__main__":
                         choices=["mesh", "name"],
                         default="mesh",
                         help="Which info nodes and edges are indexed by")
+    parser.add_argument("--pmid_weight",
+                        default=None,
+                        help="csv file for the weight of the edge from a PMID (default: 1)")
     args = parser.parse_args()
     # TODO: index_by name not yet implemented
     # if args.index_by == "name":
