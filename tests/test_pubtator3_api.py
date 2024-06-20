@@ -16,7 +16,8 @@ TESTDATA_DIR = Path(__file__).parent / "test_data"
 @pytest.fixture(scope="module")
 def paths():
     filepaths = {"json": TESTDATA_DIR / "pubtator3.37026113_240614.json",
-                 "pubtator_std": TESTDATA_DIR / "pubtator3.37026113_standardized_240614.pubtator",
+                 "pubtator-std_relation-std": TESTDATA_DIR / "pubtator3.37026113_standardized_std-relation_240614.pubtator",
+                 "pubtator-std_relation-ori": TESTDATA_DIR / "pubtator3.37026113_standardized_ori-relation_240614.pubtator",
                  "pubtator": TESTDATA_DIR / "pubtator3.37026113_240614.pubtator",
                  "tsv": TESTDATA_DIR / "cite_tsv.tsv"}
     return filepaths
@@ -36,7 +37,7 @@ def test_send_search_query_search():
 
 
 def test_parse_cite_response(paths):
-    filepath = paths["tsv"] 
+    filepath = paths["tsv"]
     expected = ["38229736", "38173127", "38132876"]
     with open(filepath) as f:
         pmid_list = parse_cite_response(f.read())
@@ -92,7 +93,7 @@ def test_biocjson_pubtator_equal(paths):
 
 
 def test_batch_standardized_annotations(paths):
-    test_filepath = paths["pubtator_std"]
+    test_filepath = paths["pubtator-std_relation-std"]
     output = batch_publication_query(["37026113"], type="pmids", full_text=False, standardized=True)
     result = convert_to_pubtator(output[0], retain_ori_text=False)
 
