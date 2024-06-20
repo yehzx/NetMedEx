@@ -27,7 +27,7 @@ def test_index_by_name(filepath):
     result = parse_pubtator(filepath[0], index_by="name")
     G = build_graph(result)
 
-    assert G.nodes.get("l55m", False), "Node name should be in lowercase"
+    assert G.nodes.get("L55M", False), "L55M should be in the graph"
     assert len(G.nodes) == 14, f"result: {len(G.nodes)} nodes\nexpected: 14 nodes"
     assert len(G.edges) == 47, f"result: {len(G.edges)} nodes\nexpected: 47 edges"
 

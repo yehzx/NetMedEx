@@ -251,8 +251,12 @@ def add_node_by_name(line, node_dict, node_dict_each):
     global mesh_info
     pmid, start, end, name, type, mesh = line.strip("\n").split("\t")
 
-    # Standardize names
-    name = name.lower()
+    # Convert non-mesh terms to lowercase
+    if mesh in ("-", ""):
+        name = name.lower()
+
+    # Remove plural
+    name = s_stemmer(name)
 
     node_info = {
         "mesh": mesh,
@@ -549,6 +553,17 @@ def _create_edge_xml(edge, G):
             )))
 
     return edge
+
+
+def s_stemmer(word: str):
+    if word.endswith("ies") and not word.endswith(("eies", "aies")):
+        word = word[:-3] + "y"
+    elif word.endswith("es") and not word.endswith(("aes", "ees", "oes")):
+        word = word[:-1]
+    elif word.endswith("s") and not word.endswith(("us", "ss")):
+        word = word[:-1]
+
+    return word
 
 
 if __name__ == "__main__":
