@@ -205,23 +205,33 @@ def append_json_or_text(res, full_text, standardized):
     return content
 
 
-def convert_to_pubtator(res_json, retain_ori_text=True, role_type: Literal["identifier", "name"] = "identifier"):
+def convert_to_pubtator(res_json, retain_ori_text=True,
+                        role_type: Literal["identifier", "name"] = "identifier"):
     # 2024/05/26: PubTator has changed the format of the response
     res_json = res_json["PubTator3"]
 
     converted_strs = []
     for each_res_json in res_json:
         pmid = each_res_json["pmid"]
-        title = each_res_json["passages"][0]["text"]
+        title_passage = each_res_json["passages"][0]
+        assert title_passage["infons"]["type"] == "title", \
+            f"First passage of the response is not title: {title_passage}"
+        title = title_passage["text"]
+        abstract_passage = each_res_json["passages"][1]
+        assert abstract_passage["infons"]["type"] == "abstract", \
+            f"Second passage of the response is not abstract: {abstract_passage}"
+        abstract = abstract_passage["text"]
         annotation_list = get_biocjson_annotations(each_res_json, retain_ori_text)
         relation_list = get_biocjson_relations(each_res_json, role_type)
-        converted_strs.append(create_pubtator_str(pmid, title, annotation_list, relation_list))
+        converted_strs.append(create_pubtator_str(
+            pmid, title, abstract, annotation_list, relation_list))
 
     return "".join(converted_strs)
 
 
-def create_pubtator_str(pmid, title, annotation_list, relation_list):
+def create_pubtator_str(pmid, title, abstract, annotation_list, relation_list):
     title_str = f"{pmid}|t|{title}\n"
+    abstract_str = f"{pmid}|a|{abstract}\n"
     annotation_list.sort(key=lambda x: x["locations"]["offset"])
     annotation_str = [(f"{pmid}\t"
                        f"{annotation['locations']['offset']}\t"
@@ -236,7 +246,8 @@ def create_pubtator_str(pmid, title, annotation_list, relation_list):
                      f"{relation['role2']}")
                     for relation in relation_list]
 
-    return title_str + "\n".join(annotation_str) + "\n" + "\n".join(relation_str) + "\n\n"
+    return title_str + abstract_str + "\n".join(annotation_str) \
+        + "\n" + "\n".join(relation_str) + "\n\n"
 
 
 def get_biocjson_annotations(res_json, retain_ori_text):
