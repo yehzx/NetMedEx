@@ -92,7 +92,7 @@ def pubtator2cytoscape(filepath, savepath, args):
 
 def save_xgmml(G: nx.Graph, savepath):
     with open(savepath, "wb") as f:
-        graph = create_graph_xml(G)
+        graph = create_graph_xml(G, Path(savepath).stem)
         f.write(
             etree.tostring(graph,
                            encoding="utf-8",
@@ -349,7 +349,7 @@ def add_edge_to_graph(G: nx.Graph, edge_counter, weight_csv):
     max_weight = max(weights.values())
     scale_factor = min(max_width / max_weight, 1)
     for edge, weight in weights.items():
-        G.edges[edge]["scaled_weight"] = max(int(weight * scale_factor),
+        G.edges[edge]["scaled_weight"] = max(int(round(weight * scale_factor, 0)),
                                              min_width)
 
 
@@ -364,7 +364,7 @@ def remove_isolated_nodes(G: nx.Graph):
     G.remove_nodes_from(list(nx.isolates(G)))
 
 
-def create_graph_xml(G):
+def create_graph_xml(G, graph_label="0"):
     _dummy_attr = {
         QName(XML_NAMESPACE["dc"], "dummy"): "",
         QName(XML_NAMESPACE["xlink"], "dummy"): "",
@@ -372,7 +372,7 @@ def create_graph_xml(G):
     }
     _graph_attr = {
         "id": "0",
-        "label": "0",
+        "label": graph_label,
         "directed": "1",
         "xmlns": "http://www.cs.rpi.edu/XGMML",
         QName(XML_NAMESPACE["cy"], "documentVersion"): "3.0",
