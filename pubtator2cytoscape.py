@@ -560,7 +560,7 @@ def s_stemmer(word: str):
         word = word[:-3] + "y"
     elif word.endswith("es") and not word.endswith(("aes", "ees", "oes")):
         word = word[:-1]
-    elif word.endswith("s") and not word.endswith(("us", "ss")):
+    elif word.endswith("s") and not word.endswith(("is", "us", "ss")):
         word = word[:-1]
 
     return word
