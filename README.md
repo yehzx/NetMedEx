@@ -23,7 +23,7 @@ python pubtator3_api.py -p 34895069,35883435,34205807 [-o OUTPUT_FILEPATH]
 # Query with article PMIDs (from file)
 python pubtator3_api.py -f examples/pmids.txt [-o OUTPUT_FILEPATH]
 
-# Advanced queries (See PubTator3 instructions)
+# Query with PubTator3 Entity ID (See PubTator3 instructions)
 python pubtator3_api.py -q "@DISEASE_COVID_19 AND @GENE_PON1" [-o OUTPUT_FILEPATH]
 ```
 
@@ -39,6 +39,8 @@ python pubtator2cytoscape.py -i examples/pmids_output.pubtator -o pmids_output.x
 # Index by relations between entities (see PubTator3 for the detection of "relation")
 python pubtator2cytoscape.py -i examples/pmids_output.pubtator -o pmids_output.xgmml -w 1 --index_by relation
 ```
+
+3. Import the output xgmml file into Cytoscape to view the network.
 
 For further usage, please refer to `notebooks`.
 
