@@ -1,13 +1,15 @@
+import csv
+import logging
 import re
 from argparse import ArgumentParser
 from collections import defaultdict
 from itertools import count
-from typing import DefaultDict
 from pathlib import Path
+from typing import DefaultDict
+
 import networkx as nx
 from lxml import etree
 from lxml.builder import E
-import csv
 from lxml.etree import QName
 
 XML_NAMESPACE = {
@@ -70,6 +72,7 @@ SHAPE_MAP = {
 }
 
 mesh_info = {}
+logger = logging.getLogger(__name__)
 
 
 def pubtator2cytoscape(filepath, savepath, args):
@@ -100,9 +103,9 @@ def save_xgmml(G: nx.Graph, savepath):
                            standalone="yes",
                            pretty_print=True))
 
-    print(f"# nodes: {G.number_of_nodes()}")
-    print(f"# edges: {G.number_of_edges()}")
-    print(f"Save graph to {savepath}")
+    logger.info(f"# nodes: {G.number_of_nodes()}")
+    logger.info(f"# edges: {G.number_of_edges()}")
+    logger.info(f"Save graph to {savepath}")
 
 
 def parse_pubtator(filepath, index_by):
@@ -223,8 +226,8 @@ def node_id_collision(node_dict, name, type, id):
             "type": type,
             "name": name,
         }
-        print(f"Found collision of MeSH:\n{node_dict[id]}\n{current_line}")
-        print("Discard the latter\n")
+        logger.debug(f"Found collision of MeSH:\n{node_dict[id]}\n{current_line}")
+        logger.debug("Discard the latter\n")
         is_collision = True
 
     return is_collision
@@ -266,8 +269,8 @@ def add_node_by_name(line, node_dict, node_dict_each):
     }
 
     if name in node_dict and type != node_dict[name]["type"]:
-        print(f"Found collision of name:\n{node_dict[name]}\n{node_info}")
-        print("Discard the latter\n")
+        logger.debug(f"Found collision of name:\n{node_dict[name]}\n{node_info}")
+        logger.debug("Discard the latter\n")
 
     # Non-standardized terms
     if mesh in ("-", ""):
@@ -318,7 +321,7 @@ def add_node_to_graph(G: nx.Graph, node_dict, non_isolated_nodes):
                        xml_id=node_dict[id]["xml_id"],
                        marked=marked)
         except KeyError:
-            print(f"Skip node: {id}")
+            logger.debug(f"Skip node: {id}")
 
 
 def add_edge_to_graph(G: nx.Graph, edge_counter, weight_csv):
@@ -340,7 +343,7 @@ def add_edge_to_graph(G: nx.Graph, edge_counter, weight_csv):
                        weight=edge_weight,
                        pmids=",".join(list(unique_pmids)))
         except Exception:
-            print(f"Skip edge: ({pair[0]}, {pair[1]})")
+            logger.debug(f"Skip edge: ({pair[0]}, {pair[1]})")
 
     # Scaled weight (scaled by max only)
     weights = nx.get_edge_attributes(G, "weight")
@@ -577,6 +580,16 @@ def s_stemmer(word: str):
     return word
 
 
+def config_logger(is_debug):
+    if is_debug:
+        logging.basicConfig(format="%(asctime)s [%(levelname)s] %(message)s",
+                            datefmt="%Y-%m-%d %H:%M:%S",
+                            level=logging.DEBUG)
+    else:
+        logging.basicConfig(format="%(message)s",
+                            level=logging.INFO)
+
+
 if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("-i",
@@ -601,7 +614,12 @@ if __name__ == "__main__":
     parser.add_argument("--pmid_weight",
                         default=None,
                         help="csv file for the weight of the edge from a PMID (default: 1)")
+    parser.add_argument("--debug",
+                        action="store_true",
+                        help="Print debug information")
     args = parser.parse_args()
+
+    config_logger(args.debug)
 
     input_filepath = Path(args.input)
     if args.output is None:
