@@ -379,7 +379,7 @@ def setup_argparsers():
     parser.add_argument("-f",
                         "--format",
                         choices=["xgmml", "html"],
-                        default="xgmml",
+                        default="html",
                         help="Output format (default: html)")
     parser.add_argument("--index_by",
                         choices=["mesh", "name", "relation"],
