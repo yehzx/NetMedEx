@@ -68,7 +68,7 @@ def get_by_search(query, max_articles):
     logger.info("Obtaining article PMIDs...")
     current_page = 1
     with requests.Session() as session:
-        with tqdm(total=n_articles_to_request) as pbar:
+        with tqdm(total=n_articles_to_request, file=sys.stdout) as pbar:
             while current_page * page_size < n_articles_to_request:
                 pbar.update(page_size)
                 current_page += 1
@@ -161,7 +161,7 @@ def batch_publication_query(id_list, type, full_text=False, standardized=False):
     output = []
     format = "biocjson" if standardized or full_text else "pubtator"
     with requests.Session() as session:
-        with tqdm(total=len(id_list)) as pbar:
+        with tqdm(total=len(id_list), file=sys.stdout) as pbar:
             for start in range(0, len(id_list), PMID_REQUEST_SIZE):
                 end = start + PMID_REQUEST_SIZE
                 end = end if end < len(id_list) else None
