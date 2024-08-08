@@ -1,9 +1,6 @@
 import pytest
-import sys
 
-sys.path.append("../pubtator")
-
-from pubtator2cytoscape import s_stemmer
+from pubtoscape.pubtator3_to_cytoscape_cli import s_stemmer
 
 
 @pytest.mark.parametrize("input,expected", [
