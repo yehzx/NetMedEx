@@ -16,10 +16,9 @@ CYTOSCAPE_TEMPLATE = """<!DOCTYPE html>
   }}
 
   #cy {{
-      width: 100%;
-      height: 100%;
+      width: 98%;
+      height: 98%;
       position: absolute;
-
   }}
 </style>
 <body>
