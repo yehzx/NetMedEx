@@ -17,7 +17,7 @@ def filepath():
 def build_graph(result):
     G = nx.Graph()
     add_node_to_graph(G, result["node_dict"], result["non_isolated_nodes"])
-    add_edge_to_graph(G, result["edge_dict"], None)
+    add_edge_to_graph(G, result["node_dict"], result["edge_dict"], None, "freq")
     remove_isolated_nodes(G)
 
     return G
