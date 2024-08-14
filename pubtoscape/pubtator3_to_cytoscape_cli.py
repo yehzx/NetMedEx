@@ -1,6 +1,7 @@
 import csv
 import importlib
 import logging
+import math
 import re
 import sys
 from argparse import ArgumentParser
@@ -47,19 +48,26 @@ SHAPE_MAP = {
 }
 
 mesh_info = {}
+pmid_counter = 0
 logger = logging.getLogger(__name__)
 
 
 def pubtator2cytoscape(filepath, savepath, args):
     G = nx.Graph()
     result = parse_pubtator(filepath, args.index_by)
-    add_node_to_graph(G, result["node_dict"], result["non_isolated_nodes"])
-    add_edge_to_graph(G, result["edge_dict"], args.pmid_weight)
+    add_node_to_graph(G=G,
+                      node_dict=result["node_dict"],
+                      non_isolated_nodes=result["non_isolated_nodes"])
+    add_edge_to_graph(G=G,
+                      node_dict=result["node_dict"],
+                      edge_counter=result["edge_dict"],
+                      doc_weight_csv=args.pmid_weight,
+                      weighting_method=args.weighting_method)
     remove_edges_by_weight(G, args.cut_weight)
     remove_isolated_nodes(G)
 
     pos = nx.spring_layout(G,
-                           weight="scaled_weight",
+                           weight="scaled_edge_weight",
                            scale=300,
                            k=0.25,
                            iterations=15)
@@ -82,12 +90,15 @@ def save_network(G: nx.Graph,
 
     save_func(G, savepath)
 
+    global pmid_counter
+    logger.info(f"# articles: {pmid_counter}")
     logger.info(f"# nodes: {G.number_of_nodes()}")
     logger.info(f"# edges: {G.number_of_edges()}")
     logger.info(f"Save graph to {savepath}")
 
 
 def parse_pubtator(filepath, index_by):
+    global pmid_counter
     node_dict = {}
     edge_dict = defaultdict(list)
     non_isolated_nodes = set()
@@ -96,6 +107,9 @@ def parse_pubtator(filepath, index_by):
     node_dict_each = {}
     with open(filepath) as f:
         for line in f.readlines():
+            if is_title(line):
+                pmid = find_pmid(line)
+                pmid_counter += 1
             if _is_title(line):
                 pmid = _find_pmid(line)
                 continue
@@ -191,9 +205,10 @@ def add_node_by_mesh(line, node_dict, node_dict_each):
                     "mesh": mesh,
                     "type": type,
                     "name": name,
+                    "_articles": set(),
                     "_id": id_counter()
                 })
-
+        node_dict[each_mesh]["_articles"].add(pmid)
         node_dict_each[each_mesh] = node_dict[each_mesh]
 
 
@@ -244,6 +259,7 @@ def add_node_by_name(line, node_dict, node_dict_each):
         "mesh": mesh,
         "type": type,
         "name": name,
+        "_articles": set(),
         "_id": id_counter()
     }
 
@@ -254,14 +270,17 @@ def add_node_by_name(line, node_dict, node_dict_each):
     # Non-standardized terms
     if mesh in ("-", ""):
         node_dict.setdefault(name, node_info)
+        node_dict[name]["_articles"].add(pmid)
         node_dict_each[name] = node_dict[name]
     # Keep unique MeSH terms
     elif mesh not in mesh_info:
         mesh_info[mesh] = node_info
         node_dict.setdefault(name, node_info)
+        node_dict[name]["_articles"].add(pmid)
         node_dict_each[name] = node_dict[name]
     else:
         node_dict_each[mesh_info[mesh]["name"]] = mesh_info[mesh]
+        node_dict[mesh_info[mesh]["name"]]["_articles"].add(pmid)
 
 
 def get_line_type(line):
@@ -290,46 +309,69 @@ def add_node_to_graph(G: nx.Graph, node_dict, non_isolated_nodes):
                        shape=SHAPE_MAP[node_dict[id]["type"]],
                        type=node_dict[id]["type"],
                        name=node_dict[id]["name"],
+                       document_frquency=len(node_dict[id]["_articles"]),
                        _id=node_dict[id]["_id"],
                        marked=marked)
         except KeyError:
             logger.debug(f"Skip node: {id}")
 
 
-def add_edge_to_graph(G: nx.Graph, edge_counter, weight_csv):
-    weights = {}
-    if weight_csv is not None:
-        with open(weight_csv, newline="") as f:
+def add_edge_to_graph(G: nx.Graph,
+                      node_dict,
+                      edge_counter,
+                      doc_weight_csv=None,
+                      weighting_method=["freq", "npmi"][0]):
+    global pmid_counter
+    doc_weights = {}
+    if doc_weight_csv is not None:
+        with open(doc_weight_csv, newline="") as f:
             reader = csv.reader(f)
             for row in reader:
-                weights[row[0]] = float(row[1])
+                doc_weights[row[0]] = float(row[1])
 
     for pair, records in edge_counter.items():
         pmids = [str(record["pmid"]) for record in records]
         unique_pmids = set(pmids)
-        edge_weight = round(sum([weights.get(pmid, 1) for pmid in unique_pmids]), 2)
+        w_freq = round(sum([doc_weights.get(pmid, 1) for pmid in unique_pmids]), 2)
+        npmi = normalized_pointwise_mutual_information(
+            p_x=len(node_dict[pair[0]]["_articles"]) / pmid_counter,
+            p_y=len(node_dict[pair[1]]["_articles"]) / pmid_counter,
+            p_xy=len(unique_pmids) / pmid_counter,
+        )
+
+        if weighting_method == "npmi":
+            edge_weight = npmi
+        elif weighting_method == "freq":
+            edge_weight = w_freq
+
         try:
             G.add_edge(pair[0],
                        pair[1],
                        _id=records[0]["_id"],
-                       weight=edge_weight,
+                       raw_frequency=len(unique_pmids),
+                       weighted_frequency=w_freq,
+                       npmi=npmi,
+                       edge_weight=edge_weight,
                        pmids=",".join(list(unique_pmids)))
         except Exception:
             logger.debug(f"Skip edge: ({pair[0]}, {pair[1]})")
 
     # Scaled weight (scaled by max only)
-    weights = nx.get_edge_attributes(G, "weight")
+    edge_weights = nx.get_edge_attributes(G, "edge_weight")
     min_width = 1
     max_width = 20
-    max_weight = max(weights.values())
-    scale_factor = min(max_width / max_weight, 1)
-    for edge, weight in weights.items():
-        G.edges[edge]["scaled_weight"] = max(int(round(weight * scale_factor, 0)),
-                                             min_width)
+    max_weight = max(edge_weights.values())
+    if weighting_method == "npmi":
+        scale_factor = max_width
+    elif weighting_method == "freq":
+        scale_factor = min(max_width / max_weight, 1)
+    for edge, weight in edge_weights.items():
+        G.edges[edge]["scaled_edge_weight"] = max(
+            int(round(weight * scale_factor, 0)), min_width)
 
 
 def remove_edges_by_weight(G: nx.Graph, cut_weight):
-    scaled_weights = nx.get_edge_attributes(G, "scaled_weight")
+    scaled_weights = nx.get_edge_attributes(G, "scaled_edge_weight")
     for edge, scaled_weight in scaled_weights.items():
         if scaled_weight < cut_weight:
             G.remove_edge(edge[0], edge[1])
@@ -359,6 +401,17 @@ def parse_args(args):
     return parser.parse_args(args)
 
 
+def normalized_pointwise_mutual_information(p_x, p_y, p_xy):
+    if p_xy == 0:
+        npmi = -1
+    elif p_xy == 1:
+        npmi = 1
+    else:
+        npmi = -1 + (math.log2(p_x) + math.log2(p_y)) / math.log2(p_xy)
+    # pmi = math.log2(p_x) + math.log2(p_y) - math.log2(p_xy)
+    return npmi
+
+
 def setup_argparsers():
     parser = ArgumentParser()
     parser.add_argument("-i",
@@ -385,6 +438,10 @@ def setup_argparsers():
                         choices=["mesh", "name", "relation"],
                         default="name",
                         help="Extract nodes and edges by (default: name)")
+    parser.add_argument("--weighting_method",
+                        choices=["freq", "npmi"],
+                        default="npmi",
+                        help="Weighting method for network edge")
     parser.add_argument("--pmid_weight",
                         default=None,
                         help="csv file for the weight of the edge from a PMID (default: 1)")
