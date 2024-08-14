@@ -107,11 +107,9 @@ def parse_pubtator(filepath, index_by):
     node_dict_each = {}
     with open(filepath) as f:
         for line in f.readlines():
-            if is_title(line):
-                pmid = find_pmid(line)
-                pmid_counter += 1
             if _is_title(line):
                 pmid = _find_pmid(line)
+                pmid_counter += 1
                 continue
             if index_by == "relation":
                 parse_line_relation(line, node_dict, edge_dict, non_isolated_nodes)
@@ -422,13 +420,11 @@ def setup_argparsers():
                         "--output",
                         default=None,
                         help="Output path (default: [INPUT FILEPATH].xgmml)")
-    parser.add_argument(
-        "-w",
-        "--cut_weight",
-        type=int,
-        default=5,
-        help="Discard the edges with weight smaller than the specified value (default: 5)"
-    )
+    parser.add_argument("-w",
+                        "--cut_weight",
+                        type=int,
+                        default=5,
+                        help="Discard the edges with weight smaller than the specified value (default: 5)")
     parser.add_argument("-f",
                         "--format",
                         choices=["xgmml", "html"],
