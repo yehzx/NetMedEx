@@ -72,6 +72,10 @@ SHAPE_MAP = {
     "SNP": "OCTAGON"
 }
 
+MIN_EDGE_WIDTH = 1
+MAX_EDGE_WIDTH = 20
+EDGE_BASE_COLOR = "#AD1A66"
+
 mesh_info = {}
 pmid_counter = 0
 logger = logging.getLogger(__name__)
@@ -178,10 +182,10 @@ def create_edges_for_relations(line, edge_dict, non_isolated_nodes):
     name_1 = name_1.split("|")[0]
     name_2 = name_2.split("|")[0]
     edge_dict[(name_1, name_2)].append({
-            "pmid": pmid,
-            "relationship": relationship,
-            "xml_id": xml_id_counter()
-        })
+        "pmid": pmid,
+        "relationship": relationship,
+        "xml_id": xml_id_counter()
+    })
     non_isolated_nodes.add(name_1)
     non_isolated_nodes.add(name_2)
 
@@ -355,13 +359,21 @@ def add_edge_to_graph(G: nx.Graph,
                 doc_weights[row[0]] = float(row[1])
 
     for pair, records in edge_counter.items():
+        max_width = MAX_EDGE_WIDTH
+        # Change min_width to 0 in npmi
+        min_width = MIN_EDGE_WIDTH if weighting_method == "freq" else 0
         pmids = [str(record["pmid"]) for record in records]
         unique_pmids = set(pmids)
-        w_freq = round(sum([doc_weights.get(pmid, 1) for pmid in unique_pmids]), 2)
+
+        w_freq = round(sum([doc_weights.get(pmid, 1)
+                       for pmid in unique_pmids]), 2)
         npmi = normalized_pointwise_mutual_information(
-            p_x=len(node_dict[pair[0]]["_articles"]) / pmid_counter,
-            p_y=len(node_dict[pair[1]]["_articles"]) / pmid_counter,
-            p_xy=len(unique_pmids) / pmid_counter,
+            n_x=len(node_dict[pair[0]]["_articles"]),
+            n_y=len(node_dict[pair[1]]["_articles"]),
+            n_xy=len(unique_pmids),
+            N=pmid_counter,
+            n_threshold=2,
+            below_threshold_default=MIN_EDGE_WIDTH / max_width,
         )
 
         if weighting_method == "npmi":
@@ -381,18 +393,23 @@ def add_edge_to_graph(G: nx.Graph,
         except Exception:
             logger.debug(f"Skip edge: ({pair[0]}, {pair[1]})")
 
-    # Scaled weight (scaled by max only)
     edge_weights = nx.get_edge_attributes(G, "edge_weight")
-    min_width = 1
-    max_width = 20
+    scale_factor = calculate_scale_factor(edge_weights,
+                                          max_width=max_width,
+                                          weighting_method=weighting_method)
+    for edge, weight in edge_weights.items():
+        G.edges[edge]["scaled_edge_weight"] = max(
+            int(round(weight * scale_factor, 0)), min_width)
+
+
+def calculate_scale_factor(edge_weights, max_width, weighting_method):
     max_weight = max(edge_weights.values())
     if weighting_method == "npmi":
         scale_factor = max_width
     elif weighting_method == "freq":
         scale_factor = min(max_width / max_weight, 1)
-    for edge, weight in edge_weights.items():
-        G.edges[edge]["scaled_edge_weight"] = max(
-            int(round(weight * scale_factor, 0)), min_width)
+
+    return scale_factor
 
 
 def remove_edges_by_weight(G: nx.Graph, cut_weight):
@@ -636,14 +653,22 @@ def config_logger(is_debug):
                             level=logging.INFO)
 
 
-def normalized_pointwise_mutual_information(p_x, p_y, p_xy):
-    if p_xy == 0:
+def normalized_pointwise_mutual_information(n_x, n_y, n_xy, N,
+                                            n_threshold,
+                                            below_threshold_default):
+    if n_xy == 0:
         npmi = -1
-    elif p_xy == 1:
+    elif (n_xy / N) == 1:
         npmi = 1
     else:
-        npmi = -1 + (math.log2(p_x) + math.log2(p_y)) / math.log2(p_xy)
+        npmi = -1 + (math.log2(n_x / N) + math.log2(n_y / N)) / math.log2(n_xy / N)
+
+    # non-normalized
     # pmi = math.log2(p_x) + math.log2(p_y) - math.log2(p_xy)
+
+    if n_x < n_threshold or n_y < n_threshold:
+        npmi = min(npmi, below_threshold_default)
+
     return npmi
 
 
