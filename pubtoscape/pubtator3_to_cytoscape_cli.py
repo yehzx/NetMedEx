@@ -461,8 +461,8 @@ def setup_argparsers():
                         help="Extract nodes and edges by (default: name)")
     parser.add_argument("--weighting_method",
                         choices=["freq", "npmi"],
-                        default="npmi",
-                        help="Weighting method for network edge")
+                        default="freq",
+                        help="Weighting method for network edge (default: freq)")
     parser.add_argument("--pmid_weight",
                         default=None,
                         help="csv file for the weight of the edge from a PMID (default: 1)")
