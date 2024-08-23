@@ -27,6 +27,10 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+[project.optional-dependencies]
+dash = ["dash[diskcache]",
+        "dash-cytoscape"]
+
 [project.scripts]
 pubtator3 = "pubtoscape.pubtator3_api_cli:main"
 tocytoscape = "pubtoscape.pubtator3_to_cytoscape_cli:main"

@@ -6,6 +6,7 @@ import sys
 import time
 from pathlib import Path
 from typing import Literal
+from queue import Queue
 
 import requests
 from tqdm.auto import tqdm
@@ -23,15 +24,17 @@ logger = logging.getLogger(__name__)
 
 def run_query_pipeline(query, savepath, type: Literal["query", "pmids"],
                        max_articles=1000, full_text=False,
-                       standardized=False):
+                       standardized=False,
+                       queue=None):
     if type == "query":
         pmid_list = get_search_results(query, max_articles)
     elif type == "pmids":
         pmid_list = query
-
+    
     output = batch_publication_query(pmid_list, type="pmids",
                                      full_text=full_text,
-                                     standardized=standardized)
+                                     standardized=standardized,
+                                     queue=queue)
     if standardized:
         output = [convert_to_pubtator(i, retain_ori_text=False, role_type="identifier") for i in output]
     elif full_text:
@@ -157,7 +160,10 @@ def get_article_ids(res_json):
     return [str(article.get("pmid")) for article in res_json["results"]]
 
 
-def batch_publication_query(id_list, type, full_text=False, standardized=False):
+def batch_publication_query(id_list, type,
+                            full_text=False,
+                            standardized=False,
+                            queue=None):
     output = []
     format = "biocjson" if standardized or full_text else "pubtator"
     with requests.Session() as session:
@@ -175,6 +181,13 @@ def batch_publication_query(id_list, type, full_text=False, standardized=False):
                     pbar.update(PMID_REQUEST_SIZE)
                 else:
                     pbar.n = len(id_list)
+
+                if isinstance(queue, Queue):
+                    queue.put(f"{pbar.n}/{len(id_list)}")
+
+    if isinstance(queue, Queue):
+        queue.put(None)
+
     global debug
     if debug:
         import json
