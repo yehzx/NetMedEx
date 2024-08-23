@@ -52,18 +52,18 @@ pmid_counter = 0
 logger = logging.getLogger(__name__)
 
 
-def pubtator2cytoscape(filepath, savepath, args):
+def pubtator2cytoscape(filepath, savepath, args, is_gui=False):
     G = nx.Graph()
-    result = parse_pubtator(filepath, args.index_by)
+    result = parse_pubtator(filepath, args["index_by"])
     add_node_to_graph(G=G,
                       node_dict=result["node_dict"],
                       non_isolated_nodes=result["non_isolated_nodes"])
     add_edge_to_graph(G=G,
                       node_dict=result["node_dict"],
                       edge_counter=result["edge_dict"],
-                      doc_weight_csv=args.pmid_weight,
-                      weighting_method=args.weighting_method)
-    remove_edges_by_weight(G, args.cut_weight)
+                      doc_weight_csv=args["pmid_weight"],
+                      weighting_method=args["weighting_method"])
+    remove_edges_by_weight(G, args["cut_weight"])
     remove_isolated_nodes(G)
 
     pos = nx.spring_layout(G,
@@ -73,15 +73,21 @@ def pubtator2cytoscape(filepath, savepath, args):
                            iterations=15)
     nx.set_node_attributes(G, pos, "pos")
 
-    save_network(G, savepath, args.format)
+    save_network(G, savepath, args["format"])
+
+    if is_gui:
+        from pubtoscape.cytoscape_json import create_cytoscape_json
+
+        return create_cytoscape_json(G)
 
 
 def save_network(G: nx.Graph,
                  savepath: str,
-                 format: Literal["xgmml", "html"] = "xgmml"):
+                 format: Literal["xgmml", "html", "json"] = "html"):
     FORMAT_FUNCTION_MAP = {
         "xgmml": "pubtoscape.cytoscape_xgmml.save_as_xgmml",
         "html": "pubtoscape.cytoscape_html.save_as_html",
+        "json": "pubtoscape.cytoscape_json.save_as_json",
     }
 
     module_path, func_name = FORMAT_FUNCTION_MAP[format].rsplit(".", 1)
@@ -386,12 +392,12 @@ def main():
 
     input_filepath = Path(args.input)
     if args.output is None:
-        output_filepath = input_filepath.with_suffix(".xgmml")
+        output_filepath = input_filepath.with_suffix(f".{args.format}")
     else:
         output_filepath = Path(args.output)
         output_filepath.parent.mkdir(parents=True, exist_ok=True)
 
-    pubtator2cytoscape(input_filepath, output_filepath, args)
+    pubtator2cytoscape(input_filepath, output_filepath, vars(args))
 
 
 def parse_args(args):
@@ -427,7 +433,7 @@ def setup_argparsers():
                         help="Discard the edges with weight smaller than the specified value (default: 5)")
     parser.add_argument("-f",
                         "--format",
-                        choices=["xgmml", "html"],
+                        choices=["xgmml", "html", "json"],
                         default="html",
                         help="Output format (default: html)")
     parser.add_argument("--index_by",
