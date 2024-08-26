@@ -29,7 +29,7 @@ CYTOSCAPE_TEMPLATE = """<!DOCTYPE html>
   let cy = cytoscape({{
     container: document.getElementById("cy"),
     elements: {cytoscape_js},
-    layout: {{"name": "preset"}},
+    layout: {{"name": "{layout}"}},
     style: [
     {{
       selector: "node",
@@ -53,10 +53,10 @@ CYTOSCAPE_TEMPLATE = """<!DOCTYPE html>
 """
 
 
-def save_as_html(G: nx.Graph, savepath: str):
+def save_as_html(G: nx.Graph, savepath: str, layout="preset"):
     with open(savepath, "w") as f:
         cytoscape_js = create_cytoscape_js(G)
-        f.write(CYTOSCAPE_TEMPLATE.format(cytoscape_js=cytoscape_js))
+        f.write(CYTOSCAPE_TEMPLATE.format(cytoscape_js=cytoscape_js, layout=layout))
 
 
 def create_cytoscape_js(G: nx.Graph):
@@ -101,5 +101,4 @@ def create_cytoscape_edge(edge, G):
             "weight": round(float(edge_attr["scaled_edge_weight"]), 1),
         }
     }
-
     return edge_info

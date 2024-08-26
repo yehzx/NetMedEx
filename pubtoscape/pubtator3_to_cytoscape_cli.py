@@ -52,7 +52,7 @@ pmid_counter = 0
 logger = logging.getLogger(__name__)
 
 
-def pubtator2cytoscape(filepath, savepath, args, is_gui=False):
+def pubtator2cytoscape(filepath, savepath, args):
     G = nx.Graph()
     result = parse_pubtator(filepath, args["index_by"])
     add_node_to_graph(G=G,
@@ -66,19 +66,11 @@ def pubtator2cytoscape(filepath, savepath, args, is_gui=False):
     remove_edges_by_weight(G, args["cut_weight"])
     remove_isolated_nodes(G)
 
-    pos = nx.spring_layout(G,
-                           weight="scaled_edge_weight",
-                           scale=300,
-                           k=0.25,
-                           iterations=15)
-    nx.set_node_attributes(G, pos, "pos")
+    spring_layout(G)
 
     save_network(G, savepath, args["format"])
 
-    if is_gui:
-        from pubtoscape.cytoscape_json import create_cytoscape_json
-
-        return create_cytoscape_json(G)
+    return G
 
 
 def save_network(G: nx.Graph,
@@ -383,6 +375,15 @@ def remove_edges_by_weight(G: nx.Graph, cut_weight):
 
 def remove_isolated_nodes(G: nx.Graph):
     G.remove_nodes_from(list(nx.isolates(G)))
+
+
+def spring_layout(G: nx.Graph):
+    pos = nx.spring_layout(G,
+                           weight="scaled_edge_weight",
+                           scale=300,
+                           k=0.25,
+                           iterations=15)
+    nx.set_node_attributes(G, pos, "pos")
 
 
 def main():
