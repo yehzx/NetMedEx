@@ -4,11 +4,13 @@ from pathlib import Path
 import pytest
 
 from pubtoscape.pubtator3_api_cli import (batch_publication_query,
-                                      convert_to_pubtator,
-                                      get_biocjson_annotations,
-                                      parse_cite_response,
-                                      send_publication_query,
-                                      send_search_query)
+                                          convert_to_pubtator,
+                                          get_biocjson_annotations,
+                                          parse_cite_response,
+                                          send_publication_query,
+                                          send_search_query,
+                                          run_query_pipeline)
+from pubtoscape.exceptions import EmptyInput, NoArticles
 
 TESTDATA_DIR = Path(__file__).parent / "test_data"
 
@@ -99,3 +101,13 @@ def test_batch_standardized_annotations(paths):
 
     with open(test_filepath) as f:
         assert result == f.read()
+
+
+def test_empty_input():
+    with pytest.raises(EmptyInput):
+        run_query_pipeline(None, None, "query")
+
+
+def test_no_articles():
+    with pytest.raises(NoArticles):
+        run_query_pipeline("qwrsadga", None, "query")

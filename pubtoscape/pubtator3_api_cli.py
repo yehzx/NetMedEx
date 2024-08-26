@@ -12,6 +12,8 @@ import requests
 from tqdm.auto import tqdm
 
 from pubtoscape.utils import config_logger
+from pubtoscape.exceptions import NoArticles, EmptyInput, UnsuccessfulRequest
+from typing import Optional, Union
 
 # API GET limit: 100
 PMID_REQUEST_SIZE = 100
@@ -22,23 +24,37 @@ debug = False
 logger = logging.getLogger(__name__)
 
 
-def run_query_pipeline(query, savepath, type: Literal["query", "pmids"],
-                       max_articles=1000, full_text=False,
-                       standardized=False,
-                       queue=None):
+def run_query_pipeline(query: str,
+                       savepath: Union[str, Path],
+                       type: Literal["query", "pmids"],
+                       max_articles: int = 1000,
+                       full_text: bool = False,
+                       standardized: bool = False,
+                       queue: Optional[Queue] = None):
+    if query is None or query.strip() == "":
+        raise EmptyInput
+
     if type == "query":
         pmid_list = get_search_results(query, max_articles)
     elif type == "pmids":
         pmid_list = query
-    
-    output = batch_publication_query(pmid_list, type="pmids",
+
+    if not pmid_list:
+        raise NoArticles
+
+    output = batch_publication_query(pmid_list,
+                                     type="pmids",
                                      full_text=full_text,
                                      standardized=standardized,
                                      queue=queue)
-    if standardized:
-        output = [convert_to_pubtator(i, retain_ori_text=False, role_type="identifier") for i in output]
-    elif full_text:
-        output = [convert_to_pubtator(i, retain_ori_text=True, role_type="identifier") for i in output]
+
+    if standardized or full_text:
+        retain_ori_text = False if standardized else True
+        output = [
+            convert_to_pubtator(articles,
+                                retain_ori_text=retain_ori_text,
+                                role_type="identifier") for articles in output
+        ]
 
     write_output(output, savepath=savepath)
 
@@ -104,10 +120,12 @@ def get_by_cite(query, max_articles):
 
 def unsuccessful_query(status_code):
     if status_code == 502:
-        logger.info("Possibly too many articles. Please try more specific queries.")
+        msg = "Possibly too many articles. Please try more specific queries."
     else:
-        logger.info("Please retry later.")
-    sys.exit()
+        msg = "Please retry later."
+
+    logger.warning(msg)
+    raise UnsuccessfulRequest(msg)
 
 
 def parse_cite_response(res_text):
@@ -164,6 +182,7 @@ def batch_publication_query(id_list, type,
                             full_text=False,
                             standardized=False,
                             queue=None):
+    return_progress = isinstance(queue, Queue)
     output = []
     format = "biocjson" if standardized or full_text else "pubtator"
     with requests.Session() as session:
@@ -182,10 +201,10 @@ def batch_publication_query(id_list, type,
                 else:
                     pbar.n = len(id_list)
 
-                if isinstance(queue, Queue):
+                if return_progress:
                     queue.put(f"{pbar.n}/{len(id_list)}")
 
-    if isinstance(queue, Queue):
+    if return_progress:
         queue.put(None)
 
     global debug

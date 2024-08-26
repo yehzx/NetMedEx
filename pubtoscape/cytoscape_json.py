@@ -43,7 +43,8 @@ def create_cytoscape_edge(edge, G):
 
     edge_info = {
         "data": {
-            "id": edge_attr["_id"],
+            # Add this will sometimes cause dash_cytoscape to throw node source or target not found
+            # "id": edge_attr["_id"],
             "source": G.nodes[node_id_1]["_id"],
             "target": G.nodes[node_id_2]["_id"],
             "label": f"{G.nodes[node_id_1]['name']} (interacts with) {G.nodes[node_id_2]['name']}",
