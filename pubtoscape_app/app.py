@@ -1,28 +1,33 @@
-import time
-from queue import Queue
 import os
+import pickle
 import threading
+import time
+from pathlib import Path
+from queue import Queue
 
 import dash_bootstrap_components as dbc
+import dash_cytoscape as cyto
+import dash_svg as svg
 import diskcache
+import networkx as nx
 from dash import Dash, Input, Output, State, callback, dcc, html
 from dash.long_callback import DiskcacheLongCallbackManager
-import dash_svg as svg
-import dash_cytoscape as cyto
-import networkx as nx
-import pickle
 
-from pathlib import Path
-from pubtoscape.pubtator3_api_cli import run_query_pipeline
-from pubtoscape.pubtator3_to_cytoscape_cli import pubtator2cytoscape, remove_edges_by_weight, remove_isolated_nodes, spring_layout
+from pubtoscape.cytoscape_html import save_as_html
 from pubtoscape.cytoscape_json import create_cytoscape_json
 from pubtoscape.cytoscape_xgmml import save_as_xgmml
-from pubtoscape.cytoscape_html import save_as_html
+from pubtoscape.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
+from pubtoscape.pubtator3_api_cli import run_query_pipeline
+from pubtoscape.pubtator3_to_cytoscape_cli import (pubtator2cytoscape,
+                                                   remove_edges_by_weight,
+                                                   remove_isolated_nodes,
+                                                   spring_layout)
 from pubtoscape.utils import config_logger
-from pubtoscape.exceptions import NoArticles, EmptyInput, UnsuccessfulRequest
 from pubtoscape.utils_threading import run_thread_with_error_notification
+from dotenv import load_dotenv
 
-config_logger(is_debug=False)
+load_dotenv()
+config_logger(is_debug=(os.getenv("LOGGING_DEBUG") == "true"))
 
 cache = diskcache.Cache("./cache")
 long_callback_manager = DiskcacheLongCallbackManager(cache)
@@ -36,6 +41,7 @@ MAX_ARTICLES = 1000
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP],
            long_callback_manager=long_callback_manager,
            suppress_callback_exceptions=True)
+app.title = "PubTatorToCytoscape"
 
 
 query_component = [
@@ -484,6 +490,6 @@ def clean_up_files():
 
 if __name__ == "__main__":
     try:
-        app.run(debug=True)
+        app.run()
     finally:
         clean_up_files()
