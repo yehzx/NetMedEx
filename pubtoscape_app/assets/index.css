@@ -20,18 +20,12 @@ h1, h2, h3, h4 {
     padding-bottom: 16px;
 }
 
-/* .output-container {
-    border: 2px solid black;
-    height: 10em;
-    overflow-y: scroll;
-} */
-
-
 .sidebar {
     flex: 0 0 300px;
     padding: 5px;
+    padding-top: 1.5rem;
     max-height: 100vh;
-    overflow-y: scroll;
+    overflow-y: auto;
 }
 
 .graph {
