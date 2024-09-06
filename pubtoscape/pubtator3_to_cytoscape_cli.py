@@ -7,6 +7,7 @@ import sys
 from argparse import ArgumentParser
 from collections import defaultdict
 from itertools import count
+from operator import itemgetter
 from pathlib import Path
 from typing import DefaultDict, Literal
 
@@ -70,6 +71,13 @@ def pubtator2cytoscape(filepath, savepath, args):
     remove_edges_by_weight(G, args.cut_weight)
     remove_isolated_nodes(G)
 
+    set_network_layout(G)
+    set_network_communities(G)
+
+    save_network(G, savepath, args.format)
+
+
+def set_network_layout(G: nx.Graph):
     pos = nx.spring_layout(G,
                            weight="scaled_edge_weight",
                            scale=300,
@@ -77,7 +85,40 @@ def pubtator2cytoscape(filepath, savepath, args):
                            iterations=15)
     nx.set_node_attributes(G, pos, "pos")
 
-    save_network(G, savepath, args.format)
+
+def set_network_communities(G: nx.Graph, seed=1):
+    communities = nx.community.louvain_communities(
+        G, seed=seed, weight="scaled_edge_weight")
+    community_labels = set()
+    for c_idx, community in enumerate(communities):
+        highest_degree_node = max(G.degree(community, weight="scaled_edge_weight"), key=itemgetter(1))[0]
+        community_node = f"c{c_idx}"
+        community_labels.add(community_node)
+        community_attrs = G.nodes[highest_degree_node].copy()
+        community_attrs.update(
+            {"label_color": "#dd4444", "parent": None, "_id": community_node})
+        G.add_node(community_node, **community_attrs)
+
+        for node in community:
+            G.nodes[node]["parent"] = community_node
+
+    G.graph["num_communities"] = len(community_labels)
+
+    # Gather edges between communities
+    between_community_edge_weight = defaultdict(int)
+    to_remove = []
+    for u, v, attrs in G.edges(data=True):
+        if (c_0 := G.nodes[u]["parent"]) != (c_1 := G.nodes[v]["parent"]):
+            assert c_0 is not None and c_1 is not None
+            to_remove.append((u, v))
+            community_edge = tuple(sorted([c_0, c_1]))
+            between_community_edge_weight[community_edge] += attrs["scaled_edge_weight"]
+
+    G.remove_edges_from(to_remove)
+    for idx, ((c_0, c_1), weight) in enumerate(between_community_edge_weight.items()):
+        # Log-adjusted weight for balance
+        weight = math.log(weight) * 5
+        G.add_edge(c_0, c_1, scaled_edge_weight=weight, _id=idx)
 
 
 def save_network(G: nx.Graph,
@@ -96,7 +137,9 @@ def save_network(G: nx.Graph,
 
     global pmid_counter
     logger.info(f"# articles: {pmid_counter}")
-    logger.info(f"# nodes: {G.number_of_nodes()}")
+    if num_communities := G.graph.get("num_communities", 0):
+        logger.info(f"# communities: {num_communities}")
+    logger.info(f"# nodes: {G.number_of_nodes() - num_communities}")
     logger.info(f"# edges: {G.number_of_edges()}")
     logger.info(f"Save graph to {savepath}")
 
@@ -308,6 +351,7 @@ def add_node_to_graph(G: nx.Graph, node_dict, non_isolated_nodes):
         try:
             G.add_node(id,
                        color=COLOR_MAP[node_dict[id]["type"]],
+                       label_color="#000000",
                        shape=SHAPE_MAP[node_dict[id]["type"]],
                        type=node_dict[id]["type"],
                        name=node_dict[id]["name"],
