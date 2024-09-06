@@ -34,16 +34,31 @@ CYTOSCAPE_TEMPLATE = """<!DOCTYPE html>
     {{
       selector: "node",
       style: {{
-        "text-valign" : "center",
+        "text-valign": "center",
         "label": "data(label)",
-        "shape" : "data(shape)",
+        "shape": "data(shape)",
+        "color": "data(label_color)",
         "background-color" : "data(color)",
+      }},
+    }},
+    {{
+      selector: ":parent",
+      style: {{
+        "background-opacity": 0.3,
       }},
     }},
     {{
       selector: "edge",
       style: {{
         "width": "data(weight)",
+      }},
+    }},
+    {{
+      selector: ".top-center",
+      style: {{
+        "text-valign": "top",
+        "text-halign": "center",
+        "font-size": "20px",
       }},
     }}
   ]
@@ -76,7 +91,9 @@ def create_cytoscape_node(node):
     node_info = {
         "data": {
             "id": node_attr["_id"],
+            "parent": node_attr.get("parent", None),
             "color": node_attr["color"],
+            "label_color": node_attr["label_color"],
             "label": node_attr["name"],
             "shape": node_attr["shape"].lower(),
         },
@@ -85,6 +102,10 @@ def create_cytoscape_node(node):
             "y": round(node_attr["pos"][1], 3),
         }
     }
+
+    # Community nodes
+    if node_attr["_id"].startswith("c"):
+        node_info["classes"] = "top-center"
 
     return node_info
 
