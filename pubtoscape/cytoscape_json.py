@@ -25,8 +25,10 @@ def create_cytoscape_node(node):
     node_info = {
         "data": {
             "id": node_attr["_id"],
+            "parent": node_attr.get("parent", None),
             "color": node_attr["color"],
             "label": node_attr["name"],
+            "label_color": node_attr["label_color"],
             "shape": node_attr["shape"].lower(),
         },
         "position": {
@@ -34,6 +36,10 @@ def create_cytoscape_node(node):
             "y": round(node_attr["pos"][1], 3),
         }
     }
+
+    # Community nodes
+    if node_attr["_id"].startswith("c"):
+        node_info["classes"] = "top-center"
 
     return node_info
 

@@ -16,6 +16,16 @@ h1, h2, h3, h4 {
     text-align: center;
 }
 
+a:hover {
+    cursor: pointer;
+}
+
+.hyperlink {
+    text-decoration: underline;
+    color: #496ed7;
+}
+
+
 .param {
     padding-bottom: 16px;
 }
@@ -43,6 +53,11 @@ h1, h2, h3, h4 {
 .wrapper {
     min-height: 100vh;
     min-width: 800px;
+}
+
+.upload-box {
+    border-width: 2px;
+    border-style: dashed;
 }
 
 .export-btn {
