@@ -96,10 +96,12 @@ def pubtator2cytoscape(filepath, savepath, args):
 
     set_network_layout(G)
 
-    if args.community:
+    if args["community"]:
         set_network_communities(G)
 
     save_network(G, savepath, args["format"])
+
+    return G
 
 
 def set_network_layout(G: nx.Graph):
