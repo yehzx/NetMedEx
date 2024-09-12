@@ -71,7 +71,7 @@ def main():
         output_filepath = Path(args.output)
         output_filepath.parent.mkdir(parents=True, exist_ok=True)
 
-    pubtator2cytoscape(input_filepath, output_filepath, args)
+    pubtator2cytoscape(input_filepath, output_filepath, vars(args))
 
 
 def check_not_implemented(args):
@@ -82,16 +82,16 @@ def check_not_implemented(args):
 
 def pubtator2cytoscape(filepath, savepath, args):
     G = nx.Graph()
-    result = parse_pubtator(filepath, args.index_by)
+    result = parse_pubtator(filepath, args["index_by"])
     add_node_to_graph(G=G,
                       node_dict=result["node_dict"],
                       non_isolated_nodes=result["non_isolated_nodes"])
     add_edge_to_graph(G=G,
                       node_dict=result["node_dict"],
                       edge_counter=result["edge_dict"],
-                      doc_weight_csv=args.pmid_weight,
-                      weighting_method=args.weighting_method)
-    remove_edges_by_weight(G, args.cut_weight)
+                      doc_weight_csv=args["pmid_weight"],
+                      weighting_method=args["weighting_method"])
+    remove_edges_by_weight(G, args["cut_weight"])
     remove_isolated_nodes(G)
 
     set_network_layout(G)
@@ -99,7 +99,7 @@ def pubtator2cytoscape(filepath, savepath, args):
     if args.community:
         set_network_communities(G)
 
-    save_network(G, savepath, args.format)
+    save_network(G, savepath, args["format"])
 
 
 def set_network_layout(G: nx.Graph):
@@ -148,10 +148,11 @@ def set_network_communities(G: nx.Graph, seed=1):
 
 def save_network(G: nx.Graph,
                  savepath: str,
-                 format: Literal["xgmml", "html"] = "xgmml"):
+                 format: Literal["xgmml", "html", "json"] = "html"):
     FORMAT_FUNCTION_MAP = {
         "xgmml": "pubtoscape.cytoscape_xgmml.save_as_xgmml",
         "html": "pubtoscape.cytoscape_html.save_as_html",
+        "json": "pubtoscape.cytoscape_json.save_as_json",
     }
 
     module_path, func_name = FORMAT_FUNCTION_MAP[format].rsplit(".", 1)
@@ -465,6 +466,15 @@ def remove_isolated_nodes(G: nx.Graph):
     G.remove_nodes_from(list(nx.isolates(G)))
 
 
+def spring_layout(G: nx.Graph):
+    pos = nx.spring_layout(G,
+                           weight="scaled_edge_weight",
+                           scale=300,
+                           k=0.25,
+                           iterations=15)
+    nx.set_node_attributes(G, pos, "pos")
+
+
 def normalized_pointwise_mutual_information(n_x, n_y, n_xy, N,
                                             n_threshold,
                                             below_threshold_default):
@@ -506,7 +516,7 @@ def setup_argparsers():
                         help="Discard the edges with weight smaller than the specified value (default: 5)")
     parser.add_argument("-f",
                         "--format",
-                        choices=["xgmml", "html"],
+                        choices=["xgmml", "html", "json"],
                         default="html",
                         help="Output format (default: html)")
     parser.add_argument("--index_by",
