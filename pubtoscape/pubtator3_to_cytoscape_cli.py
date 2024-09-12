@@ -57,6 +57,29 @@ pmid_counter = 0
 logger = logging.getLogger(__name__)
 
 
+def main():
+    args = parse_args(sys.argv[1:])
+
+    config_logger(args.debug)
+
+    check_not_implemented(args)
+
+    input_filepath = Path(args.input)
+    if args.output is None:
+        output_filepath = input_filepath.with_suffix(".xgmml")
+    else:
+        output_filepath = Path(args.output)
+        output_filepath.parent.mkdir(parents=True, exist_ok=True)
+
+    pubtator2cytoscape(input_filepath, output_filepath, args)
+
+
+def check_not_implemented(args):
+    if args.community and args.format == "xgmml":
+        logger.info("Save community in XGMML format not yet supported.")
+        sys.exit()
+
+
 def pubtator2cytoscape(filepath, savepath, args):
     G = nx.Graph()
     result = parse_pubtator(filepath, args.index_by)
@@ -442,26 +465,6 @@ def remove_isolated_nodes(G: nx.Graph):
     G.remove_nodes_from(list(nx.isolates(G)))
 
 
-def main():
-    args = parse_args(sys.argv[1:])
-
-    config_logger(args.debug)
-
-    input_filepath = Path(args.input)
-    if args.output is None:
-        output_filepath = input_filepath.with_suffix(".xgmml")
-    else:
-        output_filepath = Path(args.output)
-        output_filepath.parent.mkdir(parents=True, exist_ok=True)
-
-    pubtator2cytoscape(input_filepath, output_filepath, args)
-
-
-def parse_args(args):
-    parser = setup_argparsers()
-    return parser.parse_args(args)
-
-
 def normalized_pointwise_mutual_information(n_x, n_y, n_xy, N,
                                             n_threshold,
                                             below_threshold_default):
@@ -479,6 +482,11 @@ def normalized_pointwise_mutual_information(n_x, n_y, n_xy, N,
         npmi = min(npmi, below_threshold_default)
 
     return npmi
+
+
+def parse_args(args):
+    parser = setup_argparsers()
+    return parser.parse_args(args)
 
 
 def setup_argparsers():
