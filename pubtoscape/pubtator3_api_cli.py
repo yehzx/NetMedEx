@@ -6,11 +6,14 @@ import sys
 import time
 from pathlib import Path
 from typing import Literal
+from queue import Queue
 
 import requests
 from tqdm.auto import tqdm
 
 from pubtoscape.utils import config_logger
+from pubtoscape.exceptions import NoArticles, EmptyInput, UnsuccessfulRequest
+from typing import Optional, Union
 
 # API GET limit: 100
 PMID_REQUEST_SIZE = 100
@@ -21,21 +24,77 @@ debug = False
 logger = logging.getLogger(__name__)
 
 
-def run_query_pipeline(query, savepath, type: Literal["query", "pmids"],
-                       max_articles=1000, full_text=False,
-                       standardized=False):
+def main():
+    global debug
+
+    args = parse_args(sys.argv[1:])
+    debug = args.debug
+
+    config_logger(debug)
+
+    if sum(arg is not None for arg in [args.pmids, args.pmid_file, args.query]) != 1:
+        logger.info("Please specify only one of the following: --query, --pmids, --pmid_file")
+        sys.exit()
+
+    if args.query is not None:
+        search_type = "query"
+    elif args.pmids is not None:
+        search_type = "pmids"
+        pmids = args.pmids.split(",")
+        pmids = drop_if_not_num(pmids)
+        logger.info(f"Find {len(pmids)} PMIDs")
+    elif args.pmid_file is not None:
+        search_type = "pmids"
+        logger.info(f"Load PMIDs from: {args.pmid_file}")
+        pmids = load_pmids(args.pmid_file)
+        logger.info(f"Find {len(pmids)} PMIDs")
+
+    suffix = args.query if search_type == "query" else f"{pmids[0]}_total_{len(pmids)}"
+    query = args.query if search_type == "query" else pmids
+    savepath = create_savepath(args.output, type=search_type, suffix=suffix)
+
+    try:
+        run_query_pipeline(query=query,
+                           savepath=savepath,
+                           type=search_type,
+                           max_articles=args.max_articles,
+                           full_text=args.full_text,
+                           standardized=args.standardized_name)
+    except (NoArticles, EmptyInput, UnsuccessfulRequest) as e:
+        logger.error(str(e))
+
+
+def run_query_pipeline(query: str,
+                       savepath: Union[str, Path],
+                       type: Literal["query", "pmids"],
+                       max_articles: int = 1000,
+                       full_text: bool = False,
+                       standardized: bool = False,
+                       queue: Optional[Queue] = None):
+    if query is None or query.strip() == "":
+        raise EmptyInput
+
     if type == "query":
         pmid_list = get_search_results(query, max_articles)
     elif type == "pmids":
         pmid_list = query
 
-    output = batch_publication_query(pmid_list, type="pmids",
+    if not pmid_list:
+        raise NoArticles
+
+    output = batch_publication_query(pmid_list,
+                                     type="pmids",
                                      full_text=full_text,
-                                     standardized=standardized)
-    if standardized:
-        output = [convert_to_pubtator(i, retain_ori_text=False, role_type="identifier") for i in output]
-    elif full_text:
-        output = [convert_to_pubtator(i, retain_ori_text=True, role_type="identifier") for i in output]
+                                     standardized=standardized,
+                                     queue=queue)
+
+    if standardized or full_text:
+        retain_ori_text = False if standardized else True
+        output = [
+            convert_to_pubtator(articles,
+                                retain_ori_text=retain_ori_text,
+                                role_type="identifier") for articles in output
+        ]
 
     write_output(output, savepath=savepath)
 
@@ -80,6 +139,24 @@ def get_by_search(query, max_articles):
     return article_list[:n_articles_to_request]
 
 
+def send_search_query(query, type: Literal["search", "cite"] = QUERY_METHOD):
+    if type == "search":
+        url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/search/"
+    elif type == "cite":
+        url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/cite/tsv"
+    res = requests.get(url, params={"text": query})
+    time.sleep(0.5)
+    return res
+
+
+def send_search_query_with_page(query, page, session=None):
+    url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/search/"
+    params = {"text": query, "sort": "score desc", "page": page}
+    res = handle_session_get(url, params, session)
+    time.sleep(0.5)
+    return res
+
+
 def get_n_articles(max_articles, total_articles):
     logger.info(f"Find {total_articles} articles")
     n_articles_to_request = max_articles if total_articles > max_articles else total_articles
@@ -101,10 +178,12 @@ def get_by_cite(query, max_articles):
 
 def unsuccessful_query(status_code):
     if status_code == 502:
-        logger.info("Possibly too many articles. Please try more specific queries.")
+        msg = "Possibly too many articles. Please try more specific queries."
     else:
-        logger.info("Please retry later.")
-    sys.exit()
+        msg = "Please retry later."
+
+    logger.warning(msg)
+    raise UnsuccessfulRequest(msg)
 
 
 def parse_cite_response(res_text):
@@ -116,24 +195,6 @@ def parse_cite_response(res_text):
         pmid = line.split("\t")[0]
         pmid_list.append(pmid)
     return pmid_list
-
-
-def send_search_query(query, type: Literal["search", "cite"] = QUERY_METHOD):
-    if type == "search":
-        url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/search/"
-    elif type == "cite":
-        url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/cite/tsv"
-    res = requests.get(url, params={"text": query})
-    time.sleep(0.5)
-    return res
-
-
-def send_search_query_with_page(query, page, session=None):
-    url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/search/"
-    params = {"text": query, "sort": "score desc", "page": page}
-    res = handle_session_get(url, params, session)
-    time.sleep(0.5)
-    return res
 
 
 def handle_session_get(url, params, session):
@@ -157,7 +218,11 @@ def get_article_ids(res_json):
     return [str(article.get("pmid")) for article in res_json["results"]]
 
 
-def batch_publication_query(id_list, type, full_text=False, standardized=False):
+def batch_publication_query(id_list, type,
+                            full_text=False,
+                            standardized=False,
+                            queue=None):
+    return_progress = isinstance(queue, Queue)
     output = []
     format = "biocjson" if standardized or full_text else "pubtator"
     with requests.Session() as session:
@@ -175,13 +240,22 @@ def batch_publication_query(id_list, type, full_text=False, standardized=False):
                     pbar.update(PMID_REQUEST_SIZE)
                 else:
                     pbar.n = len(id_list)
+
+                if return_progress:
+                    queue.put(f"{pbar.n}/{len(id_list)}")
+
+    if return_progress:
+        queue.put(None)
+
     global debug
     if debug:
         import json
-        with open("./dump.txt", "w") as f:
-            for o in output:
-                f.write(json.dumps(o))
-                f.write("\n")
+        from datetime import datetime
+
+        now = datetime.now().strftime("%y%m%d%H%M%S")
+        with open(f"./dump_{now}.txt", "w") as f:
+            f.writelines([json.dumps(o) + "\n" for o in output])
+
     return output
 
 
@@ -310,15 +384,12 @@ def write_output(output, savepath: Path):
 
 
 def load_pmids(filepath):
-    logger.info(f"Load PMIDs from: {filepath}")
+    pmids = []
     with open(filepath) as f:
-        pmids = []
         for line in f.readlines():
             pmids.extend(line.strip().split(","))
 
     pmids = drop_if_not_num(pmids)
-
-    logger.info(f"Find {len(pmids)} PMIDs")
 
     return pmids
 
@@ -326,6 +397,7 @@ def load_pmids(filepath):
 def drop_if_not_num(id_list):
     checked_list = []
     for id in id_list:
+        id = id.strip()
         try:
             _ = int(id)
             checked_list.append(id)
@@ -335,51 +407,17 @@ def drop_if_not_num(id_list):
     return checked_list
 
 
-def create_savepath(output_path, type, **kwargs):
+def create_savepath(output_path, type, suffix):
     if output_path is None:
         if type == "query":
-            savepath = Path(f"./query_{kwargs['name']}.pubtator")
+            savepath = Path(f"./query_{suffix}.pubtator")
         elif type == "pmids":
-            pmids = kwargs["pmid_list"]
-            savepath = Path(f"./pmids_{pmids[0]}_total_{len(pmids)}.pubtator")
+            savepath = Path(f"./pmids_{suffix}.pubtator")
     else:
         savepath = Path(output_path)
         savepath.parent.mkdir(parents=True, exist_ok=True)
 
     return savepath
-
-
-def main():
-    global debug
-
-    args = parse_args(sys.argv[1:])
-    debug = args.debug
-
-    config_logger(debug)
-
-    if args.query is not None:
-        savepath = create_savepath(args.output, type="query", name=args.query)
-        run_query_pipeline(query=args.query,
-                           savepath=savepath,
-                           type="query",
-                           max_articles=args.max_articles,
-                           full_text=args.full_text,
-                           standardized=args.standardized_name)
-        sys.exit()
-    elif args.pmids is not None:
-        pmids = args.pmids.split(",")
-        pmids = drop_if_not_num(pmids)
-        logger.info(f"Find {len(pmids)} PMIDs")
-    elif args.pmid_file is not None:
-        pmids = load_pmids(args.pmid_file)
-
-    savepath = create_savepath(args.output, type="pmids", pmid_list=pmids)
-    run_query_pipeline(query=pmids,
-                       savepath=savepath,
-                       type="pmids",
-                       max_articles=args.max_articles,
-                       full_text=args.full_text,
-                       standardized=args.standardized_name)
 
 
 def parse_args(args):

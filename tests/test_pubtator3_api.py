@@ -4,11 +4,14 @@ from pathlib import Path
 import pytest
 
 from pubtoscape.pubtator3_api_cli import (batch_publication_query,
-                                      convert_to_pubtator,
-                                      get_biocjson_annotations,
-                                      parse_cite_response,
-                                      send_publication_query,
-                                      send_search_query)
+                                          convert_to_pubtator,
+                                          get_biocjson_annotations,
+                                          parse_cite_response,
+                                          send_publication_query,
+                                          send_search_query,
+                                          run_query_pipeline,
+                                          load_pmids)
+from pubtoscape.exceptions import EmptyInput, NoArticles
 
 TESTDATA_DIR = Path(__file__).parent / "test_data"
 
@@ -19,7 +22,8 @@ def paths():
                  "pubtator-std_relation-std": TESTDATA_DIR / "pubtator3.37026113_standardized_std-relation_240614.pubtator",
                  "pubtator-std_relation-ori": TESTDATA_DIR / "pubtator3.37026113_standardized_ori-relation_240614.pubtator",
                  "pubtator": TESTDATA_DIR / "pubtator3.37026113_240614.pubtator",
-                 "tsv": TESTDATA_DIR / "cite_tsv.tsv"}
+                 "tsv": TESTDATA_DIR / "cite_tsv.tsv",
+                 "pmids": TESTDATA_DIR / "pmid_list.txt"}
     return filepaths
 
 
@@ -99,3 +103,19 @@ def test_batch_standardized_annotations(paths):
 
     with open(test_filepath) as f:
         assert result == f.read()
+
+
+def test_empty_input():
+    with pytest.raises(EmptyInput):
+        run_query_pipeline(None, None, "query")
+
+
+def test_no_articles():
+    with pytest.raises(NoArticles):
+        run_query_pipeline("qwrsadga", None, "query")
+
+
+def test_load_pmids(paths):
+    pmid_list = load_pmids(paths["pmids"])
+
+    assert pmid_list == ["34205807", "34895069", "35883435"]
