@@ -21,7 +21,8 @@ from pubtoscape.pubtator3_api_cli import run_query_pipeline
 from pubtoscape.pubtator3_to_cytoscape_cli import (pubtator2cytoscape,
                                                    remove_edges_by_weight,
                                                    remove_isolated_nodes,
-                                                   spring_layout)
+                                                   spring_layout,
+                                                   set_network_communities)
 from pubtoscape.utils import config_logger
 from pubtoscape.utils_threading import run_thread_with_error_notification
 from dotenv import load_dotenv
@@ -44,23 +45,67 @@ app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP],
 app.title = "PubTatorToCytoscape"
 
 
-query_component = [
-    html.H5("Query"),
-    dbc.Input(
-        placeholder="Enter a query (ex: dimethylnitrosamine)",
-        type="text",
-        id="data-input"
-    ),
-]
+def generate_query_component(hidden=False):
+    return html.Div(
+        [
+            html.H5("Query"),
+            dbc.Input(
+                placeholder="Enter a query (ex: dimethylnitrosamine)",
+                type="text",
+                id="data-input"
+            )
+        ],
+        hidden=hidden
+    
+    )
+    
+# query_component = [
+#     html.H5("Query"),
+#     dbc.Input(
+#         placeholder="Enter a query (ex: dimethylnitrosamine)",
+#         type="text",
+#         id="data-input"
+#     ),
+# ]
 
-pmid_component = [
-    html.H5("PMID"),
-    dbc.Input(
-        placeholder="Enter PMIDs (ex: 33422831,33849366)",
-        type="text",
-        id="data-input"
-    ),
-]
+
+def generate_pmid_component(hidden=False):
+    return html.Div(
+        [
+            html.H5("PMID"),
+            dbc.Input(
+                placeholder="Enter PMIDs (ex: 33422831,33849366)",
+                type="text",
+                id="data-input"
+            )
+        ],
+        hidden=hidden)
+
+
+def generate_pmid_file_component(hidden=False):
+    return html.Div(
+        [
+            html.H5("PMID File"),
+            dcc.Upload(
+                id="upload-data",
+                children=html.Div([
+                    "Drag and Drop or ",
+                    html.A("Select Files", className="hyperlink")
+                ], className="upload-box form-control")
+            )
+        ],
+        hidden=hidden)
+
+# pmid_file_component = [
+#     html.H5("PMID File"),
+#     dcc.Upload(
+#         id="upload-data",
+#         children=html.Div([
+#             "Drag and Drop or ",
+#             html.A("Select Files", className="hyperlink")
+#         ], className="upload-box form-control")
+#     ),
+# ]
 
 api = [
     html.Div([
@@ -68,7 +113,8 @@ api = [
         dcc.Dropdown(id="input-type-selection",
                      options=[
                          {"label": "Query", "value": "query"},
-                         {"label": "PMID", "value": "pmid"}
+                         {"label": "PMID", "value": "pmid"},
+                         {"label": "PMID File", "value": "pmid_file"}
                      ],
                      value="query",
                      style={"width": "200px"},
@@ -81,6 +127,7 @@ api = [
             options=[
                 {"label": "Standardized name", "value": 1},
                 {"label": "Full text", "value": 2},
+                {"label": "Community", "value": 3},
             ],
             switch=True,
             id="extra-params",
@@ -224,9 +271,14 @@ app.layout = html.Div(
 )
 def update_input_type(input_type):
     if input_type == "query":
-        return query_component
+        return [generate_query_component(hidden=False),
+                generate_pmid_file_component(hidden=True)]
     elif input_type == "pmid":
-        return pmid_component
+        return [generate_pmid_component(hidden=False),
+                generate_pmid_file_component(hidden=True)]
+    elif input_type == "pmid_file":
+        return [generate_query_component(hidden=True),
+                generate_pmid_file_component(hidden=False)]
 
 
 @app.long_callback(
@@ -239,6 +291,7 @@ def update_input_type(input_type):
     Input("submit-button", "n_clicks"),
     [State("input-type-selection", "value"),
      State("data-input", "value"),
+     State("upload-data", "contents"),
      State("cut-weight", "value"),
      State("extra-params", "value"),
      State("weighting-method", "value"),
@@ -256,6 +309,7 @@ def run_pubtator3_api(set_progress,
                       btn,
                       input_type,
                       data_input,
+                      upload_data,
                       weight,
                       extra_params,
                       weighting_method,
@@ -271,8 +325,9 @@ def run_pubtator3_api(set_progress,
         _exception_msg = args.exc_value
         _exception_type = args.exc_type
 
-    full_text = 2 in extra_params
     standardized_name = 1 in extra_params
+    full_text = 2 in extra_params
+    community = 3 in extra_params
 
     queue = Queue()
     threading.excepthook = custom_hook
@@ -316,6 +371,7 @@ def run_pubtator3_api(set_progress,
         "index_by": index_by,
         "weighting_method": weighting_method,
         "pmid_weight": None,
+        "community": False,
     }
 
     set_progress((0, 1, "0/1", "Generating network..."))
@@ -324,12 +380,19 @@ def run_pubtator3_api(set_progress,
     with open(DATA["graph"], "wb") as f:
         pickle.dump(G, f)
 
-    remove_edges_by_weight(G, weight)
-    remove_isolated_nodes(G)
-    filter_node(G, node_degree_threshold)
-    spring_layout(G)
+    G = rebuild_graph(node_degree=node_degree_threshold,
+                      cut_weight=weight,
+                      G=G,
+                      with_layout=True,
+                      with_community=community)
 
     graph_json = create_cytoscape_json(G)
+    cytoscape_graph = generate_cytoscape_js_network(graph_layout, graph_json)
+
+    return (cytoscape_graph, *([{"visibility": "visible"}] * 3), False, weight)
+
+
+def generate_cytoscape_js_network(graph_layout, graph_json):
     cytoscape_graph = cyto.Cytoscape(
         id="cy",
         minZoom=0.1,
@@ -343,7 +406,14 @@ def run_pubtator3_api(set_progress,
                     "text-valign": "center",
                     "label": "data(label)",
                     "shape": "data(shape)",
+                    "color": "data(label_color)",
                     "background-color": "data(color)",
+                },
+            },
+            {
+                "selector": ":parent",
+                "style": {
+                    "background-opacity": 0.3,   
                 },
             },
             {
@@ -351,13 +421,21 @@ def run_pubtator3_api(set_progress,
                 "style": {
                     "width": "data(weight)",
                 },
-            }
+            },
+            {
+                "selector": ".top-center",
+                "style": {
+                    "text-valign": "top",
+                    "text-halign": "center",
+                    "font-size": "20px",
+                },
+            },
         ],
         elements=[*graph_json["elements"]["nodes"],
                   *graph_json["elements"]["edges"]],
     )
 
-    return (cytoscape_graph, *([{"visibility": "visible"}] * 3), False, weight)
+    return cytoscape_graph
 
 
 def filter_node(G: nx.Graph, node_degree_threshold: int):
@@ -404,9 +482,9 @@ def open_settings(n_clicks, is_open):
 )
 def update_graph_layout(layout, node_degree, weight, elements):
     if layout == "preset":
-        G = rebuild_graph_from_original(node_degree,
-                                        weight,
-                                        with_layout=True)
+        G = rebuild_graph(node_degree,
+                          weight,
+                          with_layout=True)
         graph_json = create_cytoscape_json(G)
         elements = [*graph_json["elements"]["nodes"],
                     *graph_json["elements"]["edges"]]
@@ -414,14 +492,24 @@ def update_graph_layout(layout, node_degree, weight, elements):
     return {"name": layout}, elements
 
 
-def rebuild_graph_from_original(node_degree, cut_weight, with_layout=False):
-    with open(DATA["graph"], "rb") as f:
-        G = pickle.load(f)
+def rebuild_graph(node_degree,
+                  cut_weight,
+                  G=None,
+                  with_layout=False,
+                  with_community=False):
+    if G is None:
+        with open(DATA["graph"], "rb") as f:
+            G = pickle.load(f)
     remove_edges_by_weight(G, cut_weight)
     remove_isolated_nodes(G)
     filter_node(G, node_degree)
+
     if with_layout:
         spring_layout(G)
+
+    if with_community:
+        set_network_communities(G)
+
     return G
 
 
@@ -442,9 +530,9 @@ def update_nodes(new_node_degree,
                  old_cut_weight,
                  elements):
     if new_cut_weight != old_cut_weight or new_node_degree != old_node_degree:
-        G = rebuild_graph_from_original(new_node_degree,
-                                        new_cut_weight,
-                                        with_layout=True)
+        G = rebuild_graph(new_node_degree,
+                          new_cut_weight,
+                          with_layout=True)
         graph_json = create_cytoscape_json(G)
         elements = [*graph_json["elements"]["nodes"],
                     *graph_json["elements"]["edges"]]
@@ -461,7 +549,7 @@ def update_nodes(new_node_degree,
     prevent_initial_call=True,
 )
 def export_html(n_clicks, layout, node_degree, weight):
-    G = rebuild_graph_from_original(node_degree, weight, with_layout=True)
+    G = rebuild_graph(node_degree, weight, with_layout=True)
     save_as_html(G, DATA["html"], layout=layout)
     return dcc.send_file(str(DATA["html"]))
 
@@ -475,7 +563,7 @@ def export_html(n_clicks, layout, node_degree, weight):
     prevent_initial_call=True,
 )
 def export_xgmml(n_clicks, layout, node_degree, weight):
-    G = rebuild_graph_from_original(node_degree, weight, with_layout=True)
+    G = rebuild_graph(node_degree, weight, with_layout=True)
     save_as_xgmml(G, DATA["xgmml"])
     return dcc.send_file(DATA["xgmml"])
 
