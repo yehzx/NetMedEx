@@ -72,7 +72,9 @@ def pubtator2cytoscape(filepath, savepath, args):
     remove_isolated_nodes(G)
 
     set_network_layout(G)
-    set_network_communities(G)
+
+    if args.community:
+        set_network_communities(G)
 
     save_network(G, savepath, args.format)
 
@@ -513,6 +515,9 @@ def setup_argparsers():
     parser.add_argument("--debug",
                         action="store_true",
                         help="Print debug information")
+    parser.add_argument("--community",
+                        action="store_true",
+                        help="Divide nodes into distinct communities by the Louvain method")
 
     return parser
 
