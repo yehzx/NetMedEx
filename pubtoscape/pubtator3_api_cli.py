@@ -64,19 +64,21 @@ def main():
         logger.error(str(e))
 
 
-def run_query_pipeline(query: str,
+def run_query_pipeline(query: Union[str, list],
                        savepath: Union[str, Path],
                        type: Literal["query", "pmids"],
                        max_articles: int = 1000,
                        full_text: bool = False,
                        standardized: bool = False,
                        queue: Optional[Queue] = None):
-    if query is None or query.strip() == "":
-        raise EmptyInput
 
     if type == "query":
+        if query is None or query.strip() == "":
+            raise EmptyInput
         pmid_list = get_search_results(query, max_articles)
     elif type == "pmids":
+        if not query:
+            raise EmptyInput
         pmid_list = query
 
     if not pmid_list:
