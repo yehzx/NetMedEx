@@ -403,10 +403,14 @@ def add_edge_to_graph(G: nx.Graph,
             for row in reader:
                 doc_weights[row[0]] = float(row[1])
 
+    max_width = MAX_EDGE_WIDTH
+    # Change min_width to 0 in npmi
+    min_width = MIN_EDGE_WIDTH if weighting_method == "freq" else 0
+
     for pair, records in edge_counter.items():
-        max_width = MAX_EDGE_WIDTH
-        # Change min_width to 0 in npmi
-        min_width = MIN_EDGE_WIDTH if weighting_method == "freq" else 0
+        if not G.has_node(pair[0]) or not G.has_node(pair[1]):
+            continue
+
         pmids = [str(record["pmid"]) for record in records]
         unique_pmids = set(pmids)
 
