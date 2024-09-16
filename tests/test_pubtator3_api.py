@@ -3,15 +3,14 @@ from pathlib import Path
 
 import pytest
 
-from pubtoscape.pubtator3_api_cli import (batch_publication_query,
-                                          convert_to_pubtator,
-                                          get_biocjson_annotations,
-                                          parse_cite_response,
-                                          send_publication_query,
-                                          send_search_query,
-                                          run_query_pipeline,
-                                          load_pmids)
+from pubtoscape.biocjson_parser import (convert_to_pubtator,
+                                        get_biocjson_annotations)
 from pubtoscape.exceptions import EmptyInput, NoArticles
+from pubtoscape.pubtator3_api_cli import (batch_publication_query, load_pmids,
+                                          parse_cite_response,
+                                          run_query_pipeline,
+                                          send_publication_query,
+                                          send_search_query)
 
 TESTDATA_DIR = Path(__file__).parent / "test_data"
 
