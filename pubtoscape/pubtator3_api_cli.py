@@ -30,8 +30,9 @@ def main():
 
     args = parse_args(sys.argv[1:])
     debug = args.debug
-
-    config_logger(debug, "pubtator3")
+    log_file = "pubtator3" if debug else None
+    
+    config_logger(debug, log_file)
 
     if sum(arg is not None for arg in [args.pmids, args.pmid_file, args.query]) != 1:
         logger.info("Please specify only one of the following: --query, --pmids, --pmid_file")

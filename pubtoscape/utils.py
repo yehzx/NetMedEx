@@ -10,6 +10,7 @@ def config_logger(is_debug, filename=None):
         now = datetime.now().strftime("%y%m%d%H%M%S")
         logfile = f"{filename}_{now}.log"
         handlers.append(logging.FileHandler(logfile, mode="w"))
+
     if is_debug:
         logging.basicConfig(format="%(asctime)s [%(levelname)s] %(message)s",
                             datefmt="%Y-%m-%d %H:%M:%S",
