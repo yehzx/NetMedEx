@@ -1,14 +1,21 @@
 import logging
 import sys
+from datetime import datetime
 
 
-def config_logger(is_debug):
+def config_logger(is_debug, filename=None):
+    handlers = [logging.StreamHandler(stream=sys.stdout)]
+
+    if filename is not None:
+        now = datetime.now().strftime("%y%m%d%H%M%S")
+        logfile = f"{filename}_{now}.log"
+        handlers.append(logging.FileHandler(logfile, mode="w"))
     if is_debug:
         logging.basicConfig(format="%(asctime)s [%(levelname)s] %(message)s",
                             datefmt="%Y-%m-%d %H:%M:%S",
                             level=logging.DEBUG,
-                            stream=sys.stdout)
+                            handlers=handlers)
     else:
         logging.basicConfig(format="%(message)s",
                             level=logging.INFO,
-                            stream=sys.stdout)
+                            handlers=handlers)
