@@ -4,16 +4,16 @@ import json
 import logging
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
-from typing import Literal
 from queue import Queue
+from typing import Literal, Optional, Union
 
 import requests
 from tqdm.auto import tqdm
 
+from pubtoscape.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
 from pubtoscape.utils import config_logger
-from pubtoscape.exceptions import NoArticles, EmptyInput, UnsuccessfulRequest
-from typing import Optional, Union
 
 # API GET limit: 100
 PMID_REQUEST_SIZE = 100
@@ -30,7 +30,7 @@ def main():
     args = parse_args(sys.argv[1:])
     debug = args.debug
 
-    config_logger(debug)
+    config_logger(debug, "pubtator3")
 
     if sum(arg is not None for arg in [args.pmids, args.pmid_file, args.query]) != 1:
         logger.info("Please specify only one of the following: --query, --pmids, --pmid_file")
@@ -251,11 +251,8 @@ def batch_publication_query(id_list, type,
 
     global debug
     if debug:
-        import json
-        from datetime import datetime
-
         now = datetime.now().strftime("%y%m%d%H%M%S")
-        with open(f"./dump_{now}.txt", "w") as f:
+        with open(f"./pubtator3_api_{now}.txt", "w") as f:
             f.writelines([json.dumps(o) + "\n" for o in output])
 
     return output

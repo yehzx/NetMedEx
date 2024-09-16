@@ -2,6 +2,8 @@ import csv
 import importlib
 import logging
 import math
+import pickle
+from datetime import datetime
 import re
 import sys
 from argparse import ArgumentParser
@@ -60,7 +62,7 @@ logger = logging.getLogger(__name__)
 def main():
     args = parse_args(sys.argv[1:])
 
-    config_logger(args.debug)
+    config_logger(args.debug, "tocytoscape")
 
     check_not_implemented(args)
 
@@ -91,6 +93,13 @@ def pubtator2cytoscape(filepath, savepath, args):
                       edge_counter=result["edge_dict"],
                       doc_weight_csv=args["pmid_weight"],
                       weighting_method=args["weighting_method"])
+
+    if args.get("debug", False):
+        # Save before truncation
+        now = datetime.now().strftime("%y%m%d%H%M%S")
+        with open(f"tocytoscape_graph_{now}.pkl", "wb") as f:
+            pickle.dump(G, f)
+
     remove_edges_by_weight(G, args["cut_weight"])
     remove_isolated_nodes(G)
 
