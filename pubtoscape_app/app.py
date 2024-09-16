@@ -56,9 +56,8 @@ def generate_query_component(hidden=False):
             )
         ],
         hidden=hidden
-    
     )
-    
+
 # query_component = [
 #     html.H5("Query"),
 #     dbc.Input(
@@ -216,44 +215,41 @@ content = html.Div([
             id="graph-settings",
             style={"visibility": "hidden"},
             className="btn-secondary"),
-        dbc.Collapse(
+        html.Div([
+            html.H4("Settings"),
             html.Div([
-                html.H4("Settings"),
-                html.Div([
-                    html.H5("Graph Layout"),
-                    dcc.Dropdown(id="graph-layout",
-                                 options=[
-                                     {"label": "Preset", "value": "preset"},
-                                     {"label": "Circle", "value": "circle"},
-                                     {"label": "Grid", "value": "grid"},
-                                     {"label": "Random", "value": "random"},
-                                     {"label": "Concentric", "value": "concentric"},
-                                     {"label": "Breadthfirst",
-                                         "value": "breadthfirst"},
-                                     {"label": "Cose", "value": "cose"},
-                                 ],
-                                 value="preset",
-                                 style={"width": "200px"},
-                                 ),
-                ], className="param"),
-                html.Div([
-                    html.H5("Minimal degree"),
-                    dbc.Input(id="node-degree",
-                              min=1, step=1, value=1, type="number",
-                              style={"width": "200px"},
-                              ),
-                    dcc.Store(id="memory-node-degree", data=1)
-                ], className="param"),
-                html.Div([
-                    html.H5("Cut weight"),
-                    dcc.Slider(1, 20, 1, value=3, id="graph-cut-weight"),
-                    dcc.Store(id="memory-graph-cut-weight", data=3),
-                ], className="param"),
-
-            ]),
+                html.H5("Graph Layout"),
+                dcc.Dropdown(id="graph-layout",
+                             options=[
+                                 {"label": "Preset", "value": "preset"},
+                                 {"label": "Circle", "value": "circle"},
+                                 {"label": "Grid", "value": "grid"},
+                                 {"label": "Random", "value": "random"},
+                                 {"label": "Concentric", "value": "concentric"},
+                                 {"label": "Breadthfirst",
+                                  "value": "breadthfirst"},
+                                 {"label": "Cose", "value": "cose"},
+                             ],
+                             value="preset",
+                             style={"width": "200px"},
+                             ),
+            ], className="param"),
+            html.Div([
+                html.H5("Minimal degree"),
+                dbc.Input(id="node-degree",
+                          min=1, step=1, value=1, type="number",
+                          style={"width": "200px"},
+                          ),
+                dcc.Store(id="memory-node-degree", data=1)
+            ], className="param"),
+            html.Div([
+                html.H5("Cut weight"),
+                dcc.Slider(1, 20, 1, value=3, id="graph-cut-weight"),
+                dcc.Store(id="memory-graph-cut-weight", data=3),
+            ], className="param"),
+        ],
             id="graph-settings-collapse",
-            is_open=False,
-            className="collapse",
+            style={"visibility": "hidden"},
         ),
     ], id="toolbox"),
 ], className="d-flex flex-row position-relative")
@@ -286,7 +282,7 @@ def update_input_type(input_type):
     Output("graph-settings", "style"),
     Output("export-btn-html", "style"),
     Output("export-btn-xgmml", "style"),
-    Output("graph-settings-collapse", "is_open", allow_duplicate=True),
+    Output("graph-settings-collapse", "style", allow_duplicate=True),
     Output("graph-cut-weight", "value"),
     Input("submit-button", "n_clicks"),
     [State("input-type-selection", "value"),
@@ -359,7 +355,7 @@ def run_pubtator3_api(set_progress,
         )
         if issubclass(_exception_type, known_exceptions):
             set_progress((1, 1, "", str(_exception_msg)))
-            return (None, *([{"visibility": "hidden"}] * 3), False, weight)
+            return (None, *([{"visibility": "hidden"}] * 4), weight)
 
     time.sleep(0.5)
 
@@ -389,7 +385,10 @@ def run_pubtator3_api(set_progress,
     graph_json = create_cytoscape_json(G)
     cytoscape_graph = generate_cytoscape_js_network(graph_layout, graph_json)
 
-    return (cytoscape_graph, *([{"visibility": "visible"}] * 3), False, weight)
+    return (cytoscape_graph,
+            *([{"visibility": "visible"}] * 3),
+            {"visibility": "hidden"},
+            weight)
 
 
 def generate_cytoscape_js_network(graph_layout, graph_json):
@@ -462,13 +461,16 @@ def plot_cytoscape_graph(graph_children, progress):
 
 
 @callback(
-    Output("graph-settings-collapse", "is_open"),
+    Output("graph-settings-collapse", "style"),
     Input("graph-settings", "n_clicks"),
-    State("graph-settings-collapse", "is_open"),
+    State("graph-settings-collapse", "style"),
     prevent_initial_call=True,
 )
-def open_settings(n_clicks, is_open):
-    return not is_open
+def open_settings(n_clicks, style):
+    visibility = style["visibility"]
+    toggle = {"hidden": "visible",
+              "visible": "hidden"}
+    return {"visibility": toggle[visibility]}
 
 
 @callback(
