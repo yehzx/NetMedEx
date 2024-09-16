@@ -5,15 +5,15 @@ import logging
 import sys
 import time
 from pathlib import Path
-from typing import Literal
 from queue import Queue
+from typing import Literal, Optional, Union
 
 import requests
 from tqdm.auto import tqdm
 
+from pubtoscape.biocjson_parser import convert_to_pubtator
+from pubtoscape.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
 from pubtoscape.utils import config_logger
-from pubtoscape.exceptions import NoArticles, EmptyInput, UnsuccessfulRequest
-from typing import Optional, Union
 
 # API GET limit: 100
 PMID_REQUEST_SIZE = 100
@@ -280,101 +280,6 @@ def append_json_or_text(res, full_text, standardized):
         content = [res.text]
 
     return content
-
-
-def convert_to_pubtator(res_json, retain_ori_text=True,
-                        role_type: Literal["identifier", "name"] = "identifier"):
-    # 2024/05/26: PubTator has changed the format of the response
-    res_json = res_json["PubTator3"]
-
-    converted_strs = []
-    for each_res_json in res_json:
-        pmid = each_res_json["pmid"]
-        title_passage = each_res_json["passages"][0]
-        assert title_passage["infons"]["type"] == "title", \
-            f"First passage of the response is not title: {title_passage}"
-        title = title_passage["text"]
-        abstract_passage = each_res_json["passages"][1]
-        assert abstract_passage["infons"]["type"] == "abstract", \
-            f"Second passage of the response is not abstract: {abstract_passage}"
-        abstract = abstract_passage["text"]
-        annotation_list = get_biocjson_annotations(each_res_json, retain_ori_text)
-        relation_list = get_biocjson_relations(each_res_json, role_type)
-        converted_strs.append(create_pubtator_str(
-            pmid, title, abstract, annotation_list, relation_list))
-
-    return "".join(converted_strs)
-
-
-def create_pubtator_str(pmid, title, abstract, annotation_list, relation_list):
-    title_str = f"{pmid}|t|{title}\n"
-    abstract_str = f"{pmid}|a|{abstract}\n"
-    annotation_list.sort(key=lambda x: x["locations"]["offset"])
-    annotation_str = [(f"{pmid}\t"
-                       f"{annotation['locations']['offset']}\t"
-                       f"{annotation['locations']['length'] + annotation['locations']['offset']}\t"
-                       f"{annotation['name']}\t"
-                       f"{annotation['type']}\t"
-                       f"{annotation['id']}")
-                      for annotation in annotation_list]
-    relation_str = [(f"{pmid}\t"
-                     f"{relation['type']}\t"
-                     f"{relation['role1']}\t"
-                     f"{relation['role2']}")
-                    for relation in relation_list]
-
-    return title_str + abstract_str + "\n".join(annotation_str) \
-        + "\n" + "\n".join(relation_str) + "\n\n"
-
-
-def get_biocjson_annotations(res_json, retain_ori_text):
-    n_passages = len(res_json["passages"])
-    # passages_type = [res_json["passages"][i]["infons"]["type"]
-    #                  for i in range(n_passages)]
-    annotation_list = []
-    # TODO: extract from specific passages only (if full_text)?
-    for annotation_entries in [res_json["passages"][i]["annotations"] for i in range(n_passages)]:
-        for annotation_entry in annotation_entries:
-            each_annotation = {}
-            try:
-                id = annotation_entry["infons"]["identifier"]
-            except Exception:
-                id = "-"
-            each_annotation["id"] = "-" if id == "None" or id is None else id
-            each_annotation["type"] = annotation_entry["infons"]["type"]
-            each_annotation["locations"] = annotation_entry["locations"][0]
-
-            if retain_ori_text:
-                each_annotation["name"] = annotation_entry["text"]
-            # In type == "species", the entity name is stored in "text"
-            elif each_annotation["type"] == "Species":
-                each_annotation["name"] = annotation_entry["text"]
-            # Variant can be either SNP, DNAMutation, or ProteinMutation
-            elif each_annotation["type"] == "Variant":
-                each_annotation["type"] = annotation_entry["infons"]["subtype"]
-                each_annotation["name"] = annotation_entry["infons"]["name"]
-            elif annotation_entry["infons"].get("database", "none") == "omim":
-                each_annotation["name"] = annotation_entry["text"]
-            else:
-                try:
-                    each_annotation["name"] = annotation_entry["infons"]["name"]
-                except KeyError:
-                    each_annotation["name"] = annotation_entry["text"]
-            annotation_list.append(each_annotation)
-
-    return annotation_list
-
-
-def get_biocjson_relations(res_json, role_type):
-    relation_list = []
-    for relation_entry in res_json["relations"]:
-        each_relation = {}
-        each_relation["role1"] = relation_entry["infons"]["role1"][role_type]
-        each_relation["role2"] = relation_entry["infons"]["role2"][role_type]
-        each_relation["type"] = relation_entry["infons"]["type"]
-        relation_list.append(each_relation)
-
-    return relation_list
 
 
 def write_output(output, savepath: Path):
