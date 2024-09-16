@@ -62,7 +62,9 @@ logger = logging.getLogger(__name__)
 def main():
     args = parse_args(sys.argv[1:])
 
-    config_logger(args.debug, "tocytoscape")
+    log_file = "tocytoscape" if args.debug else None
+
+    config_logger(args.debug, log_file)
 
     check_not_implemented(args)
 
