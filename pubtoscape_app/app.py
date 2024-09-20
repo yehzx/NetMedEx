@@ -396,6 +396,9 @@ def run_pubtator3_api(set_progress,
                       with_layout=True,
                       with_community=community)
 
+    # if G.number_of_nodes() == 0:
+    #     return (None, *([{"visibility": "hidden"}] * 4), weight)
+
     graph_json = create_cytoscape_json(G)
     cytoscape_graph = generate_cytoscape_js_network(graph_layout, graph_json)
 
