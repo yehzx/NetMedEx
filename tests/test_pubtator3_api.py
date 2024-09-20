@@ -115,6 +115,6 @@ def test_no_articles():
 
 
 def test_load_pmids(paths):
-    pmid_list = load_pmids(paths["pmids"])
+    pmid_list = load_pmids(paths["pmids"], load_from="file")
 
     assert pmid_list == ["34205807", "34895069", "35883435"]
