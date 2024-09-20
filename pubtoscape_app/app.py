@@ -235,7 +235,7 @@ content = html.Div([
                              ),
             ], className="param"),
             html.Div([
-                html.H5("Minimal degree"),
+                html.H5("Minimal Degree"),
                 dbc.Input(id="node-degree",
                           min=1, step=1, value=1, type="number",
                           style={"width": "200px"},
@@ -243,7 +243,7 @@ content = html.Div([
                 dcc.Store(id="memory-node-degree", data=1)
             ], className="param"),
             html.Div([
-                html.H5("Cut weight"),
+                html.H5("Cut Weight"),
                 dcc.Slider(1, 20, 1, value=3, id="graph-cut-weight"),
                 dcc.Store(id="memory-graph-cut-weight", data=3),
             ], className="param"),
@@ -252,12 +252,12 @@ content = html.Div([
             style={"visibility": "hidden"},
         ),
     ], id="toolbox"),
-], className="d-flex flex-row position-relative")
+], className="d-flex flex-row position-relative h-100")
 
 app.layout = html.Div(
     [
         content
-    ], className="container wrapper"
+    ], className="wrapper"
 )
 
 

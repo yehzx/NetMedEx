@@ -1,5 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap');
 
+:root {
+    --SIDEBAR-BTN: #134b70;
+    --SIDEBAR-TEXT: #eeeeee;
+    --SIDEBAR-BACKGROUND: #508c9b;
+}
+
 * {
     margin: 0;
     padding: 0;
@@ -14,6 +20,24 @@ body {
 
 h1, h2, h3, h4 {
     text-align: center;
+}
+
+.sidebar :is(h1, h2, h3, h4, h5, h6, p, label, .rc-slider-mark-text) {
+    color: var(--SIDEBAR-TEXT);
+}
+
+.sidebar .btn {
+    background-color: var(--SIDEBAR-BTN);
+    border-color: var(--SIDEBAR-BTN);
+}
+
+.sidebar .progress-bar {
+    background-color: var(--SIDEBAR-BTN);
+    color: var(--SIDEBAR-TEXT);
+}
+
+.main-div {
+    background-color: var(--SIDEBAR-TEXT);
 }
 
 a:hover {
@@ -31,11 +55,13 @@ a:hover {
 }
 
 .sidebar {
-    flex: 0 0 300px;
-    padding: 5px;
-    padding-top: 1.5rem;
-    max-height: 100vh;
+    flex: 0 0 350px;
+    /* padding: 5px; */
+    padding: 1.5rem 20px 0 20px;
+    /* padding-top: 1.5rem; */
+    height: 100%;
     overflow-y: auto;
+    background-color: var(--SIDEBAR-BACKGROUND);
 }
 
 .graph {
@@ -51,8 +77,14 @@ a:hover {
 }
 
 .wrapper {
-    min-height: 100vh;
-    min-width: 800px;
+    height: 100vh;
+    width: 100%;
+}
+
+@media screen and (max-width: 800px) {
+    .wrapper {
+        width: 800px;
+    }
 }
 
 .upload-box {
