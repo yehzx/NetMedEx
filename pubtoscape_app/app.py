@@ -391,14 +391,15 @@ def run_pubtator3_api(set_progress,
     set_progress((0, 1, "0/1", "Generating network..."))
     G = pubtator2cytoscape(args["input"], args["output"], args)
 
+    G.graph["is_community"] = True if community else False
+
     with open(DATA["graph"], "wb") as f:
         pickle.dump(G, f)
 
     G = rebuild_graph(node_degree=node_degree_threshold,
                       cut_weight=weight,
                       G=G,
-                      with_layout=True,
-                      with_community=community)
+                      with_layout=True)
 
     # if G.number_of_nodes() == 0:
     #     return (None, *([{"visibility": "hidden"}] * 4), weight)
@@ -522,11 +523,11 @@ def update_graph_layout(layout, node_degree, weight, elements):
 def rebuild_graph(node_degree,
                   cut_weight,
                   G=None,
-                  with_layout=False,
-                  with_community=False):
+                  with_layout=False):
     if G is None:
         with open(DATA["graph"], "rb") as f:
             G = pickle.load(f)
+
     remove_edges_by_weight(G, cut_weight)
     remove_isolated_nodes(G)
     filter_node(G, node_degree)
@@ -534,7 +535,7 @@ def rebuild_graph(node_degree,
     if with_layout:
         spring_layout(G)
 
-    if with_community:
+    if G.graph.get("is_community", False):
         set_network_communities(G)
 
     return G
