@@ -302,7 +302,6 @@ def write_output(output, savepath: Path):
         logger.info(f"Save to {str(savepath)}")
 
 
-
 def drop_if_not_num(id_list):
     checked_list = []
     for id in id_list:
