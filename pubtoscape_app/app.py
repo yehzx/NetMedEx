@@ -19,7 +19,7 @@ from pubtoscape.cytoscape_html import save_as_html
 from pubtoscape.cytoscape_json import create_cytoscape_json
 from pubtoscape.cytoscape_xgmml import save_as_xgmml
 from pubtoscape.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
-from pubtoscape.pubtator3_api_cli import run_query_pipeline
+from pubtoscape.pubtator3_api_cli import run_query_pipeline, load_pmids
 from pubtoscape.pubtator3_to_cytoscape_cli import (pubtator2cytoscape,
                                                    remove_edges_by_weight,
                                                    remove_isolated_nodes,
@@ -59,15 +59,6 @@ def generate_query_component(hidden=False):
         hidden=hidden
     )
 
-# query_component = [
-#     html.H5("Query"),
-#     dbc.Input(
-#         placeholder="Enter a query (ex: dimethylnitrosamine)",
-#         type="text",
-#         id="data-input"
-#     ),
-# ]
-
 
 def generate_pmid_component(hidden=False):
     return html.Div(
@@ -97,16 +88,6 @@ def generate_pmid_file_component(hidden=False):
         ],
         hidden=hidden)
 
-# pmid_file_component = [
-#     html.H5("PMID File"),
-#     dcc.Upload(
-#         id="upload-data",
-#         children=html.Div([
-#             "Drag and Drop or ",
-#             html.A("Select Files", className="hyperlink")
-#         ], className="upload-box form-control")
-#     ),
-# ]
 
 api = [
     html.Div([
@@ -114,7 +95,7 @@ api = [
         dcc.Dropdown(id="input-type-selection",
                      options=[
                          {"label": "Query", "value": "query"},
-                         {"label": "PMID", "value": "pmid"},
+                         {"label": "PMID", "value": "pmids"},
                          {"label": "PMID File", "value": "pmid_file"}
                      ],
                      value="query",
@@ -273,7 +254,7 @@ def update_input_type(input_type):
     if input_type == "query":
         return [generate_query_component(hidden=False),
                 generate_pmid_file_component(hidden=True)]
-    elif input_type == "pmid":
+    elif input_type == "pmids":
         return [generate_pmid_component(hidden=False),
                 generate_pmid_file_component(hidden=True)]
     elif input_type == "pmid_file":
@@ -347,11 +328,22 @@ def run_pubtator3_api(set_progress,
     full_text = 2 in extra_params
     community = 3 in extra_params
 
+    if input_type == "query":
+        query = data_input
+    elif input_type == "pmids":
+        query = load_pmids(data_input, load_from="string")
+    elif input_type == "pmid_file":
+        content_type, content_string = upload_data.split(",")
+        decoded_content = base64.b64decode(content_string).decode("utf-8")
+        decoded_content = decoded_content.replace("\n", ",")
+        query = load_pmids(decoded_content, load_from="string")
+        input_type = "pmids"
+
     queue = Queue()
     threading.excepthook = custom_hook
     job = threading.Thread(
         target=run_thread_with_error_notification(run_query_pipeline, queue),
-        args=(data_input,
+        args=(query,
               str(DATA["pubtator"]),
               input_type,
               MAX_ARTICLES,
