@@ -2,6 +2,8 @@ import csv
 import importlib
 import logging
 import math
+import pickle
+from datetime import datetime
 import re
 import sys
 from argparse import ArgumentParser
@@ -60,7 +62,9 @@ logger = logging.getLogger(__name__)
 def main():
     args = parse_args(sys.argv[1:])
 
-    config_logger(args.debug)
+    log_file = "tocytoscape" if args.debug else None
+
+    config_logger(args.debug, log_file)
 
     check_not_implemented(args)
 
@@ -91,6 +95,13 @@ def pubtator2cytoscape(filepath, savepath, args):
                       edge_counter=result["edge_dict"],
                       doc_weight_csv=args["pmid_weight"],
                       weighting_method=args["weighting_method"])
+
+    if args.get("debug", False):
+        # Save before truncation
+        now = datetime.now().strftime("%y%m%d%H%M%S")
+        with open(f"tocytoscape_graph_{now}.pkl", "wb") as f:
+            pickle.dump(G, f)
+
     remove_edges_by_weight(G, args["cut_weight"])
     remove_isolated_nodes(G)
 
@@ -403,10 +414,14 @@ def add_edge_to_graph(G: nx.Graph,
             for row in reader:
                 doc_weights[row[0]] = float(row[1])
 
+    max_width = MAX_EDGE_WIDTH
+    # Change min_width to 0 in npmi
+    min_width = MIN_EDGE_WIDTH if weighting_method == "freq" else 0
+
     for pair, records in edge_counter.items():
-        max_width = MAX_EDGE_WIDTH
-        # Change min_width to 0 in npmi
-        min_width = MIN_EDGE_WIDTH if weighting_method == "freq" else 0
+        if not G.has_node(pair[0]) or not G.has_node(pair[1]):
+            continue
+
         pmids = [str(record["pmid"]) for record in records]
         unique_pmids = set(pmids)
 
