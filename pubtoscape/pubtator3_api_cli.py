@@ -31,7 +31,7 @@ def main():
     args = parse_args(sys.argv[1:])
     debug = args.debug
     log_file = "pubtator3" if debug else None
-    
+
     config_logger(debug, log_file)
 
     if sum(arg is not None for arg in [args.pmids, args.pmid_file, args.query]) != 1:
@@ -42,13 +42,12 @@ def main():
         search_type = "query"
     elif args.pmids is not None:
         search_type = "pmids"
-        pmids = args.pmids.split(",")
-        pmids = drop_if_not_num(pmids)
+        pmids = load_pmids(args.pmids, load_from="string")
         logger.info(f"Find {len(pmids)} PMIDs")
     elif args.pmid_file is not None:
         search_type = "pmids"
         logger.info(f"Load PMIDs from: {args.pmid_file}")
-        pmids = load_pmids(args.pmid_file)
+        pmids = load_pmids(args.pmid_file, load_from="file")
         logger.info(f"Find {len(pmids)} PMIDs")
 
     suffix = args.query if search_type == "query" else f"{pmids[0]}_total_{len(pmids)}"
@@ -64,6 +63,20 @@ def main():
                            standardized=args.standardized_name)
     except (NoArticles, EmptyInput, UnsuccessfulRequest) as e:
         logger.error(str(e))
+
+
+def load_pmids(input_data, load_from: Literal["string", "file"]):
+    if load_from == "string":
+        pmids = input_data.split(",")
+    elif load_from == "file":
+        pmids = []
+        with open(input_data) as f:
+            for line in f.readlines():
+                pmids.extend(line.strip().split(","))
+
+    pmids = drop_if_not_num(pmids)
+
+    return pmids
 
 
 def run_query_pipeline(query: Union[str, list],
@@ -288,16 +301,6 @@ def write_output(output, savepath: Path):
         f.writelines(output)
         logger.info(f"Save to {str(savepath)}")
 
-
-def load_pmids(filepath):
-    pmids = []
-    with open(filepath) as f:
-        for line in f.readlines():
-            pmids.extend(line.strip().split(","))
-
-    pmids = drop_if_not_num(pmids)
-
-    return pmids
 
 
 def drop_if_not_num(id_list):
