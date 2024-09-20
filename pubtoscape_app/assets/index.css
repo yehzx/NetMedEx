@@ -37,6 +37,7 @@ h1, h2, h3, h4 {
 .sidebar .btn {
     background-color: var(--SIDEBAR-BTN);
     border-color: var(--SIDEBAR-BTN);
+    color: var(--SIDEBAR-TEXT);
 }
 
 .sidebar .progress-bar {
@@ -143,4 +144,10 @@ a:hover {
     border: 1px solid var(--TEXT); 
     padding: 3px;
     margin-bottom: 0;
+}
+
+.rc-slider-tooltip-inner {
+    background-color: var(--SIDEBAR-TEXT);
+    color: var(--TEXT);
+    font-size: 14px;
 }
