@@ -126,3 +126,12 @@ a:hover {
     right: 50px;
     top: 50px;
 }
+
+.upload-preview {
+    overflow-y: "scroll";
+    height: 100px;
+    background-color: var(--GRAPH-SETTINGS-BACKGROUND);
+    border: 1px solid var(--TEXT); 
+    padding: 3px;
+    margin-bottom: 0;
+}
