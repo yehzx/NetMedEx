@@ -144,7 +144,8 @@ cytoscape = [
     ], className="param"),
     html.Div([
         html.H5("Cut Weight"),
-        dcc.Slider(1, 20, 1, value=3, id="cut-weight"),
+        dcc.Slider(1, 20, 1, value=3, marks=None, id="cut-weight",
+                   tooltip={"placement": "bottom", "always_visible": True}),
     ], className="param"),
 ]
 
@@ -221,7 +222,8 @@ toolbox = html.Div([
         ], className="param"),
         html.Div([
             html.H5("Cut Weight"),
-            dcc.Slider(1, 20, 1, value=3, id="graph-cut-weight"),
+            dcc.Slider(1, 20, 1, value=3, marks=None, id="graph-cut-weight",
+                       tooltip={"placement": "bottom", "always_visible": False}),
             dcc.Store(id="memory-graph-cut-weight", data=3),
         ], className="param"),
     ],
@@ -287,6 +289,7 @@ def update_data_upload(upload_data, filename):
     Output("export-btn-xgmml", "style"),
     Output("graph-settings-collapse", "style", allow_duplicate=True),
     Output("graph-cut-weight", "value"),
+    Output("graph-cut-weight", "tooltip", allow_duplicate=True),
     Input("submit-button", "n_clicks"),
     [State("input-type-selection", "value"),
      State("data-input", "value"),
@@ -369,7 +372,8 @@ def run_pubtator3_api(set_progress,
         )
         if issubclass(_exception_type, known_exceptions):
             set_progress((1, 1, "", str(_exception_msg)))
-            return (None, *([{"visibility": "hidden"}] * 4), weight)
+            return (None, *([{"visibility": "hidden"}] * 4),
+                    weight, {"placement": "bottom", "always_visible": False})
 
     time.sleep(0.5)
 
@@ -405,7 +409,8 @@ def run_pubtator3_api(set_progress,
     return (cytoscape_graph,
             *([{"visibility": "visible"}] * 3),
             {"visibility": "hidden"},
-            weight)
+            weight,
+            {"placement": "bottom", "always_visible": False})
 
 
 def generate_cytoscape_js_network(graph_layout, graph_json):
@@ -479,15 +484,18 @@ def plot_cytoscape_graph(graph_children, progress):
 
 @callback(
     Output("graph-settings-collapse", "style"),
+    Output("graph-cut-weight", "tooltip"),
     Input("graph-settings", "n_clicks"),
     State("graph-settings-collapse", "style"),
     prevent_initial_call=True,
 )
 def open_settings(n_clicks, style):
     visibility = style["visibility"]
-    toggle = {"hidden": "visible",
-              "visible": "hidden"}
-    return {"visibility": toggle[visibility]}
+    toggle = {"hidden": "visible", "visible": "hidden"}
+    weight_toggle = {"hidden": True, "visible": False}
+    return ({"visibility": toggle[visibility]},
+            {"placement": "bottom",
+             "always_visible": weight_toggle[visibility]})
 
 
 @callback(
