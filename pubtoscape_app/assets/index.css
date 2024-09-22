@@ -131,7 +131,6 @@ a:hover {
     display: flex;
     justify-content: end;
     position: absolute;
-    width: 350px;
     right: 10px;
     top: 50px;
     background-color: var(--MAIN-BACKGROUND);
