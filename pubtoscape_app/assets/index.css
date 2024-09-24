@@ -3,6 +3,7 @@
 :root {
     --SIDEBAR-BTN: #134b70;
     --SIDEBAR-TEXT: #eeeeee;
+    --MAIN-BACKGROUND: #eeeeee;
     --SIDEBAR-BACKGROUND: #508c9b;
     --TEXT: #1f0737;
     --GRAPH-SETTINGS-BACKGROUND: #e2dad6; 
@@ -36,6 +37,7 @@ h1, h2, h3, h4 {
 .sidebar .btn {
     background-color: var(--SIDEBAR-BTN);
     border-color: var(--SIDEBAR-BTN);
+    color: var(--SIDEBAR-TEXT);
 }
 
 .sidebar .progress-bar {
@@ -44,7 +46,9 @@ h1, h2, h3, h4 {
 }
 
 .main-div {
-    background-color: var(--SIDEBAR-TEXT);
+    background-color: var(--MAIN-BACKGROUND);
+    max-height: 100%;
+    max-width: calc(100% - 350px);
 }
 
 a:hover {
@@ -75,8 +79,12 @@ a:hover {
     flex-grow: 1;
 }
 
+#cytoscape-graph {
+    height: calc(99% - 20px - 2rem);
+}
+
 #cy {
-    min-height: calc(99vh - 20px - 2rem);
+    height: 100%;
 }
 
 .main-div {
@@ -85,6 +93,7 @@ a:hover {
 
 .wrapper {
     height: 100vh;
+    min-height: 600px;
     width: 100%;
 }
 
@@ -122,7 +131,22 @@ a:hover {
     display: flex;
     justify-content: end;
     position: absolute;
-    width: 350px;
-    right: 50px;
+    right: 10px;
     top: 50px;
+    background-color: var(--MAIN-BACKGROUND);
+}
+
+.upload-preview {
+    overflow-y: "scroll";
+    height: 100px;
+    background-color: var(--GRAPH-SETTINGS-BACKGROUND);
+    border: 1px solid var(--TEXT); 
+    padding: 3px;
+    margin-bottom: 0;
+}
+
+.rc-slider-tooltip-inner {
+    background-color: var(--SIDEBAR-TEXT);
+    color: var(--TEXT);
+    font-size: 14px;
 }

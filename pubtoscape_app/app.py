@@ -1,3 +1,4 @@
+import base64
 import os
 import pickle
 import threading
@@ -12,20 +13,20 @@ import diskcache
 import networkx as nx
 from dash import Dash, Input, Output, State, callback, dcc, html
 from dash.long_callback import DiskcacheLongCallbackManager
+from dotenv import load_dotenv
 
 from pubtoscape.cytoscape_html import save_as_html
 from pubtoscape.cytoscape_json import create_cytoscape_json
 from pubtoscape.cytoscape_xgmml import save_as_xgmml
 from pubtoscape.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
-from pubtoscape.pubtator3_api_cli import run_query_pipeline
+from pubtoscape.pubtator3_api_cli import run_query_pipeline, load_pmids
 from pubtoscape.pubtator3_to_cytoscape_cli import (pubtator2cytoscape,
                                                    remove_edges_by_weight,
                                                    remove_isolated_nodes,
-                                                   spring_layout,
-                                                   set_network_communities)
+                                                   set_network_communities,
+                                                   spring_layout)
 from pubtoscape.utils import config_logger
 from pubtoscape.utils_threading import run_thread_with_error_notification
-from dotenv import load_dotenv
 
 load_dotenv()
 config_logger(is_debug=(os.getenv("LOGGING_DEBUG") == "true"))
@@ -58,15 +59,6 @@ def generate_query_component(hidden=False):
         hidden=hidden
     )
 
-# query_component = [
-#     html.H5("Query"),
-#     dbc.Input(
-#         placeholder="Enter a query (ex: dimethylnitrosamine)",
-#         type="text",
-#         id="data-input"
-#     ),
-# ]
-
 
 def generate_pmid_component(hidden=False):
     return html.Div(
@@ -91,20 +83,11 @@ def generate_pmid_file_component(hidden=False):
                     "Drag and Drop or ",
                     html.A("Select Files", className="hyperlink")
                 ], className="upload-box form-control")
-            )
+            ),
+            html.Div(id="output-data-upload"),
         ],
         hidden=hidden)
 
-# pmid_file_component = [
-#     html.H5("PMID File"),
-#     dcc.Upload(
-#         id="upload-data",
-#         children=html.Div([
-#             "Drag and Drop or ",
-#             html.A("Select Files", className="hyperlink")
-#         ], className="upload-box form-control")
-#     ),
-# ]
 
 api = [
     html.Div([
@@ -112,7 +95,7 @@ api = [
         dcc.Dropdown(id="input-type-selection",
                      options=[
                          {"label": "Query", "value": "query"},
-                         {"label": "PMID", "value": "pmid"},
+                         {"label": "PMID", "value": "pmids"},
                          {"label": "PMID File", "value": "pmid_file"}
                      ],
                      value="query",
@@ -161,7 +144,8 @@ cytoscape = [
     ], className="param"),
     html.Div([
         html.H5("Cut Weight"),
-        dcc.Slider(1, 20, 1, value=3, id="cut-weight"),
+        dcc.Slider(1, 20, 1, value=3, marks=None, id="cut-weight",
+                   tooltip={"placement": "bottom", "always_visible": True}),
     ], className="param"),
 ]
 
@@ -180,78 +164,81 @@ progress = [
     ]),
 ]
 
+toolbox = html.Div([
+    dbc.Button(
+        "Export (html)",
+        id="export-btn-html",
+        style={"visibility": "hidden"},
+        className="export-btn"),
+    dcc.Download(id="export-html"),
+    dbc.Button(
+        "Export (xgmml)",
+        id="export-btn-xgmml",
+        style={"visibility": "hidden"},
+        className="export-btn"),
+    dcc.Download(id="export-xgmml"),
+    dbc.Button(
+        svg.Svg(xmlns="http://www.w3.org/2000/svg",
+                width="20",
+                height="20",
+                fill="currentColor",
+                className="bi bi-three-dots",
+                viewBox="0 0 16 16",
+                children=[
+                        svg.Path(
+                            d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"),
+                ]
+                ),
+        # "Settings",
+        id="graph-settings",
+        style={"visibility": "hidden"},
+        className="btn-secondary"),
+    html.Div([
+        html.H4("Settings"),
+        html.Div([
+            html.H5("Graph Layout"),
+            dcc.Dropdown(id="graph-layout",
+                         options=[
+                             {"label": "Preset", "value": "preset"},
+                             {"label": "Circle", "value": "circle"},
+                             {"label": "Grid", "value": "grid"},
+                             {"label": "Random", "value": "random"},
+                             {"label": "Concentric", "value": "concentric"},
+                             {"label": "Breadthfirst",
+                              "value": "breadthfirst"},
+                             {"label": "Cose", "value": "cose"},
+                         ],
+                         value="preset",
+                         style={"width": "200px"},
+                         ),
+        ], className="param"),
+        html.Div([
+            html.H5("Minimal Degree"),
+            dbc.Input(id="node-degree",
+                      min=1, step=1, value=1, type="number",
+                      style={"width": "200px"},
+                      ),
+            dcc.Store(id="memory-node-degree", data=1)
+        ], className="param"),
+        html.Div([
+            html.H5("Cut Weight"),
+            dcc.Slider(1, 20, 1, value=3, marks=None, id="graph-cut-weight",
+                       tooltip={"placement": "bottom", "always_visible": False}),
+            dcc.Store(id="memory-graph-cut-weight", data=3),
+        ], className="param"),
+    ],
+        id="graph-settings-collapse",
+        style={"visibility": "hidden"},
+    ),
+], id="toolbox")
+
 content = html.Div([
     html.Div([*api, *cytoscape, *progress], className="sidebar"),
     html.Div([
         html.H2("PubTator3 To Cytoscape"),
         html.Div(id="cytoscape-graph", className="graph"),
     ], className="flex-grow-1 main-div"),
-    html.Div([
-        dbc.Button(
-            "Export (html)",
-            id="export-btn-html",
-            style={"visibility": "hidden"},
-            className="export-btn"),
-        dcc.Download(id="export-html"),
-        dbc.Button(
-            "Export (xgmml)",
-            id="export-btn-xgmml",
-            style={"visibility": "hidden"},
-            className="export-btn"),
-        dcc.Download(id="export-xgmml"),
-        dbc.Button(
-            svg.Svg(xmlns="http://www.w3.org/2000/svg",
-                    width="20",
-                    height="20",
-                    fill="currentColor",
-                    className="bi bi-three-dots",
-                    viewBox="0 0 16 16",
-                    children=[
-                        svg.Path(
-                            d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"),
-                    ]
-                    ),
-            # "Settings",
-            id="graph-settings",
-            style={"visibility": "hidden"},
-            className="btn-secondary"),
-        html.Div([
-            html.H4("Settings"),
-            html.Div([
-                html.H5("Graph Layout"),
-                dcc.Dropdown(id="graph-layout",
-                             options=[
-                                 {"label": "Preset", "value": "preset"},
-                                 {"label": "Circle", "value": "circle"},
-                                 {"label": "Grid", "value": "grid"},
-                                 {"label": "Random", "value": "random"},
-                                 {"label": "Concentric", "value": "concentric"},
-                                 {"label": "Breadthfirst",
-                                  "value": "breadthfirst"},
-                                 {"label": "Cose", "value": "cose"},
-                             ],
-                             value="preset",
-                             style={"width": "200px"},
-                             ),
-            ], className="param"),
-            html.Div([
-                html.H5("Minimal Degree"),
-                dbc.Input(id="node-degree",
-                          min=1, step=1, value=1, type="number",
-                          style={"width": "200px"},
-                          ),
-                dcc.Store(id="memory-node-degree", data=1)
-            ], className="param"),
-            html.Div([
-                html.H5("Cut Weight"),
-                dcc.Slider(1, 20, 1, value=3, id="graph-cut-weight"),
-                dcc.Store(id="memory-graph-cut-weight", data=3),
-            ], className="param"),
-        ],
-            id="graph-settings-collapse",
-            style={"visibility": "hidden"},
-        ),
-    ], id="toolbox"),
+    toolbox,
 ], className="d-flex flex-row position-relative h-100")
 
 app.layout = html.Div(
@@ -269,12 +256,30 @@ def update_input_type(input_type):
     if input_type == "query":
         return [generate_query_component(hidden=False),
                 generate_pmid_file_component(hidden=True)]
-    elif input_type == "pmid":
+    elif input_type == "pmids":
         return [generate_pmid_component(hidden=False),
                 generate_pmid_file_component(hidden=True)]
     elif input_type == "pmid_file":
         return [generate_query_component(hidden=True),
                 generate_pmid_file_component(hidden=False)]
+
+
+@callback(
+    Output("output-data-upload", "children"),
+    Input("upload-data", "contents"),
+    State("upload-data", "filename"),
+)
+def update_data_upload(upload_data, filename):
+    if upload_data is not None:
+        content_type, content_string = upload_data.split(",")
+        decoded_content = base64.b64decode(content_string).decode("utf-8")
+        padding = "..." if len(decoded_content) > 100 else ""
+        return [
+            html.H6(f"File: {filename}",
+                    style={"margin-bottom": "5px", "margin-top": "5px"}),
+            html.Pre(decoded_content[:100] + padding,
+                     className="upload-preview")
+        ]
 
 
 @app.long_callback(
@@ -284,6 +289,7 @@ def update_input_type(input_type):
     Output("export-btn-xgmml", "style"),
     Output("graph-settings-collapse", "style", allow_duplicate=True),
     Output("graph-cut-weight", "value"),
+    Output("graph-cut-weight", "tooltip", allow_duplicate=True),
     Input("submit-button", "n_clicks"),
     [State("input-type-selection", "value"),
      State("data-input", "value"),
@@ -325,11 +331,22 @@ def run_pubtator3_api(set_progress,
     full_text = 2 in extra_params
     community = 3 in extra_params
 
+    if input_type == "query":
+        query = data_input
+    elif input_type == "pmids":
+        query = load_pmids(data_input, load_from="string")
+    elif input_type == "pmid_file":
+        content_type, content_string = upload_data.split(",")
+        decoded_content = base64.b64decode(content_string).decode("utf-8")
+        decoded_content = decoded_content.replace("\n", ",")
+        query = load_pmids(decoded_content, load_from="string")
+        input_type = "pmids"
+
     queue = Queue()
     threading.excepthook = custom_hook
     job = threading.Thread(
         target=run_thread_with_error_notification(run_query_pipeline, queue),
-        args=(data_input,
+        args=(query,
               str(DATA["pubtator"]),
               input_type,
               MAX_ARTICLES,
@@ -355,7 +372,8 @@ def run_pubtator3_api(set_progress,
         )
         if issubclass(_exception_type, known_exceptions):
             set_progress((1, 1, "", str(_exception_msg)))
-            return (None, *([{"visibility": "hidden"}] * 4), weight)
+            return (None, *([{"visibility": "hidden"}] * 4),
+                    weight, {"placement": "bottom", "always_visible": False})
 
     time.sleep(0.5)
 
@@ -373,14 +391,18 @@ def run_pubtator3_api(set_progress,
     set_progress((0, 1, "0/1", "Generating network..."))
     G = pubtator2cytoscape(args["input"], args["output"], args)
 
+    G.graph["is_community"] = True if community else False
+
     with open(DATA["graph"], "wb") as f:
         pickle.dump(G, f)
 
     G = rebuild_graph(node_degree=node_degree_threshold,
                       cut_weight=weight,
                       G=G,
-                      with_layout=True,
-                      with_community=community)
+                      with_layout=True)
+
+    # if G.number_of_nodes() == 0:
+    #     return (None, *([{"visibility": "hidden"}] * 4), weight)
 
     graph_json = create_cytoscape_json(G)
     cytoscape_graph = generate_cytoscape_js_network(graph_layout, graph_json)
@@ -388,7 +410,8 @@ def run_pubtator3_api(set_progress,
     return (cytoscape_graph,
             *([{"visibility": "visible"}] * 3),
             {"visibility": "hidden"},
-            weight)
+            weight,
+            {"placement": "bottom", "always_visible": False})
 
 
 def generate_cytoscape_js_network(graph_layout, graph_json):
@@ -412,7 +435,7 @@ def generate_cytoscape_js_network(graph_layout, graph_json):
             {
                 "selector": ":parent",
                 "style": {
-                    "background-opacity": 0.3,   
+                    "background-opacity": 0.3,
                 },
             },
             {
@@ -462,15 +485,18 @@ def plot_cytoscape_graph(graph_children, progress):
 
 @callback(
     Output("graph-settings-collapse", "style"),
+    Output("graph-cut-weight", "tooltip"),
     Input("graph-settings", "n_clicks"),
     State("graph-settings-collapse", "style"),
     prevent_initial_call=True,
 )
 def open_settings(n_clicks, style):
     visibility = style["visibility"]
-    toggle = {"hidden": "visible",
-              "visible": "hidden"}
-    return {"visibility": toggle[visibility]}
+    toggle = {"hidden": "visible", "visible": "hidden"}
+    weight_toggle = {"hidden": True, "visible": False}
+    return ({"visibility": toggle[visibility]},
+            {"placement": "bottom",
+             "always_visible": weight_toggle[visibility]})
 
 
 @callback(
@@ -497,11 +523,11 @@ def update_graph_layout(layout, node_degree, weight, elements):
 def rebuild_graph(node_degree,
                   cut_weight,
                   G=None,
-                  with_layout=False,
-                  with_community=False):
+                  with_layout=False):
     if G is None:
         with open(DATA["graph"], "rb") as f:
             G = pickle.load(f)
+
     remove_edges_by_weight(G, cut_weight)
     remove_isolated_nodes(G)
     filter_node(G, node_degree)
@@ -509,7 +535,7 @@ def rebuild_graph(node_degree,
     if with_layout:
         spring_layout(G)
 
-    if with_community:
+    if G.graph.get("is_community", False):
         set_network_communities(G)
 
     return G
