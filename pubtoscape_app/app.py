@@ -103,31 +103,18 @@ api = [
                      ),
     ], className="param"),
     html.Div(id="input-type", className="param"),
-    html.Div([
-        html.H5("PubTator3 Parameters"),
-        dbc.Checklist(
-            options=[
-                {"label": "Use MeSH Vocabulary", "value": 1},
-                {"label": "Full Text", "value": 2},
-                {"label": "Community", "value": 3},
-            ],
-            switch=True,
-            id="extra-params",
-            value=[],
-        ),
-    ], className="param"),
 ]
 
 cytoscape = [
     html.Div([
-        html.H5("Indexing Method"),
-        dcc.Dropdown(id="index-by",
+        html.H5("Node Type"),
+        dcc.Dropdown(id="node-type",
                      options=[
-                         {"label": "Name", "value": "name"},
-                         {"label": "MeSH", "value": "mesh"},
-                         {"label": "Relation", "value": "relation"}
+                         {"label": "All Normalized Text", "value": "all"},
+                         {"label": "Has MeSH", "value": "mesh"},
+                         {"label": "BioREx Relation Only", "value": "relation"}
                      ],
-                     value="name",
+                     value="all",
                      style={"width": "200px"},
                      ),
     ], className="param"),
@@ -143,9 +130,25 @@ cytoscape = [
                      ),
     ], className="param"),
     html.Div([
-        html.H5("Cut Weight"),
+        html.H5("Edge Weight Threshold"),
         dcc.Slider(1, 20, 1, value=3, marks=None, id="cut-weight",
                    tooltip={"placement": "bottom", "always_visible": True}),
+    ], className="param"),
+]
+
+optional_parameters = [
+        html.Div([
+        html.H5("Optional Parameters"),
+        dbc.Checklist(
+            options=[
+                {"label": "Use MeSH Vocabulary", "value": 1},
+                {"label": "Full Text", "value": 2},
+                {"label": "Community", "value": 3},
+            ],
+            switch=True,
+            id="extra-params",
+            value=[],
+        ),
     ], className="param"),
 ]
 
@@ -221,7 +224,7 @@ toolbox = html.Div([
             dcc.Store(id="memory-node-degree", data=1)
         ], className="param"),
         html.Div([
-            html.H5("Cut Weight"),
+            html.H5("Edge Weight Threshold"),
             dcc.Slider(1, 20, 1, value=3, marks=None, id="graph-cut-weight",
                        tooltip={"placement": "bottom", "always_visible": False}),
             dcc.Store(id="memory-graph-cut-weight", data=3),
@@ -233,7 +236,8 @@ toolbox = html.Div([
 ], id="toolbox")
 
 content = html.Div([
-    html.Div([*api, *cytoscape, *progress], className="sidebar"),
+    html.Div([*api, *cytoscape, *optional_parameters,
+             *progress], className="sidebar"),
     html.Div([
         html.H2("PubTator3 To Cytoscape"),
         html.Div(id="cytoscape-graph", className="graph"),
@@ -297,7 +301,7 @@ def update_data_upload(upload_data, filename):
      State("cut-weight", "value"),
      State("extra-params", "value"),
      State("weighting-method", "value"),
-     State("index-by", "value"),
+     State("node-type", "value"),
      State("graph-layout", "value"),
      State("node-degree", "value")],
     running=[(Input("submit-button", "disabled"), True, False)],
@@ -315,7 +319,7 @@ def run_pubtator3_api(set_progress,
                       weight,
                       extra_params,
                       weighting_method,
-                      index_by,
+                      node_type,
                       graph_layout,
                       node_degree_threshold):
     _exception_msg = None
@@ -382,7 +386,7 @@ def run_pubtator3_api(set_progress,
         "output": DATA["html"],
         "cut_weight": 1,
         "format": "html",
-        "index_by": index_by,
+        "node_type": node_type,
         "weighting_method": weighting_method,
         "pmid_weight": None,
         "community": False,

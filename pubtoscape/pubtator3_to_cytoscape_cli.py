@@ -86,7 +86,7 @@ def check_not_implemented(args):
 
 def pubtator2cytoscape(filepath, savepath, args):
     G = nx.Graph()
-    result = parse_pubtator(filepath, args["index_by"])
+    result = parse_pubtator(filepath, args["node_type"])
     add_node_to_graph(G=G,
                       node_dict=result["node_dict"],
                       non_isolated_nodes=result["non_isolated_nodes"])
@@ -183,7 +183,7 @@ def save_network(G: nx.Graph,
     logger.info(f"Save graph to {savepath}")
 
 
-def parse_pubtator(filepath, index_by):
+def parse_pubtator(filepath, node_type):
     global pmid_counter
     node_dict = {}
     edge_dict = defaultdict(list)
@@ -197,7 +197,7 @@ def parse_pubtator(filepath, index_by):
                 pmid = _find_pmid(line)
                 pmid_counter += 1
                 continue
-            if index_by == "relation":
+            if node_type == "relation":
                 parse_line_relation(line, node_dict, edge_dict, non_isolated_nodes)
             else:
                 if pmid != last_pmid:
@@ -205,12 +205,12 @@ def parse_pubtator(filepath, index_by):
                     last_pmid = pmid
                     node_dict_each = {}
                 if get_line_type(line) == "annotation":
-                    if index_by == "name":
-                        add_node_by_name(line, node_dict, node_dict_each)
-                    elif index_by == "mesh":
+                    if node_type == "all":
+                        add_node_by_text(line, node_dict, node_dict_each)
+                    elif node_type == "mesh":
                         add_node_by_mesh(line, node_dict, node_dict_each)
         create_complete_graph(node_dict_each, edge_dict, pmid)
-    if index_by in ("name", "mesh"):
+    if node_type in ("all", "mesh"):
         non_isolated_nodes = set(node_dict.keys())
 
     return {
@@ -328,7 +328,7 @@ def create_complete_graph(node_dict_each, edge_dict, pmid):
                 })
 
 
-def add_node_by_name(line, node_dict, node_dict_each):
+def add_node_by_text(line, node_dict, node_dict_each):
     global mesh_info
     pmid, start, end, name, type, mesh = line.strip("\n").split("\t")
 
@@ -533,20 +533,20 @@ def setup_argparsers():
                         help="Discard the edges with weight smaller than the specified value (default: 5)")
     parser.add_argument("-f",
                         "--format",
-                        choices=["xgmml", "html", "json"],
+                            choices=["xgmml", "html", "json"],
                         default="html",
                         help="Output format (default: html)")
-    parser.add_argument("--index_by",
-                        choices=["mesh", "name", "relation"],
-                        default="name",
-                        help="Extract nodes and edges by (default: name)")
+    parser.add_argument("--node_type",
+                        choices=["all", "mesh", "relation"],
+                        default="text",
+                        help="Keep specific types of nodes (default: all)")
     parser.add_argument("--weighting_method",
                         choices=["freq", "npmi"],
                         default="freq",
                         help="Weighting method for network edge (default: freq)")
     parser.add_argument("--pmid_weight",
                         default=None,
-                        help="csv file for the weight of the edge from a PMID (default: 1)")
+                        help="CSV file for the weight of the edge from a PMID (default: 1)")
     parser.add_argument("--debug",
                         action="store_true",
                         help="Print debug information")
