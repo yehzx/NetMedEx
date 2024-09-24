@@ -97,7 +97,7 @@ def test_biocjson_pubtator_equal(paths):
 
 def test_batch_standardized_annotations(paths):
     test_filepath = paths["pubtator-std_relation-std"]
-    output = batch_publication_query(["37026113"], type="pmids", full_text=False, standardized=True)
+    output = batch_publication_query(["37026113"], type="pmids", full_text=False, use_mesh=True)
     result = convert_to_pubtator(output[0], retain_ori_text=False)
 
     with open(test_filepath) as f:

@@ -94,7 +94,7 @@ api = [
         html.H5("Search Type"),
         dcc.Dropdown(id="input-type-selection",
                      options=[
-                         {"label": "Query", "value": "query"},
+                         {"label": "Text Search", "value": "query"},
                          {"label": "PMID", "value": "pmids"},
                          {"label": "PMID File", "value": "pmid_file"}
                      ],
@@ -107,8 +107,8 @@ api = [
         html.H5("PubTator3 Parameters"),
         dbc.Checklist(
             options=[
-                {"label": "Standardized name", "value": 1},
-                {"label": "Full text", "value": 2},
+                {"label": "Use MeSH Vocabulary", "value": 1},
+                {"label": "Full Text", "value": 2},
                 {"label": "Community", "value": 3},
             ],
             switch=True,
@@ -327,7 +327,7 @@ def run_pubtator3_api(set_progress,
         _exception_msg = args.exc_value
         _exception_type = args.exc_type
 
-    standardized_name = 1 in extra_params
+    use_mesh = 1 in extra_params
     full_text = 2 in extra_params
     community = 3 in extra_params
 
@@ -351,7 +351,7 @@ def run_pubtator3_api(set_progress,
               input_type,
               MAX_ARTICLES,
               full_text,
-              standardized_name,
+              use_mesh,
               queue)
     )
     set_progress((0, 1, "", "Finding articles..."))
