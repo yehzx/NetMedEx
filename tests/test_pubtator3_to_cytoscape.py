@@ -21,8 +21,8 @@ def build_graph(result):
     return G
 
 
-def test_index_by_name(filepath):
-    result = parse_pubtator(filepath[0], index_by="name")
+def test_index_by_text(filepath):
+    result = parse_pubtator(filepath[0], node_type="all")
     G = build_graph(result)
 
     assert G.nodes.get("L55M", False), "L55M should be in the graph"
@@ -31,7 +31,7 @@ def test_index_by_name(filepath):
 
 
 def test_index_by_relation(filepath):
-    result = parse_pubtator(filepath[0], index_by="relation")
+    result = parse_pubtator(filepath[0], node_type="relation")
     G = build_graph(result)
 
     assert G.nodes.get("RS#:854560;HGVS:p.L55M;CorrespondingGene:5444", False), "Not mapped by MeSH"
@@ -40,7 +40,7 @@ def test_index_by_relation(filepath):
 
 
 def test_index_by_mesh(filepath):
-    result = parse_pubtator(filepath[0], index_by="mesh")
+    result = parse_pubtator(filepath[0], node_type="mesh")
     G = build_graph(result)
 
     assert G.nodes.get("RS#:854560;HGVS:p.L55M;CorrespondingGene:5444", False), "Not mapped by MeSH"
