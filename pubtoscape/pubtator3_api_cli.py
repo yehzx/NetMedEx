@@ -60,7 +60,7 @@ def main():
                            type=search_type,
                            max_articles=args.max_articles,
                            full_text=args.full_text,
-                           standardized=args.standardized_name)
+                           use_mesh=args.use_mesh)
     except (NoArticles, EmptyInput, UnsuccessfulRequest) as e:
         logger.error(str(e))
 
@@ -84,7 +84,7 @@ def run_query_pipeline(query: Union[str, list],
                        type: Literal["query", "pmids"],
                        max_articles: int = 1000,
                        full_text: bool = False,
-                       standardized: bool = False,
+                       use_mesh: bool = False,
                        queue: Optional[Queue] = None):
 
     if type == "query":
@@ -102,11 +102,11 @@ def run_query_pipeline(query: Union[str, list],
     output = batch_publication_query(pmid_list,
                                      type="pmids",
                                      full_text=full_text,
-                                     standardized=standardized,
+                                     use_mesh=use_mesh,
                                      queue=queue)
 
-    if standardized or full_text:
-        retain_ori_text = False if standardized else True
+    if use_mesh or full_text:
+        retain_ori_text = False if use_mesh else True
         output = [
             convert_to_pubtator(articles,
                                 retain_ori_text=retain_ori_text,
@@ -237,11 +237,11 @@ def get_article_ids(res_json):
 
 def batch_publication_query(id_list, type,
                             full_text=False,
-                            standardized=False,
+                            use_mesh=False,
                             queue=None):
     return_progress = isinstance(queue, Queue)
     output = []
-    format = "biocjson" if standardized or full_text else "pubtator"
+    format = "biocjson" if use_mesh or full_text else "pubtator"
     with requests.Session() as session:
         with tqdm(total=len(id_list), file=sys.stdout) as pbar:
             for start in range(0, len(id_list), PMID_REQUEST_SIZE):
@@ -252,7 +252,7 @@ def batch_publication_query(id_list, type,
                     type=type, format=format, full_text=full_text,
                     session=session)
                 if request_successful(res):
-                    output.extend(append_json_or_text(res, full_text, standardized))
+                    output.extend(append_json_or_text(res, full_text, use_mesh))
                 if end is not None:
                     pbar.update(PMID_REQUEST_SIZE)
                 else:
@@ -346,9 +346,9 @@ def setup_argparsers():
     parser.add_argument("--max_articles", type=int, default=1000,
                         help="Maximal articles to request from the searching result (default: 1000)")
     parser.add_argument("--full_text", action="store_true",
-                        help="Get full-text annotations")
-    parser.add_argument("--standardized_name", action="store_true",
-                        help="Obtain standardized names rather than the original text in articles")
+                        help="Collect full-text annotations if available")
+    parser.add_argument("--use_mesh", action="store_true",
+                        help="Use MeSH vocabulary instead of the most commonly used original text in articles")
     parser.add_argument("--debug", action="store_true",
                         help="Print debug information")
 
