@@ -113,7 +113,7 @@ def run_query_pipeline(query: Union[str, list],
                                 role_type="identifier") for articles in output
         ]
 
-    write_output(output, savepath=savepath)
+    write_output(output, savepath=savepath, use_mesh=use_mesh)
 
 
 def get_search_results(query, max_articles):
@@ -284,8 +284,8 @@ def send_publication_query(article_id, type: Literal["pmids", "pmcids"], format,
     return res
 
 
-def append_json_or_text(res, full_text, standardized):
-    if full_text or standardized:
+def append_json_or_text(res, full_text, use_mesh):
+    if full_text or use_mesh:
         if len(res.text.split("\n")) > 2:
             content = [json.loads(text) for text in res.text.split("\n")[:-1]]
         else:
@@ -296,8 +296,16 @@ def append_json_or_text(res, full_text, standardized):
     return content
 
 
-def write_output(output, savepath: Path):
+def write_output(output, savepath: Path, use_mesh=False):
+    header = []
+
+    if use_mesh:
+        header.append("##USE-MESH-VOCABULARY")
+    if len(output) > 0:
+        header.append("\n")
+
     with open(savepath, "w") as f:
+        f.writelines(header)
         f.writelines(output)
         logger.info(f"Save to {str(savepath)}")
 
