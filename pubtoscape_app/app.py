@@ -110,7 +110,7 @@ cytoscape = [
         html.H5("Node Type"),
         dcc.Dropdown(id="node-type",
                      options=[
-                         {"label": "All Normalized Text", "value": "all"},
+                         {"label": "Normalized Text", "value": "all"},
                          {"label": "Has MeSH", "value": "mesh"},
                          {"label": "BioREx Relation Only", "value": "relation"}
                      ],
@@ -130,7 +130,7 @@ cytoscape = [
                      ),
     ], className="param"),
     html.Div([
-        html.H5("Edge Weight Threshold"),
+        html.H5("Edge Weight Cutoff"),
         dcc.Slider(1, 20, 1, value=3, marks=None, id="cut-weight",
                    tooltip={"placement": "bottom", "always_visible": True}),
     ], className="param"),
@@ -224,7 +224,7 @@ toolbox = html.Div([
             dcc.Store(id="memory-node-degree", data=1)
         ], className="param"),
         html.Div([
-            html.H5("Edge Weight Threshold"),
+            html.H5("Edge Weight Cutoff"),
             dcc.Slider(1, 20, 1, value=3, marks=None, id="graph-cut-weight",
                        tooltip={"placement": "bottom", "always_visible": False}),
             dcc.Store(id="memory-graph-cut-weight", data=3),
@@ -423,6 +423,7 @@ def generate_cytoscape_js_network(graph_layout, graph_json):
         id="cy",
         minZoom=0.1,
         maxZoom=20,
+        wheelSensitivity=0.3,
         style={},
         layout={"name": graph_layout},
         stylesheet=[
