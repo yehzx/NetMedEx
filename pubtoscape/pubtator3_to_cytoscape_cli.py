@@ -19,6 +19,7 @@ from pubtoscape.stemmers import s_stemmer
 from pubtoscape.utils import config_logger
 
 # VARIANT_PATTERN = re.compile(r"CorrespondingGene:.*CorrespondingSpecies:\d+")
+HEADER_SYMBOL = "##"
 MUTATION_PATTERNS = {
     "tmvar": re.compile(r"(tmVar:[^;]+)"),
     "hgvs": re.compile(r"(HGVS:[^;]+)"),
@@ -54,8 +55,8 @@ MIN_EDGE_WIDTH = 1
 MAX_EDGE_WIDTH = 20
 EDGE_BASE_COLOR = "#AD1A66"
 
-mesh_info = {}
 pmid_counter = 0
+flags = {"use_mesh": False}
 logger = logging.getLogger(__name__)
 
 
@@ -191,6 +192,8 @@ def parse_pubtator(filepath, node_type):
     pmid = -1
     last_pmid = -1
     node_dict_each = {}
+
+    parse_header(filepath)
     with open(filepath) as f:
         for line in f.readlines():
             if _is_title(line):
@@ -198,7 +201,8 @@ def parse_pubtator(filepath, node_type):
                 pmid_counter += 1
                 continue
             if node_type == "relation":
-                parse_line_relation(line, node_dict, edge_dict, non_isolated_nodes)
+                parse_line_relation(line, node_dict, edge_dict,
+                                    non_isolated_nodes)
             else:
                 if pmid != last_pmid:
                     create_complete_graph(node_dict_each, edge_dict, last_pmid)
@@ -206,18 +210,43 @@ def parse_pubtator(filepath, node_type):
                     node_dict_each = {}
                 if get_line_type(line) == "annotation":
                     if node_type == "all":
-                        add_node_by_text(line, node_dict, node_dict_each)
+                        if (mesh :=
+                                line.strip("\n").rsplit("\t",
+                                                        1))[-1] in ("-", ""):
+                            add_node_by_text(line, node_dict, node_dict_each)
+                        else:
+                            add_node_by_mesh(line, node_dict, node_dict_each)
                     elif node_type == "mesh":
                         add_node_by_mesh(line, node_dict, node_dict_each)
         create_complete_graph(node_dict_each, edge_dict, pmid)
+    determine_mesh_term_labels(node_dict, edge_dict)
     if node_type in ("all", "mesh"):
         non_isolated_nodes = set(node_dict.keys())
+    elif node_type == "relation":
+        non_isolated_nodes = set()
+        for node_1, node_2 in edge_dict:
+            non_isolated_nodes.add(node_1)
+            non_isolated_nodes.add(node_2)
 
     return {
         "node_dict": node_dict,
         "non_isolated_nodes": non_isolated_nodes,
         "edge_dict": edge_dict
     }
+
+
+def parse_header(filepath):
+    with open(filepath) as f:
+        for line in f.readlines():
+            if not line.startswith(HEADER_SYMBOL):
+                break
+            assign_flags(line.replace(HEADER_SYMBOL, "").strip())
+
+
+def assign_flags(line):
+    global flags
+    if line == "USE-MESH-VOCABULARY":
+        flags["use_mesh"] = True
 
 
 def _is_title(line):
@@ -253,11 +282,15 @@ def create_edges_for_relations(line, edge_dict, non_isolated_nodes):
 
 
 def add_node_by_mesh(line, node_dict, node_dict_each):
+    global flags
     pmid, start, end, name, type, mesh = line.strip("\n").split("\t")
 
     # Skip line with no id
     if mesh in ("", "-"):
         return
+
+    if not flags["use_mesh"]:
+        name = normalize_text(name)
 
     if type in ("DNAMutation", "ProteinMutation", "SNP"):
         res = {}
@@ -268,10 +301,8 @@ def add_node_by_mesh(line, node_dict, node_dict_each):
                 res[key] = ""
 
         if type == "DNAMutation":
-            mesh = (
-                f'{res["gene"]}{res["species"]}{res["variantgroup"]}'
-                f'{res["tmvar"].split("|")[0]}'
-            ).strip(";")
+            mesh = (f'{res["gene"]}{res["species"]}{res["variantgroup"]}'
+                    f'{res["tmvar"].split("|")[0]}').strip(";")
         elif type == "ProteinMutation":
             mesh = f'{res["rs"]}{res["hgvs"]}{res["gene"]}'.strip(";")
         elif type == "SNP":
@@ -288,10 +319,11 @@ def add_node_by_mesh(line, node_dict, node_dict_each):
                 each_mesh, {
                     "mesh": mesh,
                     "type": type,
-                    "name": name,
+                    "name": defaultdict(int),
                     "_articles": set(),
                     "_id": id_counter()
                 })
+        node_dict[each_mesh]["name"][name] += 1
         node_dict[each_mesh]["_articles"].add(pmid)
         node_dict_each[each_mesh] = node_dict[each_mesh]
 
@@ -328,16 +360,28 @@ def create_complete_graph(node_dict_each, edge_dict, pmid):
                 })
 
 
+def determine_mesh_term_labels(node_dict, edge_dict):
+    def determine_node_label(name):
+        return (node_info["name"][name], -len(name))
+
+    name_map = {}
+    for node_id, node_info in node_dict.items():
+        if isinstance(node_info["name"], defaultdict):
+            name_map[node_id] = max(node_info["name"],
+                                    key=determine_node_label)
+    for old_name, new_name in name_map.items():
+        node_dict[new_name] = node_dict.pop(old_name)
+        node_dict[new_name]["name"] = new_name
+
+    for name_1, name_2 in list(edge_dict.keys()):
+        edge_dict[(name_map.get(name_1, name_1), name_map.get(name_2, name_2))] = \
+            edge_dict.pop((name_1, name_2))
+
+
 def add_node_by_text(line, node_dict, node_dict_each):
-    global mesh_info
     pmid, start, end, name, type, mesh = line.strip("\n").split("\t")
 
-    # Convert non-mesh terms to lowercase
-    if mesh in ("-", ""):
-        name = name.lower()
-
-    # Remove plural
-    name = s_stemmer(name)
+    name = normalize_text(name)
 
     node_info = {
         "mesh": mesh,
@@ -351,20 +395,16 @@ def add_node_by_text(line, node_dict, node_dict_each):
         logger.debug(f"Found collision of name:\n{node_dict[name]}\n{node_info}")
         logger.debug("Discard the latter\n")
 
-    # Non-standardized terms
-    if mesh in ("-", ""):
-        node_dict.setdefault(name, node_info)
-        node_dict[name]["_articles"].add(pmid)
-        node_dict_each[name] = node_dict[name]
-    # Keep unique MeSH terms
-    elif mesh not in mesh_info:
-        mesh_info[mesh] = node_info
-        node_dict.setdefault(name, node_info)
-        node_dict[name]["_articles"].add(pmid)
-        node_dict_each[name] = node_dict[name]
-    else:
-        node_dict_each[mesh_info[mesh]["name"]] = mesh_info[mesh]
-        node_dict[mesh_info[mesh]["name"]]["_articles"].add(pmid)
+    node_dict.setdefault(name, node_info)
+    node_dict[name]["_articles"].add(pmid)
+    node_dict_each[name] = node_dict[name]
+
+
+def normalize_text(text):
+    text = text.lower()
+    text = s_stemmer(text)
+
+    return text
 
 
 def get_line_type(line):
@@ -538,7 +578,7 @@ def setup_argparsers():
                         help="Output format (default: html)")
     parser.add_argument("--node_type",
                         choices=["all", "mesh", "relation"],
-                        default="text",
+                        default="all",
                         help="Keep specific types of nodes (default: all)")
     parser.add_argument("--weighting_method",
                         choices=["freq", "npmi"],
