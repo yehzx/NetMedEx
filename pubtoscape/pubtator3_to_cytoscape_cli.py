@@ -57,6 +57,8 @@ EDGE_BASE_COLOR = "#AD1A66"
 
 pmid_counter = 0
 flags = {"use_mesh": False}
+# TODO: other ways to solve modified MeSH mismatch
+mesh_map = {}
 logger = logging.getLogger(__name__)
 
 
@@ -210,9 +212,7 @@ def parse_pubtator(filepath, node_type):
                     node_dict_each = {}
                 if get_line_type(line) == "annotation":
                     if node_type == "all":
-                        if (mesh :=
-                                line.strip("\n").rsplit("\t",
-                                                        1))[-1] in ("-", ""):
+                        if (mesh := line.strip("\n").rsplit("\t", 1))[-1] in ("-", ""):
                             add_node_by_text(line, node_dict, node_dict_each)
                         else:
                             add_node_by_mesh(line, node_dict, node_dict_each)
@@ -268,10 +268,13 @@ def parse_line_relation(line, node_dict: dict,
 
 
 def create_edges_for_relations(line, edge_dict, non_isolated_nodes):
+    global mesh_map
     pmid, relationship, name_1, name_2 = line.strip("\n").split("\t")
     # TODO: better way to deal with DNAMutation notation inconsistency
     name_1 = name_1.split("|")[0]
+    name_1 = mesh_map.get(name_1, name_1)
     name_2 = name_2.split("|")[0]
+    name_2 = mesh_map.get(name_2, name_2)
     edge_dict[(name_1, name_2)].append({
             "pmid": pmid,
             "relationship": relationship,
@@ -283,6 +286,14 @@ def create_edges_for_relations(line, edge_dict, non_isolated_nodes):
 
 def add_node_by_mesh(line, node_dict, node_dict_each):
     global flags
+    global mesh_map
+
+    def convert_mesh(mesh, type):
+        converted = f"{type}_{mesh}"
+        if mesh not in mesh_map:
+            mesh_map[mesh] = converted
+        return converted
+
     pmid, start, end, name, type, mesh = line.strip("\n").split("\t")
 
     # Skip line with no id
@@ -310,9 +321,9 @@ def add_node_by_mesh(line, node_dict, node_dict_each):
         mesh_list = [mesh]
     elif type == "Gene":
         mesh_list = mesh.split(";")
-        mesh_list = [f"gene_{mesh}" for mesh in mesh_list]
+        mesh_list = [convert_mesh(mesh, "gene") for mesh in mesh_list]
     elif type == "Species":
-        mesh_list = [f"species_{mesh}"]
+        mesh_list = [convert_mesh(mesh, "species")]
     else:
         mesh_list = [mesh]
 
