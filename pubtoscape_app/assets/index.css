@@ -49,6 +49,11 @@ h1, h2, h3, h4 {
     background-color: var(--MAIN-BACKGROUND);
     max-height: 100%;
     max-width: calc(100% - 350px);
+    padding: 10px 10px 0 10px;
+}
+
+.graph-size {
+    max-height: calc(100% - );
 }
 
 a:hover {
@@ -75,20 +80,12 @@ a:hover {
     background-color: var(--SIDEBAR-BACKGROUND);
 }
 
-.graph {
-    flex-grow: 1;
-}
-
 #cytoscape-graph {
     height: calc(99% - 20px - 2rem);
 }
 
 #cy {
     height: 100%;
-}
-
-.main-div {
-    padding: 10px 10px 0 10px;
 }
 
 .wrapper {
@@ -132,8 +129,33 @@ a:hover {
     justify-content: end;
     position: absolute;
     right: 10px;
-    top: 50px;
     background-color: var(--MAIN-BACKGROUND);
+    z-index: 100;
+}
+
+#edge-info-container {
+    width: 200px;
+    max-height: 300px;
+    overflow-y: auto;
+    position: absolute;
+    display: inline-block;
+    background-color: whitesmoke;
+    border-radius: 4px;
+    padding: 0 5px;
+    box-shadow: 1px 1px 10px 1px rgba(0, 0, 0, 0.2);
+    z-index: 100;
+}
+
+#edge-info-container p {
+    color: #585858;
+}
+
+#edge-info-container h5 {
+    color: var(--TEXT);
+}
+
+#edge-info p {
+    margin-bottom: 0;
 }
 
 .upload-preview {

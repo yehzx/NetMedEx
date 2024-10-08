@@ -2,7 +2,6 @@ import base64
 import os
 import pickle
 import threading
-import time
 from pathlib import Path
 from queue import Queue
 
@@ -11,7 +10,8 @@ import dash_cytoscape as cyto
 import dash_svg as svg
 import diskcache
 import networkx as nx
-from dash import Dash, Input, Output, State, callback, dcc, html
+from dash import (ClientsideFunction, Dash, Input, Output, State, callback,
+                  clientside_callback, dcc, html, no_update)
 from dash.long_callback import DiskcacheLongCallbackManager
 from dotenv import load_dotenv
 
@@ -19,7 +19,7 @@ from pubtoscape.cytoscape_html import save_as_html
 from pubtoscape.cytoscape_json import create_cytoscape_json
 from pubtoscape.cytoscape_xgmml import save_as_xgmml
 from pubtoscape.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
-from pubtoscape.pubtator3_api_cli import run_query_pipeline, load_pmids
+from pubtoscape.pubtator3_api_cli import load_pmids, run_query_pipeline
 from pubtoscape.pubtator3_to_cytoscape_cli import (pubtator2cytoscape,
                                                    remove_edges_by_weight,
                                                    remove_isolated_nodes,
@@ -137,7 +137,7 @@ cytoscape = [
 ]
 
 optional_parameters = [
-        html.Div([
+    html.Div([
         html.H5("Optional Parameters"),
         dbc.Checklist(
             options=[
@@ -171,13 +171,11 @@ toolbox = html.Div([
     dbc.Button(
         "Export (html)",
         id="export-btn-html",
-        style={"visibility": "hidden"},
         className="export-btn"),
     dcc.Download(id="export-html"),
     dbc.Button(
         "Export (xgmml)",
         id="export-btn-xgmml",
-        style={"visibility": "hidden"},
         className="export-btn"),
     dcc.Download(id="export-xgmml"),
     dbc.Button(
@@ -194,7 +192,6 @@ toolbox = html.Div([
                 ),
         # "Settings",
         id="graph-settings",
-        style={"visibility": "hidden"},
         className="btn-secondary"),
     html.Div([
         html.H4("Settings"),
@@ -235,14 +232,26 @@ toolbox = html.Div([
     ),
 ], id="toolbox")
 
+edge_info = html.Div([
+    html.H5("Edge Info", className="text-center"),
+    html.Div(id="edge-info"),
+], id="edge-info-container", style={"visibility": "hidden"})
+
 content = html.Div([
     html.Div([*api, *cytoscape, *optional_parameters,
              *progress], className="sidebar"),
     html.Div([
         html.H2("PubTator3 To Cytoscape"),
-        html.Div(id="cytoscape-graph", className="graph"),
-    ], className="flex-grow-1 main-div"),
-    toolbox,
+        html.Div([
+            toolbox,
+            edge_info,
+            html.Div(id="cy-graph", className="flex-grow-1"),
+            dcc.Store(id="is-new-graph", data=False)
+        ],
+            id="cy-graph-container",
+            className="d-flex flex-column flex-grow-1",
+            style={"visibility": "hidden"}),
+    ], className="d-flex flex-column flex-grow-1 main-div"),
 ], className="d-flex flex-row position-relative h-100")
 
 app.layout = html.Div(
@@ -285,15 +294,24 @@ def update_data_upload(upload_data, filename):
                      className="upload-preview")
         ]
 
-
-@app.long_callback(
-    Output("cytoscape-graph", "children"),
-    Output("graph-settings", "style"),
-    Output("export-btn-html", "style"),
-    Output("export-btn-xgmml", "style"),
+@callback(
     Output("graph-settings-collapse", "style", allow_duplicate=True),
     Output("graph-cut-weight", "value"),
     Output("graph-cut-weight", "tooltip", allow_duplicate=True),
+    Input("cy-graph-container", "style"),
+    State("memory-graph-cut-weight", "data"),
+    prevent_initial_call=True,
+)
+def update_graph_params(container_style, cut_weight):
+    return ({"visibility": "hidden"},
+            cut_weight,
+            {"placement": "bottom", "always_visible": False})
+
+
+@app.long_callback(
+    Output("cy-graph-container", "style", allow_duplicate=True),
+    Output("memory-graph-cut-weight", "data", allow_duplicate=True),
+    Output("is-new-graph", "data"),
     Input("submit-button", "n_clicks"),
     [State("input-type-selection", "value"),
      State("data-input", "value"),
@@ -301,9 +319,7 @@ def update_data_upload(upload_data, filename):
      State("cut-weight", "value"),
      State("extra-params", "value"),
      State("weighting-method", "value"),
-     State("node-type", "value"),
-     State("graph-layout", "value"),
-     State("node-degree", "value")],
+     State("node-type", "value")],
     running=[(Input("submit-button", "disabled"), True, False)],
     progress=[Output("progress", "value"),
               Output("progress", "max"),
@@ -319,9 +335,7 @@ def run_pubtator3_api(set_progress,
                       weight,
                       extra_params,
                       weighting_method,
-                      node_type,
-                      graph_layout,
-                      node_degree_threshold):
+                      node_type):
     _exception_msg = None
     _exception_type = None
 
@@ -376,9 +390,7 @@ def run_pubtator3_api(set_progress,
         )
         if issubclass(_exception_type, known_exceptions):
             set_progress((1, 1, "", str(_exception_msg)))
-            return (None, *([{"visibility": "hidden"}] * 4),
-                    weight, {"placement": "bottom", "always_visible": False})
-
+            return ({"visibility": "hidden"}, weight, False)
     job.join()
 
     args = {
@@ -400,25 +412,16 @@ def run_pubtator3_api(set_progress,
     with open(DATA["graph"], "wb") as f:
         pickle.dump(G, f)
 
-    G = rebuild_graph(node_degree=node_degree_threshold,
-                      cut_weight=weight,
-                      G=G,
-                      with_layout=True)
-
-    # if G.number_of_nodes() == 0:
-    #     return (None, *([{"visibility": "hidden"}] * 4), weight)
-
-    graph_json = create_cytoscape_json(G)
-    cytoscape_graph = generate_cytoscape_js_network(graph_layout, graph_json)
-
-    return (cytoscape_graph,
-            *([{"visibility": "visible"}] * 3),
-            {"visibility": "hidden"},
-            weight,
-            {"placement": "bottom", "always_visible": False})
+    return ({"visibility": "visible"}, weight, True)
 
 
 def generate_cytoscape_js_network(graph_layout, graph_json):
+    if graph_json is not None:
+        elements = [*graph_json["elements"]["nodes"],
+                    *graph_json["elements"]["edges"]]
+    else:
+        elements = []
+
     cytoscape_graph = cyto.Cytoscape(
         id="cy",
         minZoom=0.1,
@@ -458,8 +461,7 @@ def generate_cytoscape_js_network(graph_layout, graph_json):
                 },
             },
         ],
-        elements=[*graph_json["elements"]["nodes"],
-                  *graph_json["elements"]["edges"]],
+        elements=elements,
     )
 
     return cytoscape_graph
@@ -476,7 +478,7 @@ def filter_node(G: nx.Graph, node_degree_threshold: int):
     Output("progress", "max"),
     Output("progress", "label"),
     Output("progress-status", "children"),
-    Input("cytoscape-graph", "children"),
+    Input("cy-graph", "children"),
     State("progress-status", "children"),
     running=[(Input("submit-button", "disabled"), True, False)],
     prevent_initial_call=True,
@@ -489,7 +491,7 @@ def plot_cytoscape_graph(graph_children, progress):
 
 
 @callback(
-    Output("graph-settings-collapse", "style"),
+    Output("graph-settings-collapse", "style", allow_duplicate=True),
     Output("graph-cut-weight", "tooltip"),
     Input("graph-settings", "n_clicks"),
     State("graph-settings-collapse", "style"),
@@ -547,30 +549,45 @@ def rebuild_graph(node_degree,
 
 
 @callback(
-    Output("cy", "elements", allow_duplicate=True),
+    Output("cy-graph", "children"),
+    Output("is-new-graph", "data", allow_duplicate=True),
     Output("memory-node-degree", "data"),
-    Output("memory-graph-cut-weight", "data"),
+    Output("memory-graph-cut-weight", "data", allow_duplicate=True),
     Input("node-degree", "value"),
     Input("graph-cut-weight", "value"),
     State("memory-node-degree", "data"),
     State("memory-graph-cut-weight", "data"),
-    State("cy", "elements"),
+    State("cy-graph-container", "style"),
+    State("graph-layout", "value"),
+    State("is-new-graph", "data"),
     prevent_initial_call=True,
 )
-def update_nodes(new_node_degree,
+def update_graph(new_node_degree,
                  new_cut_weight,
                  old_node_degree,
                  old_cut_weight,
-                 elements):
-    if new_cut_weight != old_cut_weight or new_node_degree != old_node_degree:
+                 container_style,
+                 graph_layout,
+                 is_new_graph):
+    if container_style["visibility"] == "hidden":
+        cy_graph = generate_cytoscape_js_network(graph_layout, None)
+        return cy_graph, False, new_node_degree, new_cut_weight
+
+    if new_node_degree is None:
+        new_node_degree = old_node_degree
+
+    conditions = (is_new_graph
+                  or new_cut_weight != old_cut_weight
+                  or new_node_degree != old_node_degree)
+    if conditions:
         G = rebuild_graph(new_node_degree,
                           new_cut_weight,
                           with_layout=True)
         graph_json = create_cytoscape_json(G)
-        elements = [*graph_json["elements"]["nodes"],
-                    *graph_json["elements"]["edges"]]
-
-    return elements, new_node_degree, new_cut_weight
+        cy_graph = generate_cytoscape_js_network(graph_layout, graph_json)
+        return cy_graph, False, new_node_degree, new_cut_weight
+    else:
+        return no_update, False, new_node_degree, new_cut_weight
 
 
 @callback(
@@ -599,6 +616,19 @@ def export_xgmml(n_clicks, layout, node_degree, weight):
     G = rebuild_graph(node_degree, weight, with_layout=True)
     save_as_xgmml(G, DATA["xgmml"])
     return dcc.send_file(DATA["xgmml"])
+
+
+clientside_callback(
+    ClientsideFunction(
+        namespace="clientside",
+        function_name="show_edge_info"
+    ),
+    Output("edge-info-container", "style"),
+    Output("edge-info", "children"),
+    Input("cy", "selectedEdgeData"),
+    State("cy", "tapEdgeData"),
+    prevent_initial_call=True,
+)
 
 
 def clean_up_files():
