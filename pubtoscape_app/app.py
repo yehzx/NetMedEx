@@ -379,7 +379,7 @@ def run_pubtator3_api(set_progress,
             return (None, *([{"visibility": "hidden"}] * 4),
                     weight, {"placement": "bottom", "always_visible": False})
 
-    time.sleep(0.5)
+    job.join()
 
     args = {
         "input": DATA["pubtator"],
