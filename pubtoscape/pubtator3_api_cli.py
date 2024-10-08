@@ -66,6 +66,9 @@ def main():
 
 
 def load_pmids(input_data, load_from: Literal["string", "file"]):
+    if input_data is None:
+        return []
+    input_data = str(input_data).strip()
     if load_from == "string":
         pmids = input_data.split(",")
     elif load_from == "file":
@@ -80,7 +83,7 @@ def load_pmids(input_data, load_from: Literal["string", "file"]):
 
 
 def run_query_pipeline(query: Union[str, list],
-                       savepath: Union[str, Path],
+                       savepath: Union[str, Path, None],
                        type: Literal["query", "pmids"],
                        max_articles: int = 1000,
                        full_text: bool = False,
@@ -296,7 +299,10 @@ def append_json_or_text(res, full_text, use_mesh):
     return content
 
 
-def write_output(output, savepath: Path, use_mesh=False):
+def write_output(output, savepath: Union[Path, str, None], use_mesh=False):
+    if savepath is None:
+        return
+
     header = []
 
     if use_mesh:
