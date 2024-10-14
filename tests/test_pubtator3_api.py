@@ -224,9 +224,14 @@ def test_batch_publication_queue(paths, **kwargs):
     assert progress == expected
 
 
-def test_empty_input():
+@pytest.mark.parametrize("args", [
+    (None, None, "query"),
+    ("   ", None, "query"),
+    ([], None, "pmids"),
+])
+def test_empty_input(args):
     with pytest.raises(EmptyInput):
-        run_query_pipeline(None, None, "query")
+        run_query_pipeline(*args)
 
 
 @requests_mock.Mocker(kw="mock")
