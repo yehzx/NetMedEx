@@ -50,8 +50,15 @@ def main():
         pmids = load_pmids(args.pmid_file, load_from="file")
         logger.info(f"Find {len(pmids)} PMIDs")
 
-    suffix = args.query if search_type == "query" else f"{pmids[0]}_total_{len(pmids)}"
-    query = args.query if search_type == "query" else pmids
+    if search_type == "query":
+        suffix = args.query.replace(" ", "_")
+        query = args.query
+    elif search_type == "pmids":
+        if pmids:
+            suffix = f"{pmids[0]}_total_{len(pmids)}"
+        else:
+            suffix = ""
+        query = pmids
     savepath = create_savepath(args.output, type=search_type, suffix=suffix)
 
     try:
