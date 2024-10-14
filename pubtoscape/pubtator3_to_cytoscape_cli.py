@@ -240,7 +240,7 @@ def parse_header(filepath):
         for line in f.readlines():
             if not line.startswith(HEADER_SYMBOL):
                 break
-            assign_flags(line.replace(HEADER_SYMBOL, "").strip())
+            assign_flags(line.replace(HEADER_SYMBOL, "", 1).strip())
 
 
 def assign_flags(line):
