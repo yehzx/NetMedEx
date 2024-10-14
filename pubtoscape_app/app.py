@@ -10,6 +10,7 @@ import dash_cytoscape as cyto
 import dash_svg as svg
 import diskcache
 import networkx as nx
+from types import SimpleNamespace
 from dash import (ClientsideFunction, Dash, Input, Output, State, callback,
                   clientside_callback, dcc, html, no_update)
 from dash.long_callback import DiskcacheLongCallbackManager
@@ -44,6 +45,10 @@ app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP],
            long_callback_manager=long_callback_manager,
            suppress_callback_exceptions=True)
 app.title = "PubTatorToCytoscape"
+visibility = SimpleNamespace(visible={"visibility": "visible"},
+                             hidden={"visibility": "hidden"})
+display = SimpleNamespace(block={"display": "block"},
+                          none={"display": "none"})
 
 
 def generate_query_component(hidden=False):
@@ -78,7 +83,7 @@ def generate_pmid_file_component(hidden=False):
         [
             html.H5("PMID File"),
             dcc.Upload(
-                id="upload-data",
+                id="pmid-file-data",
                 children=html.Div([
                     "Drag and Drop or ",
                     html.A("Select Files", className="hyperlink")
@@ -89,7 +94,34 @@ def generate_pmid_file_component(hidden=False):
         hidden=hidden)
 
 
-api = [
+api_toggle = html.Div([
+    html.Div([
+        html.H5("Source"),
+        dbc.RadioItems(id="api-toggle-items",
+                       options=[
+                           {"label": "PubTator3 API", "value": "api"},
+                           {"label": "PubTator File", "value": "file"}
+                       ],
+                       value="api",
+                       inline=True),
+    ], className="param")
+], id="api-toggle")
+
+pubtator_file = html.Div([
+    html.Div([
+        html.H5("PubTator File"),
+        dcc.Upload(
+            id="pubtator-file-data",
+            children=html.Div([
+                "Drag and Drop or ",
+                html.A("Select Files", className="hyperlink")
+            ], className="upload-box form-control")
+        ),
+        html.Div(id="pubtator-file-upload"),
+    ], className="param")
+], style=display.none, id="pubtator-file-wrapper")
+
+api = html.Div([
     html.Div([
         html.H5("Search Type"),
         dcc.Dropdown(id="input-type-selection",
@@ -103,9 +135,22 @@ api = [
                      ),
     ], className="param"),
     html.Div(id="input-type", className="param"),
-]
+    html.Div([
+        html.H5("PubTator3 Parameters"),
+        dbc.Checklist(
+            options=[
+                {"label": "Use MeSH Vocabulary", "value": "use_mesh"},
+                {"label": "Full Text", "value": "full_text"},
+            ],
+            switch=True,
+            id="pubtator-params",
+            value=[],
+        ),
+    ], className="param"),
+], id="api-wrapper")
 
-cytoscape = [
+
+cytoscape = html.Div([
     html.Div([
         html.H5("Node Type"),
         dcc.Dropdown(id="node-type",
@@ -134,25 +179,20 @@ cytoscape = [
         dcc.Slider(1, 20, 1, value=3, marks=None, id="cut-weight",
                    tooltip={"placement": "bottom", "always_visible": True}),
     ], className="param"),
-]
-
-optional_parameters = [
     html.Div([
-        html.H5("Optional Parameters"),
+        html.H5("Cytoscape Parameters"),
         dbc.Checklist(
             options=[
-                {"label": "Use MeSH Vocabulary", "value": 1},
-                {"label": "Full Text", "value": 2},
-                {"label": "Community", "value": 3},
+                {"label": "Community", "value": "community"},
             ],
             switch=True,
-            id="extra-params",
+            id="cy-params",
             value=[],
         ),
     ], className="param"),
-]
+], id="cy-wrapper")
 
-progress = [
+progress = html.Div([
     html.Div(
         [
             html.H5("Progress"),
@@ -165,7 +205,7 @@ progress = [
         dbc.Button("Submit", id="submit-button"),
         html.Div(id="output")
     ]),
-]
+], id="progress-wrapper")
 
 toolbox = html.Div([
     dbc.Button(
@@ -228,18 +268,18 @@ toolbox = html.Div([
         ], className="param"),
     ],
         id="graph-settings-collapse",
-        style={"visibility": "hidden"},
+        style=visibility.hidden,
     ),
 ], id="toolbox")
 
 edge_info = html.Div([
     html.H5("Edge Info", className="text-center"),
     html.Div(id="edge-info"),
-], id="edge-info-container", style={"visibility": "hidden"})
+], id="edge-info-container", style=visibility.hidden)
 
 content = html.Div([
-    html.Div([*api, *cytoscape, *optional_parameters,
-             *progress], className="sidebar"),
+    html.Div([api_toggle, api, pubtator_file, cytoscape, progress],
+             className="sidebar"),
     html.Div([
         html.H2("PubTator3 To Cytoscape"),
         html.Div([
@@ -250,7 +290,7 @@ content = html.Div([
         ],
             id="cy-graph-container",
             className="d-flex flex-column flex-grow-1",
-            style={"visibility": "hidden"}),
+            style=visibility.hidden),
     ], className="d-flex flex-column flex-grow-1 main-div"),
 ], className="d-flex flex-row position-relative h-100")
 
@@ -259,6 +299,19 @@ app.layout = html.Div(
         content
     ], className="wrapper"
 )
+
+
+@callback(
+    Output("api-wrapper", "style"),
+    Output("pubtator-file-wrapper", "style"),
+    Input("api-toggle-items", "value"),
+    prevent_initial_call=True,
+)
+def update_api_toggle(api_toggle):
+    if api_toggle == "api":
+        return display.block, display.none
+    elif api_toggle == "file":
+        return display.none, display.block
 
 
 @callback(
@@ -277,22 +330,38 @@ def update_input_type(input_type):
                 generate_pmid_file_component(hidden=False)]
 
 
-@callback(
-    Output("output-data-upload", "children"),
-    Input("upload-data", "contents"),
-    State("upload-data", "filename"),
-)
-def update_data_upload(upload_data, filename):
-    if upload_data is not None:
-        content_type, content_string = upload_data.split(",")
+def display_uploaded_data(data, filename):
+    if data is not None:
+        content_type, content_string = data.split(",")
         decoded_content = base64.b64decode(content_string).decode("utf-8")
-        padding = "..." if len(decoded_content) > 100 else ""
+        displayed_text = decoded_content.split("\n")[:5]
+        displayed_text = [t[:100] + "..." if len(t) > 100 else t for t in displayed_text]
         return [
             html.H6(f"File: {filename}",
                     style={"margin-bottom": "5px", "margin-top": "5px"}),
-            html.Pre(decoded_content[:100] + padding,
-                     className="upload-preview")
+            html.Pre("\n".join(displayed_text), className="upload-preview"),
         ]
+    else:
+        return no_update
+
+
+@callback(
+    Output("output-data-upload", "children"),
+    Input("pmid-file-data", "contents"),
+    State("pmid-file-data", "filename"),
+)
+def update_data_upload(upload_data, filename):
+    return display_uploaded_data(upload_data, filename)
+
+
+@callback(
+    Output("pubtator-file-upload", "children"),
+    Input("pubtator-file-data", "contents"),
+    State("pubtator-file-data", "filename"),
+)
+def update_pubtator_upload(pubtator_data, filename):
+    return display_uploaded_data(pubtator_data, filename)
+
 
 @callback(
     Output("graph-settings-collapse", "style", allow_duplicate=True),
@@ -303,7 +372,7 @@ def update_data_upload(upload_data, filename):
     prevent_initial_call=True,
 )
 def update_graph_params(container_style, cut_weight):
-    return ({"visibility": "hidden"},
+    return (visibility.hidden,
             cut_weight,
             {"placement": "bottom", "always_visible": False})
 
@@ -313,11 +382,14 @@ def update_graph_params(container_style, cut_weight):
     Output("memory-graph-cut-weight", "data", allow_duplicate=True),
     Output("is-new-graph", "data"),
     Input("submit-button", "n_clicks"),
-    [State("input-type-selection", "value"),
+    [State("api-toggle-items", "value"),
+     State("input-type-selection", "value"),
      State("data-input", "value"),
-     State("upload-data", "contents"),
+     State("pmid-file-data", "contents"),
+     State("pubtator-file-data", "contents"),
      State("cut-weight", "value"),
-     State("extra-params", "value"),
+     State("pubtator-params", "value"),
+     State("cy-params", "value"),
      State("weighting-method", "value"),
      State("node-type", "value")],
     running=[(Input("submit-button", "disabled"), True, False)],
@@ -329,11 +401,14 @@ def update_graph_params(container_style, cut_weight):
 )
 def run_pubtator3_api(set_progress,
                       btn,
+                      source,
                       input_type,
                       data_input,
-                      upload_data,
+                      pmid_file_data,
+                      pubtator_file_data,
                       weight,
-                      extra_params,
+                      pubtator_params,
+                      cy_params,
                       weighting_method,
                       node_type):
     _exception_msg = None
@@ -345,53 +420,59 @@ def run_pubtator3_api(set_progress,
         _exception_msg = args.exc_value
         _exception_type = args.exc_type
 
-    use_mesh = 1 in extra_params
-    full_text = 2 in extra_params
-    community = 3 in extra_params
+    use_mesh = "use_mesh" in pubtator_params
+    full_text = "full_text" in pubtator_params
+    community = "community" in cy_params
 
-    if input_type == "query":
-        query = data_input
-    elif input_type == "pmids":
-        query = load_pmids(data_input, load_from="string")
-    elif input_type == "pmid_file":
-        content_type, content_string = upload_data.split(",")
-        decoded_content = base64.b64decode(content_string).decode("utf-8")
-        decoded_content = decoded_content.replace("\n", ",")
-        query = load_pmids(decoded_content, load_from="string")
-        input_type = "pmids"
+    if source == "api":
+        if input_type == "query":
+            query = data_input
+        elif input_type == "pmids":
+            query = load_pmids(data_input, load_from="string")
+        elif input_type == "pmid_file":
+            content_type, content_string = pmid_file_data.split(",")
+            decoded_content = base64.b64decode(content_string).decode("utf-8")
+            decoded_content = decoded_content.replace("\n", ",")
+            query = load_pmids(decoded_content, load_from="string")
+            input_type = "pmids"
 
-    queue = Queue()
-    threading.excepthook = custom_hook
-    job = threading.Thread(
-        target=run_thread_with_error_notification(run_query_pipeline, queue),
-        args=(query,
-              str(DATA["pubtator"]),
-              input_type,
-              MAX_ARTICLES,
-              full_text,
-              use_mesh,
-              queue)
-    )
-    set_progress((0, 1, "", "Finding articles..."))
-
-    job.start()
-    while True:
-        progress = queue.get()
-        if progress is None:
-            break
-        n, total = progress.split("/")
-        set_progress((n, total, progress, "Finding articles..."))
-
-    if _exception_type is not None:
-        known_exceptions = (
-            EmptyInput,
-            NoArticles,
-            UnsuccessfulRequest,
+        queue = Queue()
+        threading.excepthook = custom_hook
+        job = threading.Thread(
+            target=run_thread_with_error_notification(run_query_pipeline, queue),
+            args=(query,
+                  str(DATA["pubtator"]),
+                  input_type,
+                  MAX_ARTICLES,
+                  full_text,
+                  use_mesh,
+                  queue)
         )
-        if issubclass(_exception_type, known_exceptions):
-            set_progress((1, 1, "", str(_exception_msg)))
-            return ({"visibility": "hidden"}, weight, False)
-    job.join()
+        set_progress((0, 1, "", "Finding articles..."))
+
+        job.start()
+        while True:
+            progress = queue.get()
+            if progress is None:
+                break
+            n, total = progress.split("/")
+            set_progress((n, total, progress, "Finding articles..."))
+
+        if _exception_type is not None:
+            known_exceptions = (
+                EmptyInput,
+                NoArticles,
+                UnsuccessfulRequest,
+            )
+            if issubclass(_exception_type, known_exceptions):
+                set_progress((1, 1, "", str(_exception_msg)))
+                return (visibility.hidden, weight, False)
+        job.join()
+    elif source == "file":
+        with open(DATA["pubtator"], "w") as f:
+            content_type, content_string = pubtator_file_data.split(",")
+            decoded_content = base64.b64decode(content_string).decode("utf-8")
+            f.write(decoded_content)
 
     args = {
         "input": DATA["pubtator"],
@@ -412,7 +493,7 @@ def run_pubtator3_api(set_progress,
     with open(DATA["graph"], "wb") as f:
         pickle.dump(G, f)
 
-    return ({"visibility": "visible"}, weight, True)
+    return (visibility.visible, weight, True)
 
 
 def generate_cytoscape_js_network(graph_layout, graph_json):
