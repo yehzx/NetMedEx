@@ -277,6 +277,25 @@ edge_info = html.Div([
     html.Div(id="edge-info"),
 ], id="edge-info-container", style=visibility.hidden)
 
+
+def create_legend_box(icon, text):
+    return html.Div([
+        html.Img(src=app.get_asset_url(icon), width=25, height=25),
+        html.P(text),
+    ], className="legend-box")
+
+
+legend = html.Div([
+    create_legend_box("icon_species.svg", "Species"),
+    create_legend_box("icon_chemical.svg", "Chemical"),
+    create_legend_box("icon_gene.svg", "Gene"),
+    create_legend_box("icon_disease.svg", "Disease"),
+    create_legend_box("icon_cellline.svg", "CellLine"),
+    create_legend_box("icon_dnamutation.svg", "DNAMutation"),
+    create_legend_box("icon_proteinmutation.svg", "ProteinMutation"),
+    create_legend_box("icon_snp.svg", "SNP"),
+], id="legend-container")
+
 content = html.Div([
     html.Div([api_toggle, api, pubtator_file, cytoscape, progress],
              className="sidebar"),
@@ -285,6 +304,7 @@ content = html.Div([
         html.Div([
             toolbox,
             edge_info,
+            legend,
             html.Div(id="cy-graph", className="flex-grow-1"),
             dcc.Store(id="is-new-graph", data=False)
         ],
