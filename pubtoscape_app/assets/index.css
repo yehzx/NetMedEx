@@ -7,6 +7,7 @@
     --SIDEBAR-BACKGROUND: #508c9b;
     --TEXT: #1f0737;
     --GRAPH-SETTINGS-BACKGROUND: #e2dad6; 
+    --GRAY-TEXT: #585858;
 }
 
 * {
@@ -105,6 +106,19 @@ a:hover {
     border-style: dashed;
 }
 
+.legend-box {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    align-items: center;
+    justify-items: center;
+    width: 130px;
+}
+
+.legend-box p {
+    margin: 0;
+    font-size: 12px;
+}
+
 .export-btn {
     display: inline-block;
     margin: 2px;
@@ -146,8 +160,17 @@ a:hover {
     z-index: 100;
 }
 
+#legend-container {
+    position: absolute;
+    padding: 5px;
+    border: 1px solid var(--GRAY-TEXT);
+    bottom: 50px;
+    right: 50px;
+    z-index: 100;
+}
+
 #edge-info-container p {
-    color: #585858;
+    color: var(--GRAY-TEXT);
 }
 
 #edge-info-container h5 {

@@ -586,8 +586,7 @@ def setup_argparsers():
                         default=5,
                         help="Discard the edges with weight smaller than the specified value (default: 5)")
     parser.add_argument("-f",
-                        "--format",
-                            choices=["xgmml", "html", "json"],
+                        "--format", choices=["xgmml", "html", "json"],
                         default="html",
                         help="Output format (default: html)")
     parser.add_argument("--node_type",
