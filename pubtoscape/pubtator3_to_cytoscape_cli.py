@@ -146,20 +146,25 @@ def set_network_communities(G: nx.Graph, seed=1):
     G.graph["num_communities"] = len(community_labels)
 
     # Gather edges between communities
-    between_community_edge_weight = defaultdict(int)
+    inter_edge_weight = defaultdict(int)
+    inter_edge_pmids = defaultdict(list)
     to_remove = []
     for u, v, attrs in G.edges(data=True):
         if (c_0 := G.nodes[u]["parent"]) != (c_1 := G.nodes[v]["parent"]):
             assert c_0 is not None and c_1 is not None
             to_remove.append((u, v))
             community_edge = tuple(sorted([c_0, c_1]))
-            between_community_edge_weight[community_edge] += attrs["scaled_edge_weight"]
+            inter_edge_weight[community_edge] += attrs["scaled_edge_weight"]
+            inter_edge_pmids[community_edge].extend(attrs["pmids"])
 
     G.remove_edges_from(to_remove)
-    for idx, ((c_0, c_1), weight) in enumerate(between_community_edge_weight.items()):
+    for idx, ((c_0, c_1), weight) in enumerate(inter_edge_weight.items()):
         # Log-adjusted weight for balance
         weight = math.log(weight) * 5
-        G.add_edge(c_0, c_1, scaled_edge_weight=weight, _id=idx)
+        G.add_edge(c_0, c_1,
+                   pmids=list(set(inter_edge_pmids[(c_0, c_1)])),
+                   scaled_edge_weight=weight,
+                   _id=idx)
 
 
 def save_network(G: nx.Graph,
@@ -503,7 +508,7 @@ def add_edge_to_graph(G: nx.Graph,
                        weighted_frequency=w_freq,
                        npmi=npmi,
                        edge_weight=edge_weight,
-                       pmids=",".join(list(unique_pmids)))
+                       pmids=list(unique_pmids))
         except Exception:
             logger.debug(f"Skip edge: ({pair[0]}, {pair[1]})")
 
