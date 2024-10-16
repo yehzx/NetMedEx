@@ -167,8 +167,8 @@ def save_network(G: nx.Graph,
                  format: Literal["xgmml", "html", "json"] = "html"):
     FORMAT_FUNCTION_MAP = {
         "xgmml": "pubtoscape.cytoscape_xgmml.save_as_xgmml",
-        "html": "pubtoscape.cytoscape_html.save_as_html",
-        "json": "pubtoscape.cytoscape_json.save_as_json",
+        "html": "pubtoscape.cytoscape_js.save_as_html",
+        "json": "pubtoscape.cytoscape_js.save_as_json",
     }
 
     module_path, func_name = FORMAT_FUNCTION_MAP[format].rsplit(".", 1)

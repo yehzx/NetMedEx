@@ -16,8 +16,7 @@ from dash import (ClientsideFunction, Dash, Input, Output, State, callback,
 from dash.long_callback import DiskcacheLongCallbackManager
 from dotenv import load_dotenv
 
-from pubtoscape.cytoscape_html import save_as_html
-from pubtoscape.cytoscape_json import create_cytoscape_json
+from pubtoscape.cytoscape_js import save_as_html, create_cytoscape_js
 from pubtoscape.cytoscape_xgmml import save_as_xgmml
 from pubtoscape.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
 from pubtoscape.pubtator3_api_cli import load_pmids, run_query_pipeline
@@ -621,7 +620,7 @@ def update_graph_layout(layout, node_degree, weight, elements):
         G = rebuild_graph(node_degree,
                           weight,
                           with_layout=True)
-        graph_json = create_cytoscape_json(G)
+        graph_json = create_cytoscape_js(G, style="dash")
         elements = [*graph_json["elements"]["nodes"],
                     *graph_json["elements"]["edges"]]
 
@@ -684,7 +683,7 @@ def update_graph(new_node_degree,
         G = rebuild_graph(new_node_degree,
                           new_cut_weight,
                           with_layout=True)
-        graph_json = create_cytoscape_json(G)
+        graph_json = create_cytoscape_js(G, style="dash")
         cy_graph = generate_cytoscape_js_network(graph_layout, graph_json)
         return cy_graph, False, new_node_degree, new_cut_weight
     else:
