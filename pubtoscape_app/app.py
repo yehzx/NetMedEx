@@ -484,8 +484,12 @@ def run_pubtator3_api(set_progress,
                 UnsuccessfulRequest,
             )
             if issubclass(_exception_type, known_exceptions):
-                set_progress((1, 1, "", str(_exception_msg)))
-                return (visibility.hidden, weight, False)
+                exception_msg = str(_exception_msg) 
+            else:
+                exception_msg = "An unexpected error occurred."
+            set_progress((1, 1, "", exception_msg))
+            return (no_update, weight, False)
+
         job.join()
     elif source == "file":
         with open(DATA["pubtator"], "w") as f:
