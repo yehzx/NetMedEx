@@ -56,6 +56,7 @@ MAX_EDGE_WIDTH = 20
 EDGE_BASE_COLOR = "#AD1A66"
 
 pmid_counter = 0
+pmid_title_dict = {}
 flags = {"use_mesh": False}
 # TODO: other ways to solve modified MeSH mismatch
 mesh_map = {}
@@ -73,7 +74,7 @@ def main():
 
     input_filepath = Path(args.input)
     if args.output is None:
-        output_filepath = input_filepath.with_suffix(".xgmml")
+        output_filepath = input_filepath.with_suffix(f".{args.format}")
     else:
         output_filepath = Path(args.output)
         output_filepath.parent.mkdir(parents=True, exist_ok=True)
@@ -98,6 +99,7 @@ def pubtator2cytoscape(filepath, savepath, args):
                       edge_counter=result["edge_dict"],
                       doc_weight_csv=args["pmid_weight"],
                       weighting_method=args["weighting_method"])
+    add_attrs_to_graph(G=G)
 
     if args.get("debug", False):
         # Save before truncation
@@ -192,6 +194,15 @@ def save_network(G: nx.Graph,
 
 
 def parse_pubtator(filepath, node_type):
+    def is_title(line):
+        return line.find("|t|") != -1
+
+    def parse_title(line):
+        global pmid_title_dict
+        pmid, title = line.split("|t|")
+        pmid_title_dict.setdefault(pmid, title)
+        return pmid
+
     global pmid_counter
     node_dict = {}
     edge_dict = defaultdict(list)
@@ -203,8 +214,8 @@ def parse_pubtator(filepath, node_type):
     parse_header(filepath)
     with open(filepath) as f:
         for line in f.readlines():
-            if _is_title(line):
-                pmid = _find_pmid(line)
+            if is_title(line):
+                pmid = parse_title(line)
                 pmid_counter += 1
                 continue
             if node_type == "relation":
@@ -252,14 +263,6 @@ def assign_flags(line):
     global flags
     if line == "USE-MESH-VOCABULARY":
         flags["use_mesh"] = True
-
-
-def _is_title(line):
-    return line.find("|t|") != -1
-
-
-def _find_pmid(line):
-    return line.split("|t|")[0]
 
 
 def parse_line_relation(line, node_dict: dict,
@@ -508,7 +511,7 @@ def add_edge_to_graph(G: nx.Graph,
                        weighted_frequency=w_freq,
                        npmi=npmi,
                        edge_weight=edge_weight,
-                       pmids=list(unique_pmids))
+                       pmids={p: pmid_title_dict[p] for p in list(unique_pmids)})
         except Exception:
             logger.debug(f"Skip edge: ({pair[0]}, {pair[1]})")
 
@@ -568,6 +571,10 @@ def normalized_pointwise_mutual_information(n_x, n_y, n_xy, N,
         npmi = min(npmi, below_threshold_default)
 
     return npmi
+
+
+def add_attrs_to_graph(G: nx.Graph):
+    G.graph["pmid_title"] = pmid_title_dict
 
 
 def parse_args(args):
