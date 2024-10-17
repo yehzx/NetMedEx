@@ -74,34 +74,51 @@ def get_biocjson_annotations(res_json, retain_ori_text, abstract_idx=None):
         passages = [res_json["passages"][i]["annotations"] for i in range(n_passages)]
     for annotation_entries in passages:
         for annotation_entry in annotation_entries:
-            each_annotation = {}
+            annotation = {}
             try:
                 id = annotation_entry["infons"]["identifier"]
             except Exception:
                 id = "-"
-            each_annotation["id"] = "-" if id == "None" or id is None else id
-            each_annotation["type"] = annotation_entry["infons"]["type"]
-            each_annotation["locations"] = annotation_entry["locations"][0]
-
-            if retain_ori_text:
-                each_annotation["name"] = annotation_entry["text"]
-            # In type == "species", the entity name is stored in "text"
-            elif each_annotation["type"] == "Species":
-                each_annotation["name"] = annotation_entry["text"]
-            # Variant can be either SNP, DNAMutation, or ProteinMutation
-            elif each_annotation["type"] == "Variant":
-                each_annotation["type"] = annotation_entry["infons"]["subtype"]
-                each_annotation["name"] = annotation_entry["infons"]["name"]
-            elif annotation_entry["infons"].get("database", "none") == "omim":
-                each_annotation["name"] = annotation_entry["text"]
-            else:
-                try:
-                    each_annotation["name"] = annotation_entry["infons"]["name"]
-                except KeyError:
-                    each_annotation["name"] = annotation_entry["text"]
-            annotation_list.append(each_annotation)
+            annotation["id"] = "-" if id == "None" or id is None else id
+            annotation["type"] = annotation_entry["infons"]["type"]
+            annotation["locations"] = annotation_entry["locations"][0]
+            annotation["name"] = get_name(retain_ori_text,
+                                          annotation_entry,
+                                          annotation)
+            if annotation["name"] is None:
+                continue
+            annotation_list.append(annotation)
 
     return annotation_list
+
+
+def get_name(retain_ori_text, annotation_entry, annotation):
+    try:
+        if retain_ori_text:
+            name = annotation_entry["text"]
+            # In type == "species", the entity name is stored in "text"
+        elif annotation["type"] == "Species":
+            name = annotation_entry["text"]
+            # Variant can be either SNP, DNAMutation, or ProteinMutation
+        elif annotation["type"] == "Variant":
+            name = annotation_entry["infons"]["subtype"]
+            # Some variants may not have standardized name
+            try:
+                name = annotation_entry["infons"]["name"]
+            except KeyError:
+                name = None
+        elif annotation_entry["infons"].get("database", "none") == "omim":
+            name = annotation_entry["text"]
+        else:
+            try:
+                name = annotation_entry["infons"]["name"]
+            except KeyError:
+                name = annotation_entry["text"]
+    except KeyError as e:
+        name = None
+        logger.warning(f"Cannot find annotation name: {str(e)}")
+
+    return name
 
 
 def get_biocjson_relations(res_json, role_type):
