@@ -5,6 +5,10 @@ import networkx as nx
 
 from pubtoscape.cytoscape_html_template import HTML_TEMPLATE
 
+SHAPE_JS_MAP = {
+    "PARALLELOGRAM": "RHOMBOID"
+}
+
 
 def save_as_html(G: nx.Graph, savepath: str, layout="preset"):
     with open(savepath, "w") as f:
@@ -34,6 +38,9 @@ def create_cytoscape_js(G: nx.Graph, style: Literal["dash", "cyjs"] = "cyjs"):
 
 
 def create_cytoscape_node(node):
+    def convert_shape(shape):
+        return SHAPE_JS_MAP.get(shape, shape).lower()
+
     node_id, node_attr = node
 
     node_info = {
@@ -43,7 +50,7 @@ def create_cytoscape_node(node):
             "color": node_attr["color"],
             "label_color": node_attr["label_color"],
             "label": node_attr["name"],
-            "shape": node_attr["shape"].lower(),
+            "shape": convert_shape(node_attr["shape"]),
         },
         "position": {
             "x": round(node_attr["pos"][0], 3),
