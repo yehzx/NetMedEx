@@ -25,6 +25,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   #legend-container {{
       position: absolute;
       padding: 5px;
+      background-color: #eeeeee;
       border: 1px solid #585858;
       bottom: 50px;
       right: 50px;
