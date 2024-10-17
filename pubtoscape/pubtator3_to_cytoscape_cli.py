@@ -30,7 +30,7 @@ MUTATION_PATTERNS = {
     "ca": re.compile(r"(CA#:[^;]+)")
 }
 
-COLOR_MAP = {
+NODE_COLOR_MAP = {
     "Chemical": "#67A9CF",
     "Gene": "#74C476",
     "Species": "#FD8D3C",
@@ -40,7 +40,7 @@ COLOR_MAP = {
     "CellLine": "#BDBDBD",
     "SNP": "#FFFFB3"
 }
-SHAPE_MAP = {
+NODE_SHAPE_MAP = {
     "Chemical": "ELLIPSE",
     "Gene": "TRIANGLE",
     "Species": "DIAMOND",
@@ -451,9 +451,9 @@ def add_node_to_graph(G: nx.Graph, node_dict, non_isolated_nodes):
     for id in non_isolated_nodes:
         try:
             G.add_node(id,
-                       color=COLOR_MAP[node_dict[id]["type"]],
+                       color=NODE_COLOR_MAP[node_dict[id]["type"]],
                        label_color="#000000",
-                       shape=SHAPE_MAP[node_dict[id]["type"]],
+                       shape=NODE_SHAPE_MAP[node_dict[id]["type"]],
                        type=node_dict[id]["type"],
                        name=node_dict[id]["name"],
                        document_frquency=len(node_dict[id]["_articles"]),
