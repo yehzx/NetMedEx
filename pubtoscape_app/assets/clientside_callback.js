@@ -21,14 +21,15 @@ window.dash_clientside.clientside = {
       }
 
       const pubtator_href = "https://www.ncbi.nlm.nih.gov/research/pubtator3/publication/"
-      const pmids = tap_edge.pmids.split(",")
       const [node_1, node_2] = tap_edge.label.split(" (interacts with) ")
 
       elements.push({props: {children: `Node 1: ${node_1}`}, type: "P", namespace: "dash_html_components"})
       elements.push({props: {children: `Node 2: ${node_2}`}, type: "P", namespace: "dash_html_components"})
       elements.push({props: {children: "Evidence:"}, type: "P", namespace: "dash_html_components"})
 
-      pmids.forEach((pmid, index) => {
+      Object.entries(tap_edge.pmids).forEach((obj, index) => {
+        const pmid = obj[0]
+        const title = obj[1]
         elements.push({
           type: "P",
           namespace: "dash_html_components",
@@ -42,6 +43,13 @@ window.dash_clientside.clientside = {
                   href: pubtator_href + pmid,
                   target: "_blank",
                   children: pmid
+                }
+              },
+              {
+                type: "P",
+                namespace: "dash_html_components",
+                props: {
+                  children: `${title}`
                 }
               }
             ]
