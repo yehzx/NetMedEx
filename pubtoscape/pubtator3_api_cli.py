@@ -209,7 +209,6 @@ def unsuccessful_query(status_code):
     else:
         msg = "Please retry later."
 
-    logger.warning(msg)
     raise UnsuccessfulRequest(msg)
 
 
@@ -314,7 +313,7 @@ def write_output(output, savepath: Union[Path, str, None], use_mesh=False):
 
     if use_mesh:
         header.append("##USE-MESH-VOCABULARY")
-    if len(output) > 0:
+    if len(header) > 0:
         header.append("\n")
 
     with open(savepath, "w") as f:
