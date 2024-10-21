@@ -163,6 +163,7 @@ a:hover {
 #legend-container {
     position: absolute;
     padding: 5px;
+    background-color: var(--MAIN-BACKGROUND);
     border: 1px solid var(--GRAY-TEXT);
     bottom: 50px;
     right: 50px;
