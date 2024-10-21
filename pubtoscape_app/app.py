@@ -1,22 +1,26 @@
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
 import base64
 import os
 import pickle
 import threading
 from pathlib import Path
 from queue import Queue
+from types import SimpleNamespace
 
 import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
 import dash_svg as svg
 import diskcache
 import networkx as nx
-from types import SimpleNamespace
 from dash import (ClientsideFunction, Dash, Input, Output, State, callback,
                   clientside_callback, dcc, html, no_update)
 from dash.long_callback import DiskcacheLongCallbackManager
-from dotenv import load_dotenv
 
-from pubtoscape.cytoscape_js import save_as_html, create_cytoscape_js
+from pubtoscape.cytoscape_js import create_cytoscape_js, save_as_html
 from pubtoscape.cytoscape_xgmml import save_as_xgmml
 from pubtoscape.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
 from pubtoscape.pubtator3_api_cli import load_pmids, run_query_pipeline
@@ -28,7 +32,6 @@ from pubtoscape.pubtator3_to_cytoscape_cli import (pubtator2cytoscape,
 from pubtoscape.utils import config_logger
 from pubtoscape.utils_threading import run_thread_with_error_notification
 
-load_dotenv()
 config_logger(is_debug=(os.getenv("LOGGING_DEBUG") == "true"))
 
 cache = diskcache.Cache("./cache")
