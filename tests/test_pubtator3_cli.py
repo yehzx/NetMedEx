@@ -6,7 +6,7 @@ from unittest import mock
 
 import pytest
 
-from pubtoscape.pubtator3_api_cli import main
+from pubtoscape.pubtator3_api_cli import main, write_output
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -76,3 +76,37 @@ def test_pubtator3_api_exceptions(args, monkeypatch: pytest.MonkeyPatch):
     with mock.patch("pubtoscape.pubtator3_api_cli.logger") as mock_logger:
         main()
         mock_logger.error.assert_called_once()
+
+
+@pytest.mark.parametrize("args", [
+    ["api.py", "-p", "123", "-q", "bar"],
+    ["api.py", "-f", "foo.txt", "-q", "bar"],
+])
+def test_pubtator3_api_exit(args, monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr("sys.argv", args)
+    with pytest.raises(SystemExit):
+        with mock.patch("pubtoscape.pubtator3_api_cli.logger") as mock_logger:
+            main()
+            mock_logger.info.assert_called_once()
+
+
+def test_write_output_none():
+    open_mock = mock.mock_open()
+    with mock.patch("builtins.open", create=True):
+        write_output("foo", None, False)
+        open_mock.assert_not_called()
+
+
+@pytest.mark.parametrize("output,savepath,use_mesh,expected", [
+    ("foo", "bar.pubtator", False, "foo"),
+    ("foo", "bar.pubtator", True, "foo")
+])
+def test_write_output(output, savepath, use_mesh, expected):
+    open_mock = mock.mock_open()
+    with mock.patch("builtins.open", open_mock, create=True), \
+        mock.patch("pubtoscape.pubtator3_api_cli.logger") as mock_logger:
+        write_output(output, savepath, use_mesh)
+        if use_mesh:
+            open_mock.return_value.writelines.assert_any_call(["##USE-MESH-VOCABULARY", "\n"])
+        open_mock.return_value.writelines.assert_any_call(output)
+        mock_logger.info.assert_called_with(f"Save to {savepath}")
