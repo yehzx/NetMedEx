@@ -110,6 +110,8 @@ def pubtator2cytoscape(filepath, savepath, args):
     remove_edges_by_weight(G, args["cut_weight"])
     remove_isolated_nodes(G)
 
+    assert_graph_properties(G)
+
     set_network_layout(G)
 
     if args["community"]:
@@ -118,6 +120,11 @@ def pubtator2cytoscape(filepath, savepath, args):
     save_network(G, savepath, args["format"])
 
     return G
+
+
+def assert_graph_properties(G: nx.Graph):
+    num_selfloops = nx.number_of_selfloops(G)
+    assert num_selfloops == 0, f"Find {num_selfloops}"
 
 
 def set_network_layout(G: nx.Graph):
@@ -284,10 +291,10 @@ def create_edges_for_relations(line, edge_dict, non_isolated_nodes):
     name_2 = name_2.split("|")[0]
     name_2 = mesh_map.get(name_2, name_2)
     edge_dict[(name_1, name_2)].append({
-            "pmid": pmid,
-            "relationship": relationship,
-            "_id": id_counter()
-        })
+        "pmid": pmid,
+        "relationship": relationship,
+        "_id": id_counter()
+    })
     non_isolated_nodes.add(name_1)
     non_isolated_nodes.add(name_2)
 
@@ -342,11 +349,11 @@ def add_node_by_mesh(line, node_dict, node_dict_each):
                     "mesh": mesh,
                     "type": type,
                     "name": defaultdict(int),
-                    "_articles": set(),
+                    "pmids": set(),
                     "_id": id_counter()
                 })
         node_dict[each_mesh]["name"][name] += 1
-        node_dict[each_mesh]["_articles"].add(pmid)
+        node_dict[each_mesh]["pmids"].add(pmid)
         node_dict_each[each_mesh] = node_dict[each_mesh]
 
 
@@ -402,7 +409,7 @@ def add_node_by_text(line, node_dict, node_dict_each):
         "mesh": mesh,
         "type": type,
         "name": name,
-        "_articles": set(),
+        "pmids": set(),
         "_id": id_counter()
     }
 
@@ -411,7 +418,7 @@ def add_node_by_text(line, node_dict, node_dict_each):
         logger.debug("Discard the latter\n")
 
     node_dict.setdefault(name, node_info)
-    node_dict[name]["_articles"].add(pmid)
+    node_dict[name]["pmids"].add(pmid)
     node_dict_each[name] = node_dict[name]
 
 
@@ -449,7 +456,7 @@ def add_node_to_graph(G: nx.Graph, node_dict, non_isolated_nodes):
                        shape=NODE_SHAPE_MAP[node_dict[id]["type"]],
                        type=node_dict[id]["type"],
                        name=node_dict[id]["name"],
-                       document_frquency=len(node_dict[id]["_articles"]),
+                       document_frquency=len(node_dict[id]["pmids"]),
                        _id=node_dict[id]["_id"],
                        marked=marked)
         except KeyError:
@@ -483,8 +490,8 @@ def add_edge_to_graph(G: nx.Graph,
         w_freq = round(sum([doc_weights.get(pmid, 1)
                        for pmid in unique_pmids]), 2)
         npmi = normalized_pointwise_mutual_information(
-            n_x=len(node_dict[pair[0]]["_articles"]),
-            n_y=len(node_dict[pair[1]]["_articles"]),
+            n_x=len(node_dict[pair[0]]["pmids"]),
+            n_y=len(node_dict[pair[1]]["pmids"]),
             n_xy=len(unique_pmids),
             N=pmid_counter,
             n_threshold=2,
