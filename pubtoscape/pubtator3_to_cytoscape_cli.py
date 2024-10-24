@@ -399,6 +399,66 @@ def determine_mesh_term_labels(node_dict, edge_dict):
             node_dict[node_id]["name"] = max(node_info["name"],
                                              key=determine_node_label)
 
+    merge_same_name_genes(node_dict, edge_dict)
+
+
+def merge_same_name_genes(node_dict, edge_dict):
+    gene_name_dict = defaultdict(list)
+    for node_id, node_info in node_dict.items():
+        if node_info["type"] != "Gene":
+            continue
+        gene_name_dict[node_info["name"]].append({
+            "node_id": node_id,
+            "mesh": node_info["mesh"],
+            "pmids": node_info["pmids"],
+        })
+
+    for node_data_list in gene_name_dict.values():
+        mesh_list = []
+        edges_to_merge = []
+        removed_node_ids = []
+        pmid_collection = set()
+        for node_data in node_data_list:
+            node_id = node_data["node_id"]
+            # Nodes
+            popped_node_data = node_dict.pop(node_id)
+            removed_node_ids.append(node_id)
+            mesh_list.append(node_data["mesh"])
+            for pmid in node_data["pmids"]:
+                pmid_collection.add(pmid)
+
+            # Edges
+            for u, v in edge_dict.keys():
+                if u == node_id:
+                    edges_to_merge.append((u, v, "u"))
+                elif v == node_id:
+                    edges_to_merge.append((u, v, "v"))
+
+        # Nodes
+        concated_mesh = ";".join(mesh_list)
+        # popped_node_data is the last node_data of nodes having the same name
+        popped_node_data.update({
+            "mesh": concated_mesh,
+            "pmids": pmid_collection,
+        })
+        node_key = f"gene_{concated_mesh}"
+        node_dict[node_key] = popped_node_data
+
+        # Edges
+        merged_edges = defaultdict(list)
+        for u, v, pos in edges_to_merge:
+            neighbor = v if pos == "u" else u
+            try:
+                popped_edge_data = edge_dict.pop((u, v))
+            except KeyError:
+                # The same gene but given different ids in the same article
+                assert neighbor in removed_node_ids
+            if neighbor in removed_node_ids:
+                continue
+            merged_edges[(node_key, neighbor)].extend(popped_edge_data)
+        print(merged_edges)
+        edge_dict.update(merged_edges)
+
 
 def add_node_by_text(line, node_dict, node_dict_each):
     pmid, start, end, name, type, mesh = line.strip("\n").split("\t")

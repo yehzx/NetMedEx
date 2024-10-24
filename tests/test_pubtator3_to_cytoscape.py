@@ -6,7 +6,7 @@ from pubtoscape.pubtator3_to_cytoscape_cli import (add_edge_to_graph,
                                                    parse_pubtator,
                                                    parse_header,
                                                    remove_isolated_nodes,
-                                                   add_node_by_mesh,
+                                                   merge_same_name_genes,
                                                    HEADER_SYMBOL)
 
 
@@ -62,3 +62,26 @@ def test_parse_header(data, expected, monkeypatch: pytest.MonkeyPatch):
     with mock.patch("pubtoscape.pubtator3_to_cytoscape_cli.flags", flags):
         parse_header("")
         assert flags.get("use_mesh", False) == expected
+
+
+def test_merge_same_name_genes():
+    node_dict = {
+        "gene_1": {"type": "Gene", "pmids": set([10]), "mesh": "1", "name": "foo"},
+        "gene_2": {"type": "Gene", "pmids": set([20]), "mesh": "2", "name": "foo"},
+        "bar": {"type": "-", "pmids": set([30]), "mesh": "-", "name": "bar"},
+    }
+    edge_dict = {
+        ("gene_1", "bar"): [{"pmid": 30}, {"pmid": 40}],
+        ("gene_1", "gene_2"): [{"pmid": 20}],
+        ("foo", "bar"): [{"pmid": 30}, {"pmid": 40}],
+    }
+    merge_same_name_genes(node_dict, edge_dict)
+
+    assert node_dict == {
+        'bar': {'type': '-', 'pmids': {30}, 'mesh': '-', 'name': 'bar'},
+        'gene_1;2': {'type': 'Gene', 'pmids': {10, 20}, 'mesh': '1;2', 'name': 'foo'}
+    }
+    assert edge_dict == {
+        ('foo', 'bar'): [{'pmid': 30}, {'pmid': 40}],
+        ('gene_1;2', 'bar'): [{'pmid': 30}, {'pmid': 40}]
+    }
