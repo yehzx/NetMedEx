@@ -386,18 +386,11 @@ def determine_mesh_term_labels(node_dict, edge_dict):
     def determine_node_label(name):
         return (node_info["name"][name], -len(name))
 
-    name_map = {}
     for node_id, node_info in node_dict.items():
         if isinstance(node_info["name"], defaultdict):
-            name_map[node_id] = max(node_info["name"],
-                                    key=determine_node_label)
-    for old_name, new_name in name_map.items():
-        node_dict[new_name] = node_dict.pop(old_name)
-        node_dict[new_name]["name"] = new_name
-
-    for name_1, name_2 in list(edge_dict.keys()):
-        edge_dict[(name_map.get(name_1, name_1), name_map.get(name_2, name_2))] = \
-            edge_dict.pop((name_1, name_2))
+            # Use the name that appears the most times
+            node_dict[node_id]["name"] = max(node_info["name"],
+                                             key=determine_node_label)
 
 
 def add_node_by_text(line, node_dict, node_dict_each):
