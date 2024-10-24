@@ -6,6 +6,7 @@ from pubtoscape.pubtator3_to_cytoscape_cli import (add_edge_to_graph,
                                                    parse_pubtator,
                                                    parse_header,
                                                    remove_isolated_nodes,
+                                                   add_node_by_mesh,
                                                    HEADER_SYMBOL)
 
 
@@ -27,7 +28,7 @@ def test_index_by_text(paths):
     result = parse_pubtator(paths["simple"], node_type="all")
     G = build_graph(result)
 
-    assert G.nodes.get("l55m", False), "l55m should be in the graph"
+    assert G.nodes.get("RS#:854560;HGVS:p.L55M;CorrespondingGene:5444", False), "l55m should be in the graph"
     assert len(G.nodes) == 14, f"result: {len(G.nodes)} nodes\nexpected: 14 nodes"
     assert len(G.edges) == 47, f"result: {len(G.edges)} nodes\nexpected: 47 edges"
 
@@ -36,7 +37,7 @@ def test_index_by_relation(paths):
     result = parse_pubtator(paths["simple"], node_type="relation")
     G = build_graph(result)
 
-    assert G.nodes.get("l55m", False), "Not mapped by MeSH"
+    assert G.nodes.get("RS#:854560;HGVS:p.L55M;CorrespondingGene:5444", False), "Not mapped by MeSH"
     assert len(G.nodes) == 8, f"result: {len(G.nodes)} nodes\nexpected: 8 nodes"
     assert len(G.edges) == 9, f"result: {len(G.edges)} nodes\nexpected: 9 edges"
 
@@ -45,7 +46,7 @@ def test_index_by_mesh(paths):
     result = parse_pubtator(paths["simple"], node_type="mesh")
     G = build_graph(result)
 
-    assert G.nodes.get("l55m", False), "Not mapped by MeSH"
+    assert G.nodes.get("RS#:854560;HGVS:p.L55M;CorrespondingGene:5444", False), "Not mapped by MeSH"
     assert len(G.nodes) == 13, f"result: {len(G.nodes)} nodes\nexpected: 13 nodes"
     assert len(G.edges) == 41, f"result: {len(G.edges)} nodes\nexpected: 41 edges"
 
