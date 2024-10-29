@@ -3,19 +3,23 @@ import importlib
 import logging
 import math
 import pickle
-from datetime import datetime
 import re
 import sys
 from argparse import ArgumentParser
 from collections import defaultdict
+from dataclasses import asdict
+from datetime import datetime
 from itertools import count
 from operator import itemgetter
 from pathlib import Path
-from typing import DefaultDict, Literal
+from typing import Any, Iterable, Literal, Mapping, Union
 
 import networkx as nx
 
-from pubtoscape.stemmers import s_stemmer
+from pubtoscape.graph_data import (CommunityEdgeData, GraphEdgeData,
+                                   GraphNodeData)
+from pubtoscape.pubtator_data import (PubTatorEdgeData, PubTatorLine,
+                                      PubTatorNodeData)
 from pubtoscape.utils import config_logger
 
 # VARIANT_PATTERN = re.compile(r"CorrespondingGene:.*CorrespondingSpecies:\d+")
@@ -88,7 +92,11 @@ def check_not_implemented(args):
         sys.exit()
 
 
-def pubtator2cytoscape(filepath, savepath, args):
+def pubtator2cytoscape(
+    filepath: Union[str, Path],
+    savepath: Union[str, Path, None],
+    args: Mapping[str, Any],
+) -> nx.Graph:
     G = nx.Graph()
     result = parse_pubtator(filepath, args["node_type"])
     add_node_to_graph(G=G,
@@ -96,7 +104,7 @@ def pubtator2cytoscape(filepath, savepath, args):
                       non_isolated_nodes=result["non_isolated_nodes"])
     add_edge_to_graph(G=G,
                       node_dict=result["node_dict"],
-                      edge_counter=result["edge_dict"],
+                      edge_dict=result["edge_dict"],
                       doc_weight_csv=args["pmid_weight"],
                       weighting_method=args["weighting_method"])
     add_attrs_to_graph(G=G)
@@ -136,18 +144,21 @@ def set_network_layout(G: nx.Graph):
     nx.set_node_attributes(G, pos, "pos")
 
 
-def set_network_communities(G: nx.Graph, seed=1):
+def set_network_communities(G: nx.Graph, seed: int = 1):
     communities = nx.community.louvain_communities(
         G, seed=seed, weight="scaled_edge_weight")
     community_labels = set()
     for c_idx, community in enumerate(communities):
-        highest_degree_node = max(G.degree(community, weight="scaled_edge_weight"), key=itemgetter(1))[0]
+        highest_degree_node = max(
+            G.degree(community, weight="scaled_edge_weight"),
+            key=itemgetter(1))[0]
         community_node = f"c{c_idx}"
         community_labels.add(community_node)
         community_attrs = G.nodes[highest_degree_node].copy()
         community_attrs.update(
             {"label_color": "#dd4444", "parent": None, "_id": community_node})
-        G.add_node(community_node, **community_attrs)
+        node_data = GraphNodeData(**community_attrs)
+        G.add_node(community_node, **asdict(node_data))
 
         for node in community:
             G.nodes[node]["parent"] = community_node
@@ -170,14 +181,18 @@ def set_network_communities(G: nx.Graph, seed=1):
     for idx, ((c_0, c_1), weight) in enumerate(inter_edge_weight.items()):
         # Log-adjusted weight for balance
         weight = math.log(weight) * 5
-        G.add_edge(c_0, c_1,
-                   pmids=list(set(inter_edge_pmids[(c_0, c_1)])),
-                   scaled_edge_weight=weight,
-                   _id=idx)
+        pmids = list(set(inter_edge_pmids[(c_0, c_1)]))
+        edge_data = CommunityEdgeData(
+            _id=str(idx),
+            edge_weight=weight,
+            scaled_edge_weight=weight,
+            pmids={pmid: pmid_title_dict[pmid] for pmid in pmids}
+        )
+        G.add_edge(c_0, c_1, **asdict(edge_data))
 
 
 def save_network(G: nx.Graph,
-                 savepath: str,
+                 savepath: Union[str, Path],
                  format: Literal["xgmml", "html", "json"] = "html"):
     FORMAT_FUNCTION_MAP = {
         "xgmml": "pubtoscape.cytoscape_xgmml.save_as_xgmml",
@@ -200,11 +215,12 @@ def save_network(G: nx.Graph,
     logger.info(f"Save graph to {savepath}")
 
 
-def parse_pubtator(filepath, node_type):
-    def is_title(line):
+def parse_pubtator(filepath: Union[str, Path],
+                   node_type: Literal["all", "mesh", "relation"]):
+    def is_title(line: str):
         return line.find("|t|") != -1
 
-    def parse_title(line):
+    def parse_title(line: str):
         global pmid_title_dict
         pmid, title = line.split("|t|")
         pmid_title_dict.setdefault(pmid, title)
@@ -226,21 +242,21 @@ def parse_pubtator(filepath, node_type):
                 pmid_counter += 1
                 continue
             if node_type == "relation":
-                parse_line_relation(line, node_dict, edge_dict,
+                parsed_line = PubTatorLine(line)
+                parse_line_relation(parsed_line, node_dict, edge_dict,
                                     non_isolated_nodes)
             else:
                 if pmid != last_pmid:
                     create_complete_graph(node_dict_each, edge_dict, last_pmid)
                     last_pmid = pmid
                     node_dict_each = {}
-                if get_line_type(line) == "annotation":
+                parsed_line = PubTatorLine(line)
+                if parsed_line.type == "annotation":
+                    args = (parsed_line, node_dict, node_dict_each)
                     if node_type == "all":
-                        if (mesh := line.strip("\n").rsplit("\t", 1))[-1] in ("-", ""):
-                            add_node_by_text(line, node_dict, node_dict_each)
-                        else:
-                            add_node_by_mesh(line, node_dict, node_dict_each)
+                        add_node(*args, mesh_only=False)
                     elif node_type == "mesh":
-                        add_node_by_mesh(line, node_dict, node_dict_each)
+                        add_node(*args, mesh_only=True)
         create_complete_graph(node_dict_each, edge_dict, pmid)
     determine_mesh_term_labels(node_dict, edge_dict)
     if node_type in ("all", "mesh"):
@@ -258,7 +274,7 @@ def parse_pubtator(filepath, node_type):
     }
 
 
-def parse_header(filepath):
+def parse_header(filepath: Union[str, Path]):
     with open(filepath) as f:
         for line in f.readlines():
             if not line.startswith(HEADER_SYMBOL):
@@ -266,151 +282,102 @@ def parse_header(filepath):
             assign_flags(line.replace(HEADER_SYMBOL, "", 1).strip())
 
 
-def assign_flags(line):
+def assign_flags(line: str):
     global flags
     if line == "USE-MESH-VOCABULARY":
         flags["use_mesh"] = True
+        PubTatorLine.use_mesh = True
 
 
-def parse_line_relation(line, node_dict: dict,
-                        edge_dict: DefaultDict[tuple, list],
-                        non_isolated_nodes: set):
-    line_type = get_line_type(line)
-    if line_type == "annotation":
-        add_node_by_mesh(line, node_dict, {})
-    elif line_type == "relation":
+def parse_line_relation(line: PubTatorLine,
+                        node_dict: dict[str, PubTatorNodeData],
+                        edge_dict: defaultdict[str, list[PubTatorEdgeData]],
+                        non_isolated_nodes: set[str]):
+    if line.type == "annotation":
+        add_node(line, node_dict, {}, mesh_only=True)
+    elif line.type == "relation":
         create_edges_for_relations(line, edge_dict, non_isolated_nodes)
 
 
-def create_edges_for_relations(line, edge_dict, non_isolated_nodes):
+def create_edges_for_relations(line: PubTatorLine,
+                               edge_dict: defaultdict[str, list[PubTatorEdgeData]],
+                               non_isolated_nodes: set[str]):
     global mesh_map
-    pmid, relationship, name_1, name_2 = line.strip("\n").split("\t")
+    data = line.data
     # TODO: better way to deal with DNAMutation notation inconsistency
-    name_1 = name_1.split("|")[0]
-    name_1 = mesh_map.get(name_1, name_1)
-    name_2 = name_2.split("|")[0]
-    name_2 = mesh_map.get(name_2, name_2)
-    edge_dict[(name_1, name_2)].append({
-        "pmid": pmid,
-        "relationship": relationship,
-        "_id": id_counter()
-    })
-    non_isolated_nodes.add(name_1)
-    non_isolated_nodes.add(name_2)
+    mesh_1 = data.mesh1.split("|")[0]
+    mesh_1 = mesh_map.get(mesh_1, mesh_1)
+    mesh_2 = data.mesh2.split("|")[0]
+    mesh_2 = mesh_map.get(mesh_2, mesh_2)
+    edge_dict[(mesh_1, mesh_2)].append(
+        PubTatorEdgeData(id=create_id(),
+                         pmid=data.pmid,
+                         relation=data.relation)
+    )
+    non_isolated_nodes.add(mesh_1)
+    non_isolated_nodes.add(mesh_2)
 
 
-def add_node_by_mesh(line, node_dict, node_dict_each):
-    global flags
-    global mesh_map
+def _node_id_registered(node_dict: dict[str, PubTatorNodeData],
+                        line: PubTatorLine,
+                        node_id: str):
+    is_registered = False
+    data = line.data
+    if node_id in node_dict:
+        is_registered = True
+        if data.type != node_dict[node_id].type:
+            info = {
+                "id": node_id,
+                "type": data.type,
+                "name": data.name,
+            }
+            logger.debug(f"Found collision of MeSH:\n{node_dict[node_id]}\n{info}")
+            logger.debug("Discard the latter\n")
 
-    def convert_mesh(mesh, type):
-        converted = f"{type}_{mesh}"
-        if mesh not in mesh_map:
-            mesh_map[mesh] = converted
-        return converted
-
-    pmid, start, end, name, type, mesh = line.strip("\n").split("\t")
-
-    # Skip line with no id
-    if mesh in ("", "-"):
-        return
-
-    if not flags["use_mesh"]:
-        name = normalize_text(name)
-
-    if type in ("DNAMutation", "ProteinMutation", "SNP"):
-        res = {}
-        for key, pattern in MUTATION_PATTERNS.items():
-            try:
-                res[key] = f"{re.search(pattern, mesh).group(1)};"
-            except AttributeError:
-                res[key] = ""
-
-        if type == "DNAMutation":
-            mesh = (f'{res["gene"]}{res["species"]}{res["variantgroup"]}'
-                    f'{res["tmvar"].split("|")[0]}').strip(";")
-        elif type == "ProteinMutation":
-            mesh = f'{res["rs"]}{res["hgvs"]}{res["gene"]}'.strip(";")
-        elif type == "SNP":
-            mesh = f'{res["rs"]}{res["hgvs"]}{res["gene"]}'.strip(";")
-        mesh_list = [mesh]
-    elif type == "Gene":
-        mesh_list = mesh.split(";")
-        mesh_list = [convert_mesh(mesh, "gene") for mesh in mesh_list]
-    elif type == "Species":
-        mesh_list = [convert_mesh(mesh, "species")]
-    else:
-        mesh_list = [mesh]
-
-    for each_mesh in mesh_list:
-        if not _node_id_collision(node_dict, name, type, each_mesh):
-            node_dict.setdefault(
-                each_mesh, {
-                    "mesh": mesh,
-                    "type": type,
-                    "name": defaultdict(int),
-                    "pmids": set(),
-                    "_id": id_counter()
-                })
-        node_dict[each_mesh]["name"][name] += 1
-        node_dict[each_mesh]["pmids"].add(pmid)
-        node_dict_each[each_mesh] = node_dict[each_mesh]
+    return is_registered
 
 
-def _node_id_collision(node_dict, name, type, id):
-    is_collision = False
-    if id in node_dict and type != node_dict[id]["type"]:
-        current_line = {
-            "id": id,
-            "type": type,
-            "name": name,
-        }
-        logger.debug(f"Found collision of MeSH:\n{node_dict[id]}\n{current_line}")
-        logger.debug("Discard the latter\n")
-        is_collision = True
-
-    return is_collision
-
-
-def create_complete_graph(node_dict_each, edge_dict, pmid):
+def create_complete_graph(node_dict_each: dict[str, PubTatorNodeData],
+                          edge_dict: defaultdict[str, list[PubTatorEdgeData]],
+                          pmid: str):
     for i, name_1 in enumerate(node_dict_each.keys()):
         for j, name_2 in enumerate(node_dict_each.keys()):
             if i >= j:
                 continue
             if edge_dict.get((name_2, name_1), []):
-                edge_dict[(name_2, name_1)].append({
-                    "pmid": pmid,
-                    "_id": id_counter()
-                })
+                key = (name_2, name_1)
             else:
-                edge_dict[(name_1, name_2)].append({
-                    "pmid": pmid,
-                    "_id": id_counter()
-                })
+                key = (name_1, name_2)
+            edge_dict[key].append(
+                PubTatorEdgeData(id=create_id(), pmid=pmid)
+            )
 
 
-def determine_mesh_term_labels(node_dict, edge_dict):
-    def determine_node_label(name):
-        return (node_info["name"][name], -len(name))
+def determine_mesh_term_labels(node_dict: dict[str, PubTatorNodeData],
+                               edge_dict: defaultdict[str, list[PubTatorEdgeData]]):
+    def determine_node_label(candidate_name: str):
+        nonlocal node_data
+        return (node_data.name[candidate_name], -len(candidate_name))
 
-    for node_id, node_info in node_dict.items():
-        if isinstance(node_info["name"], defaultdict):
+    for node_id, node_data in node_dict.items():
+        if isinstance(node_data.name, defaultdict):
             # Use the name that appears the most times
-            node_dict[node_id]["name"] = max(node_info["name"],
-                                             key=determine_node_label)
+            node_dict[node_id].name = max(node_data.name,
+                                          key=determine_node_label)
 
     merge_same_name_genes(node_dict, edge_dict)
 
 
-def merge_same_name_genes(node_dict, edge_dict):
+def merge_same_name_genes(node_dict: dict[str, PubTatorNodeData],
+                          edge_dict: defaultdict[str, list[PubTatorEdgeData]]):
     gene_name_dict = defaultdict(list)
-    for node_id, node_info in node_dict.items():
-        if node_info["type"] != "Gene":
+    for node_id, node_data in node_dict.items():
+        if node_data.type != "Gene":
             continue
-        gene_name_dict[node_info["name"]].append({
+        gene_name_dict[node_data.name].append({
             "node_id": node_id,
-            "mesh": node_info["mesh"],
-            "pmids": node_info["pmids"],
+            "mesh": node_data.mesh,
+            "pmids": node_data.pmids,
         })
 
     for node_data_list in gene_name_dict.values():
@@ -437,10 +404,8 @@ def merge_same_name_genes(node_dict, edge_dict):
         # Nodes
         concated_mesh = ";".join(mesh_list)
         # popped_node_data is the last node_data of nodes having the same name
-        popped_node_data.update({
-            "mesh": concated_mesh,
-            "pmids": pmid_collection,
-        })
+        popped_node_data.mesh = concated_mesh
+        popped_node_data.pmids = pmid_collection
         node_key = f"gene_{concated_mesh}"
         node_dict[node_key] = popped_node_data
 
@@ -456,78 +421,74 @@ def merge_same_name_genes(node_dict, edge_dict):
             if neighbor in removed_node_ids:
                 continue
             merged_edges[(node_key, neighbor)].extend(popped_edge_data)
-        print(merged_edges)
         edge_dict.update(merged_edges)
 
 
-def add_node_by_text(line, node_dict, node_dict_each):
-    pmid, start, end, name, type, mesh = line.strip("\n").split("\t")
+def add_node(line: PubTatorLine,
+             node_dict: dict[str, PubTatorNodeData],
+             node_dict_each: dict[str, PubTatorNodeData],
+             mesh_only: bool):
+    data = line.data
+    if data.mesh in ("-", ""):
+        if mesh_only:
+            return
+        # By Text
+        line.normalize_name()
 
-    name = normalize_text(name)
-
-    node_info = {
-        "mesh": mesh,
-        "type": type,
-        "name": name,
-        "pmids": set(),
-        "_id": id_counter()
-    }
-
-    if name in node_dict and type != node_dict[name]["type"]:
-        logger.debug(f"Found collision of name:\n{node_dict[name]}\n{node_info}")
-        logger.debug("Discard the latter\n")
-
-    node_dict.setdefault(name, node_info)
-    node_dict[name]["pmids"].add(pmid)
-    node_dict_each[name] = node_dict[name]
-
-
-def normalize_text(text):
-    text = text.lower()
-    text = s_stemmer(text)
-
-    return text
-
-
-def get_line_type(line):
-    line_split_len = len(line.split("\t"))
-    if line_split_len == 4:
-        line_type = "relation"
-    elif line_split_len == 6:
-        line_type = "annotation"
+        name = data.name
+        if not _node_id_registered(node_dict, line, name):
+            node_dict[name] = PubTatorNodeData(id=create_id(),
+                                               mesh=data.mesh,
+                                               type=data.type,
+                                               name=name,
+                                               pmids=set())
+        node_dict_each.setdefault(name, node_dict[data.name])
+        node_dict[name].pmids.add(data.pmid)
     else:
-        line_type = "unknown"
+        # By MeSH
+        global mesh_map
+        mesh_list = line.parse_mesh(mesh_map)
 
-    return line_type
+        for mesh in mesh_list:
+            if not _node_id_registered(node_dict, line, mesh):
+                node_dict[mesh] = PubTatorNodeData(id=create_id(),
+                                                   mesh=data.mesh,
+                                                   type=data.type,
+                                                   name=defaultdict(int),
+                                                   pmids=set())
+            node_dict_each.setdefault(mesh, node_dict[mesh])
+            node_dict[mesh].name[data.name] += 1
+            node_dict[mesh].pmids.add(data.pmid)
 
 
-def id_counter(id=count(1)):
-    return str(next(id))
+def create_id(id=count(1)) -> int:
+    return next(id)
 
 
-def add_node_to_graph(G: nx.Graph, node_dict, non_isolated_nodes):
+def add_node_to_graph(G: nx.Graph,
+                      node_dict: dict[str, PubTatorNodeData],
+                      non_isolated_nodes: set[str]):
     # TODO: add feature: mark specific names
     marked = False
-    for id in non_isolated_nodes:
-        try:
-            G.add_node(id,
-                       color=NODE_COLOR_MAP[node_dict[id]["type"]],
-                       label_color="#000000",
-                       shape=NODE_SHAPE_MAP[node_dict[id]["type"]],
-                       type=node_dict[id]["type"],
-                       name=node_dict[id]["name"],
-                       document_frquency=len(node_dict[id]["pmids"]),
-                       _id=node_dict[id]["_id"],
-                       marked=marked)
-        except KeyError:
-            logger.debug(f"Skip node: {id}")
+    for node_id in non_isolated_nodes:
+        node_data = GraphNodeData(
+            _id=str(node_dict[node_id].id),
+            color=NODE_COLOR_MAP[node_dict[node_id].type],
+            label_color="#000000",
+            shape=NODE_SHAPE_MAP[node_dict[node_id].type],
+            type=node_dict[node_id].type,
+            name=node_dict[node_id].name,
+            document_frequency=len(node_dict[node_id].pmids),
+            marked=marked
+        )
+        G.add_node(node_id, **asdict(node_data))
 
 
 def add_edge_to_graph(G: nx.Graph,
-                      node_dict,
-                      edge_counter,
-                      doc_weight_csv=None,
-                      weighting_method=["freq", "npmi"][0]):
+                      node_dict: dict[str, PubTatorNodeData],
+                      edge_dict: defaultdict[str, list[PubTatorEdgeData]],
+                      doc_weight_csv: Union[str, Path, None],
+                      weighting_method: Literal["freq", "npmi"] = "freq"):
     global pmid_counter
     doc_weights = {}
     if doc_weight_csv is not None:
@@ -540,18 +501,18 @@ def add_edge_to_graph(G: nx.Graph,
     # Change min_width to 0 in npmi
     min_width = MIN_EDGE_WIDTH if weighting_method == "freq" else 0
 
-    for pair, records in edge_counter.items():
+    for pair, edge_data_list in edge_dict.items():
         if not G.has_node(pair[0]) or not G.has_node(pair[1]):
             continue
 
-        pmids = [str(record["pmid"]) for record in records]
+        pmids = [edge_data.pmid for edge_data in edge_data_list]
         unique_pmids = set(pmids)
 
         w_freq = round(sum([doc_weights.get(pmid, 1)
                        for pmid in unique_pmids]), 2)
         npmi = normalized_pointwise_mutual_information(
-            n_x=len(node_dict[pair[0]]["pmids"]),
-            n_y=len(node_dict[pair[1]]["pmids"]),
+            n_x=len(node_dict[pair[0]].pmids),
+            n_y=len(node_dict[pair[1]].pmids),
             n_xy=len(unique_pmids),
             N=pmid_counter,
             n_threshold=2,
@@ -563,20 +524,19 @@ def add_edge_to_graph(G: nx.Graph,
         elif weighting_method == "freq":
             edge_weight = w_freq
 
-        try:
-            G.add_edge(pair[0],
-                       pair[1],
-                       _id=records[0]["_id"],
-                       raw_frequency=len(unique_pmids),
-                       weighted_frequency=w_freq,
-                       npmi=npmi,
-                       edge_weight=edge_weight,
-                       pmids={p: pmid_title_dict[p] for p in list(unique_pmids)})
-        except Exception:
-            logger.debug(f"Skip edge: ({pair[0]}, {pair[1]})")
+        edge_data = GraphEdgeData(
+            _id=str(edge_data_list[0].id),
+            raw_frequency=len(unique_pmids),
+            weighted_frequency=w_freq,
+            npmi=npmi,
+            edge_weight=edge_weight,
+            pmids={p: pmid_title_dict[p] for p in list(unique_pmids)}
+        )
+
+        G.add_edge(pair[0], pair[1], **asdict(edge_data))
 
     edge_weights = nx.get_edge_attributes(G, "edge_weight")
-    scale_factor = calculate_scale_factor(edge_weights,
+    scale_factor = calculate_scale_factor(edge_weights.values(),
                                           max_width=max_width,
                                           weighting_method=weighting_method)
     for edge, weight in edge_weights.items():
@@ -584,8 +544,10 @@ def add_edge_to_graph(G: nx.Graph,
             int(round(weight * scale_factor, 0)), min_width)
 
 
-def calculate_scale_factor(edge_weights, max_width, weighting_method):
-    max_weight = max(edge_weights.values())
+def calculate_scale_factor(edge_weights: Iterable[float],
+                           max_width: int,
+                           weighting_method: Literal["npmi", "freq"]):
+    max_weight = max(edge_weights)
     if weighting_method == "npmi":
         scale_factor = max_width
     elif weighting_method == "freq":
@@ -594,7 +556,7 @@ def calculate_scale_factor(edge_weights, max_width, weighting_method):
     return scale_factor
 
 
-def remove_edges_by_weight(G: nx.Graph, cut_weight):
+def remove_edges_by_weight(G: nx.Graph, cut_weight: int):
     scaled_weights = nx.get_edge_attributes(G, "scaled_edge_weight")
     for edge, scaled_weight in scaled_weights.items():
         if scaled_weight < cut_weight:
@@ -614,9 +576,12 @@ def spring_layout(G: nx.Graph):
     nx.set_node_attributes(G, pos, "pos")
 
 
-def normalized_pointwise_mutual_information(n_x, n_y, n_xy, N,
-                                            n_threshold,
-                                            below_threshold_default):
+def normalized_pointwise_mutual_information(n_x: float,
+                                            n_y: float,
+                                            n_xy: float,
+                                            N: int,
+                                            n_threshold: int,
+                                            below_threshold_default: float):
     if n_xy == 0:
         npmi = -1
     elif (n_xy / N) == 1:
