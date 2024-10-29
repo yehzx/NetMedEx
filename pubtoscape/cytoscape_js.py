@@ -4,6 +4,7 @@ from typing import Literal
 import networkx as nx
 
 from pubtoscape.cytoscape_html_template import HTML_TEMPLATE
+from pubtoscape.graph_data import GraphEdgeData, GraphNodeData
 
 SHAPE_JS_MAP = {
     "PARALLELOGRAM": "RHOMBOID"
