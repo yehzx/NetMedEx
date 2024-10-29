@@ -6,7 +6,7 @@ from unittest import mock
 
 import pytest
 
-from pubtoscape.pubtator3_api_cli import main, write_output
+from netmedex.api_cli import main, write_output
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -57,7 +57,7 @@ def test_api_pubtator3_api_end_to_end(query, error_message, tempdir):
 ])
 def test_pubtator3_api_main(args, expected, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("sys.argv", args)
-    with mock.patch("pubtoscape.pubtator3_api_cli.run_query_pipeline") as mock_pipeline:
+    with mock.patch("netmedex.api_cli.run_query_pipeline") as mock_pipeline:
         main()
         mock_pipeline.assert_called_once_with(query=expected["query"],
                                               savepath=expected["savepath"],
@@ -73,7 +73,7 @@ def test_pubtator3_api_main(args, expected, monkeypatch: pytest.MonkeyPatch):
 ])
 def test_pubtator3_api_exceptions(args, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("sys.argv", args)
-    with mock.patch("pubtoscape.pubtator3_api_cli.logger") as mock_logger:
+    with mock.patch("netmedex.api_cli.logger") as mock_logger:
         main()
         mock_logger.error.assert_called_once()
 
@@ -85,7 +85,7 @@ def test_pubtator3_api_exceptions(args, monkeypatch: pytest.MonkeyPatch):
 def test_pubtator3_api_exit(args, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("sys.argv", args)
     with pytest.raises(SystemExit):
-        with mock.patch("pubtoscape.pubtator3_api_cli.logger") as mock_logger:
+        with mock.patch("netmedex.api_cli.logger") as mock_logger:
             main()
             mock_logger.info.assert_called_once()
 
@@ -104,7 +104,7 @@ def test_write_output_none():
 def test_write_output(output, savepath, use_mesh, expected):
     open_mock = mock.mock_open()
     with mock.patch("builtins.open", open_mock, create=True), \
-        mock.patch("pubtoscape.pubtator3_api_cli.logger") as mock_logger:
+        mock.patch("netmedex.api_cli.logger") as mock_logger:
         write_output(output, savepath, use_mesh)
         if use_mesh:
             open_mock.return_value.writelines.assert_any_call(["##USE-MESH-VOCABULARY", "\n"])

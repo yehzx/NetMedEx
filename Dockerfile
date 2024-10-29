@@ -4,4 +4,4 @@ COPY . .
 RUN pip install .[dash]
 
 EXPOSE 8050
-CMD [ "python3", "pubtoscape_app/app.py" ]
+CMD [ "python3", "webapp/app.py" ]

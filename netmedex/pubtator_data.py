@@ -1,9 +1,9 @@
 import re
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Optional, Sequence, Union, Mapping
+from typing import Mapping, Optional, Sequence, Union
 
-from pubtoscape.stemmers import s_stemmer
+from netmedex.stemmers import s_stemmer
 
 MUTATION_PATTERNS = {
     "tmvar": re.compile(r"(tmVar:[^;]+)"),

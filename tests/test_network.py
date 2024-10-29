@@ -3,14 +3,11 @@ from unittest import mock
 import networkx as nx
 import pytest
 
-from pubtoscape.pubtator3_to_cytoscape_cli import (HEADER_SYMBOL,
-                                                   add_edge_to_graph,
-                                                   add_node_to_graph,
-                                                   merge_same_name_genes,
-                                                   parse_header,
-                                                   parse_pubtator,
-                                                   remove_isolated_nodes)
-from pubtoscape.pubtator_data import PubTatorEdgeData, PubTatorNodeData
+from netmedex.network_cli import (HEADER_SYMBOL, add_edge_to_graph,
+                                  add_node_to_graph, merge_same_name_genes,
+                                  parse_header, parse_pubtator,
+                                  remove_isolated_nodes)
+from netmedex.pubtator_data import PubTatorEdgeData, PubTatorNodeData
 
 
 @pytest.fixture(scope="module")
@@ -82,7 +79,7 @@ def test_merge_genes(paths):
 def test_parse_header(data, expected, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("builtins.open", mock.mock_open(read_data=data))
     flags = {}
-    with mock.patch("pubtoscape.pubtator3_to_cytoscape_cli.flags", flags):
+    with mock.patch("netmedex.network_cli.flags", flags):
         parse_header("")
         assert flags.get("use_mesh", False) == expected
 

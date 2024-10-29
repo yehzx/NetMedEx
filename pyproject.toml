@@ -3,10 +3,10 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["pubtoscape"]
+include = ["netmedex"]
 
 [project]
-name = "pubtoscape"
+name = "netmedex"
 version = "0.1.0"
 authors = [
   { name = "Zheng-Xiang Ye", email="r12b48005@ntu.edu.tw"},
@@ -36,5 +36,5 @@ dash = [
 ]
 
 [project.scripts]
-pubtator3 = "pubtoscape.pubtator3_api_cli:main"
-tocytoscape = "pubtoscape.pubtator3_to_cytoscape_cli:main"
+pubtator3 = "netmedex.api_cli:main"
+tocytoscape = "netmedex.network_cli:main"

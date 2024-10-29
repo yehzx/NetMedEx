@@ -8,16 +8,13 @@ from unittest import mock
 import pytest
 import requests_mock
 
-from pubtoscape.biocjson_parser import (convert_to_pubtator,
-                                        get_biocjson_annotations)
-from pubtoscape.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
-from pubtoscape.pubtator3_api_cli import (batch_publication_query, load_pmids,
-                                          parse_cite_response,
-                                          request_successful,
-                                          run_query_pipeline,
-                                          send_publication_query,
-                                          send_search_query,
-                                          unsuccessful_query)
+from netmedex.api_cli import (batch_publication_query, load_pmids,
+                              parse_cite_response, request_successful,
+                              run_query_pipeline, send_publication_query,
+                              send_search_query, unsuccessful_query)
+from netmedex.biocjson_parser import (convert_to_pubtator,
+                                      get_biocjson_annotations)
+from netmedex.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
 
 TESTDATA_DIR = Path(__file__).parent / "test_data"
 
@@ -307,7 +304,7 @@ def test_load_pmids_string(query, expected):
 ])
 def test_request_successful(status_code, expected, **kwargs):
     res = SimpleNamespace(status_code=status_code)
-    with mock.patch("pubtoscape.pubtator3_api_cli.logger") as mock_logger:
+    with mock.patch("netmedex.api_cli.logger") as mock_logger:
         assert request_successful(res) == expected
         if expected == False:
             mock_logger.info.assert_called_with("Unsuccessful request")
@@ -320,6 +317,6 @@ def test_request_successful(status_code, expected, **kwargs):
 ])
 def test_unsuccessful_query(status_code, msg, **kwargs):
     with pytest.raises(UnsuccessfulRequest):
-        with mock.patch("pubtoscape.pubtator3_api_cli.logger") as mock_logger:
+        with mock.patch("netmedex.api_cli.logger") as mock_logger:
             unsuccessful_query(status_code)
             mock_logger.warning.assert_called_with(msg)
