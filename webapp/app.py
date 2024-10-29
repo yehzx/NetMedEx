@@ -275,7 +275,7 @@ toolbox = html.Div([
 edge_info = html.Div([
     html.H5("Edge Info", className="text-center"),
     html.Div(id="edge-info"),
-], id="edge-info-container", style=visibility.hidden)
+], id="edge-info-container", className="flex-grow-1", style=visibility.hidden)
 
 
 def create_legend_box(icon, text):
@@ -296,6 +296,10 @@ legend = html.Div([
     create_legend_box("icon_snp.svg", "SNP"),
 ], id="legend-container")
 
+bottom = html.Div([edge_info, legend],
+                  id="bottom-container",
+                  className="d-flex")
+
 content = html.Div([
     html.Div([api_toggle, api, pubtator_file, cytoscape, progress],
              className="sidebar"),
@@ -303,13 +307,12 @@ content = html.Div([
         html.H2("PubTator3 To Cytoscape"),
         html.Div([
             toolbox,
-            edge_info,
-            legend,
+            bottom,
             html.Div(id="cy-graph", className="flex-grow-1"),
             dcc.Store(id="is-new-graph", data=False)
         ],
             id="cy-graph-container",
-            className="d-flex flex-column flex-grow-1",
+            className="d-flex flex-column flex-grow-1 position-relative",
             style=visibility.hidden),
     ], className="d-flex flex-column flex-grow-1 main-div"),
 ], className="d-flex flex-row position-relative h-100")
@@ -358,7 +361,7 @@ def display_uploaded_data(data, filename):
         displayed_text = [t[:100] + "..." if len(t) > 100 else t for t in displayed_text]
         return [
             html.H6(f"File: {filename}",
-                    style={"margin-bottom": "5px", "margin-top": "5px"}),
+                    style={"marginBottom": "5px", "marginTop": "5px"}),
             html.Pre("\n".join(displayed_text), className="upload-preview"),
         ]
     else:
