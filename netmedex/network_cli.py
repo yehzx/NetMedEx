@@ -185,7 +185,7 @@ def set_network_communities(G: nx.Graph, seed: int = 1):
             _id=str(idx),
             edge_weight=weight,
             scaled_edge_weight=weight,
-            pmids={pmid: pmid_title_dict[pmid] for pmid in pmids}
+            pmids=pmids,
         )
         G.add_edge(c_0, c_1, **asdict(edge_data))
 
@@ -529,7 +529,7 @@ def add_edge_to_graph(G: nx.Graph,
             weighted_frequency=w_freq,
             npmi=npmi,
             edge_weight=edge_weight,
-            pmids={p: pmid_title_dict[p] for p in list(unique_pmids)}
+            pmids=list(unique_pmids),
         )
 
         G.add_edge(pair[0], pair[1], **asdict(edge_data))
