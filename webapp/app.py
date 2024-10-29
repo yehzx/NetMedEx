@@ -309,7 +309,8 @@ content = html.Div([
             toolbox,
             bottom,
             html.Div(id="cy-graph", className="flex-grow-1"),
-            dcc.Store(id="is-new-graph", data=False)
+            dcc.Store(id="is-new-graph", data=False),
+            dcc.Store(id="pmid-title-dict", data={}),
         ],
             id="cy-graph-container",
             className="d-flex flex-column flex-grow-1 position-relative",
@@ -404,6 +405,7 @@ def update_graph_params(container_style, cut_weight):
     Output("cy-graph-container", "style", allow_duplicate=True),
     Output("memory-graph-cut-weight", "data", allow_duplicate=True),
     Output("is-new-graph", "data"),
+    Output("pmid-title-dict", "data"),
     Input("submit-button", "n_clicks"),
     [State("api-toggle-items", "value"),
      State("input-type-selection", "value"),
@@ -492,7 +494,7 @@ def run_pubtator3_api(set_progress,
             else:
                 exception_msg = "An unexpected error occurred."
             set_progress((1, 1, "", exception_msg))
-            return (no_update, weight, False)
+            return (no_update, weight, False, no_update)
 
         job.join()
     elif source == "file":
@@ -520,7 +522,7 @@ def run_pubtator3_api(set_progress,
     with open(DATA["graph"], "wb") as f:
         pickle.dump(G, f)
 
-    return (visibility.visible, weight, True)
+    return (visibility.visible, weight, True, G.graph["pmid_title"])
 
 
 def generate_cytoscape_js_network(graph_layout, graph_json):
@@ -735,6 +737,7 @@ clientside_callback(
     Output("edge-info", "children"),
     Input("cy", "selectedEdgeData"),
     State("cy", "tapEdgeData"),
+    State("pmid-title-dict", "data"),
     prevent_initial_call=True,
 )
 

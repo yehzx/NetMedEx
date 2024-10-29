@@ -22,7 +22,7 @@ class GraphEdgeData:
     weighted_frequency: float
     npmi: float
     edge_weight: float
-    pmids: dict[str, str]
+    pmids: list[str]
     scaled_edge_weight: Optional[float] = None
 
 
@@ -31,4 +31,4 @@ class CommunityEdgeData:
     _id: int
     edge_weight: float
     scaled_edge_weight: float
-    pmids: dict[str, str]
+    pmids: list[str]

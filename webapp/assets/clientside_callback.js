@@ -1,6 +1,6 @@
 window.dash_clientside = window.dash_clientside || {}
 window.dash_clientside.clientside = {
-  show_edge_info: function (selected_edges, tap_edge) {
+  show_edge_info: function (selected_edges, tap_edge, pmid_title) {
     function check_if_selected(tap_edge) {
       for (let i = 0; i < selected_edges.length; i++) {
         if (selected_edges[i].id === tap_edge.id) {
@@ -83,10 +83,9 @@ window.dash_clientside.clientside = {
       }
 
       const table_entry = edge_table.props.children[1].props.children
+      tap_edge.pmids.forEach((pmid, index) => {
+        const title = pmid_title[pmid]
 
-      Object.entries(tap_edge.pmids).forEach((obj, index) => {
-        const pmid = obj[0]
-        const title = obj[1]
         table_entry.push({
           type: "Tr",
           namespace: "dash_html_components",
