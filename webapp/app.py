@@ -20,17 +20,15 @@ from dash import (ClientsideFunction, Dash, Input, Output, State, callback,
                   clientside_callback, dcc, html, no_update)
 from dash.long_callback import DiskcacheLongCallbackManager
 
-from pubtoscape.cytoscape_js import create_cytoscape_js, save_as_html
-from pubtoscape.cytoscape_xgmml import save_as_xgmml
-from pubtoscape.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
-from pubtoscape.pubtator3_api_cli import load_pmids, run_query_pipeline
-from pubtoscape.pubtator3_to_cytoscape_cli import (pubtator2cytoscape,
-                                                   remove_edges_by_weight,
-                                                   remove_isolated_nodes,
-                                                   set_network_communities,
-                                                   spring_layout)
-from pubtoscape.utils import config_logger
-from pubtoscape.utils_threading import run_thread_with_error_notification
+from netmedex.api_cli import load_pmids, run_query_pipeline
+from netmedex.cytoscape_js import create_cytoscape_js, save_as_html
+from netmedex.cytoscape_xgmml import save_as_xgmml
+from netmedex.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
+from netmedex.network_cli import (pubtator2cytoscape, remove_edges_by_weight,
+                                  remove_isolated_nodes,
+                                  set_network_communities, spring_layout)
+from netmedex.utils import config_logger
+from netmedex.utils_threading import run_thread_with_error_notification
 
 config_logger(is_debug=(os.getenv("LOGGING_DEBUG") == "true"))
 

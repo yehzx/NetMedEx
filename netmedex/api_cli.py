@@ -12,9 +12,9 @@ from typing import Literal, Optional, Union
 import requests
 from tqdm.auto import tqdm
 
-from pubtoscape.biocjson_parser import convert_to_pubtator
-from pubtoscape.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
-from pubtoscape.utils import config_logger
+from netmedex.biocjson_parser import convert_to_pubtator
+from netmedex.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
+from netmedex.utils import config_logger
 
 # API GET limit: 100
 PMID_REQUEST_SIZE = 100

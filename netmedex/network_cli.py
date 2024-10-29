@@ -16,11 +16,10 @@ from typing import Any, Iterable, Literal, Mapping, Union
 
 import networkx as nx
 
-from pubtoscape.graph_data import (CommunityEdgeData, GraphEdgeData,
-                                   GraphNodeData)
-from pubtoscape.pubtator_data import (PubTatorEdgeData, PubTatorLine,
-                                      PubTatorNodeData)
-from pubtoscape.utils import config_logger
+from netmedex.graph_data import CommunityEdgeData, GraphEdgeData, GraphNodeData
+from netmedex.pubtator_data import (PubTatorEdgeData, PubTatorLine,
+                                    PubTatorNodeData)
+from netmedex.utils import config_logger
 
 # VARIANT_PATTERN = re.compile(r"CorrespondingGene:.*CorrespondingSpecies:\d+")
 HEADER_SYMBOL = "##"
@@ -195,9 +194,9 @@ def save_network(G: nx.Graph,
                  savepath: Union[str, Path],
                  format: Literal["xgmml", "html", "json"] = "html"):
     FORMAT_FUNCTION_MAP = {
-        "xgmml": "pubtoscape.cytoscape_xgmml.save_as_xgmml",
-        "html": "pubtoscape.cytoscape_js.save_as_html",
-        "json": "pubtoscape.cytoscape_js.save_as_json",
+        "xgmml": "netmedex.cytoscape_xgmml.save_as_xgmml",
+        "html": "netmedex.cytoscape_js.save_as_html",
+        "json": "netmedex.cytoscape_js.save_as_json",
     }
 
     module_path, func_name = FORMAT_FUNCTION_MAP[format].rsplit(".", 1)

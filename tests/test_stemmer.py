@@ -1,6 +1,6 @@
 import pytest
 
-from pubtoscape.pubtator3_to_cytoscape_cli import s_stemmer
+from netmedex.stemmers import s_stemmer
 
 
 @pytest.mark.parametrize("input,expected", [

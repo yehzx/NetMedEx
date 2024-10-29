@@ -1,5 +1,5 @@
 import pytest
-from pubtoscape.biocjson_parser import convert_to_pubtator
+from netmedex.biocjson_parser import convert_to_pubtator
 from pathlib import Path
 import json
 
