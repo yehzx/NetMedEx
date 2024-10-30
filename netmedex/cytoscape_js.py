@@ -24,7 +24,8 @@ def save_as_json(G: nx.Graph, savepath: str):
 
 
 def create_cytoscape_js(G: nx.Graph, style: Literal["dash", "cyjs"] = "cyjs"):
-    with_id = True if style == "cyjs" else False
+    # TODO: Check whether to set id for edges
+    with_id = False
     nodes = [create_cytoscape_node(node) for node in G.nodes(data=True)]
     edges = [create_cytoscape_edge(edge, G, with_id)
              for edge in G.edges(data=True)]
@@ -75,6 +76,7 @@ def create_cytoscape_edge(edge, G, with_id=True):
             "label": f"{G.nodes[node_id_1]['name']} (interacts with) {G.nodes[node_id_2]['name']}",
             "weight": round(float(edge_attr["scaled_edge_weight"]), 1),
             "pmids": edge_attr["pmids"],
+            "edge_type": edge_attr["type"],
         }
     }
 

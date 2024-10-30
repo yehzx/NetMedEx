@@ -24,9 +24,14 @@ window.dash_clientside.clientside = {
 
       const pubtator_href = "https://www.ncbi.nlm.nih.gov/research/pubtator3/publication/"
       const [node_1, node_2] = tap_edge.label.split(" (interacts with) ")
-
-      elements.push({ props: { children: `Node 1: ${node_1}` }, type: "P", namespace: "dash_html_components" })
-      elements.push({ props: { children: `Node 2: ${node_2}` }, type: "P", namespace: "dash_html_components" })
+      let edge_type
+      if (tap_edge.edge_type === "node") {
+        edge_type = "Node"
+      } else if (tap_edge.edge_type === "community") {
+        edge_type = "Community"
+      }
+      elements.push({ props: { children: `${edge_type} 1: ${node_1}` }, type: "P", namespace: "dash_html_components" })
+      elements.push({ props: { children: `${edge_type} 2: ${node_2}` }, type: "P", namespace: "dash_html_components" })
       // elements.push({ props: { children: "Evidence:" }, type: "P", namespace: "dash_html_components" })
       const edge_table = {
         type: "Table",
