@@ -7,6 +7,7 @@ from unittest import mock
 import pytest
 
 from netmedex.api_cli import main, write_output
+from netmedex.network_cli import pubtator2cytoscape
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -15,6 +16,35 @@ logging.basicConfig(level=logging.DEBUG)
 def tempdir():
     with TemporaryDirectory() as tempdir:
         yield Path(tempdir)
+
+
+@pytest.fixture(scope="module")
+def paths(request):
+    test_dir = Path(request.config.rootdir) / "tests/test_data"
+    return {
+        "simple": test_dir / "6_nodes_3_clusters_mesh.pubtator"
+    }
+
+
+@pytest.fixture(scope="module")
+def tocytoscape_cli_args():
+    args = {
+        "cut_weight": 1,
+        "format": "html",
+        "node_type": "all",
+        "weighting_method": "freq",
+        "pmid_weight": None,
+        "community": False,
+    }
+    return {
+        "args_basic": args,
+        "args_community": {**args, "community": True},
+        "args_mesh_only": {**args, "node_type": "mesh"},
+        "args_relation_only": {**args, "node_type": "relation"},
+        "args_npmi": {**args, "weighting_method": "npmi"},
+        "args_weight": {**args, "cut_weight": 20},
+        "args_xgmml": {**args, "format": "xgmml"},
+    }
 
 
 @pytest.mark.parametrize("query,error_message", [
@@ -104,9 +134,23 @@ def test_write_output_none():
 def test_write_output(output, savepath, use_mesh, expected):
     open_mock = mock.mock_open()
     with mock.patch("builtins.open", open_mock, create=True), \
-        mock.patch("netmedex.api_cli.logger") as mock_logger:
+            mock.patch("netmedex.api_cli.logger") as mock_logger:
         write_output(output, savepath, use_mesh)
         if use_mesh:
-            open_mock.return_value.writelines.assert_any_call(["##USE-MESH-VOCABULARY", "\n"])
+            open_mock.return_value.writelines.assert_any_call(
+                ["##USE-MESH-VOCABULARY", "\n"])
         open_mock.return_value.writelines.assert_any_call(output)
         mock_logger.info.assert_called_with(f"Save to {savepath}")
+
+
+@pytest.mark.parametrize("args", [
+    "args_basic",
+    "args_community",
+    "args_mesh_only",
+    "args_relation_only",
+    "args_npmi",
+    "args_weight",
+    "args_xgmml",
+])
+def test_tocytoscape_cli(args, paths, tocytoscape_cli_args):
+    pubtator2cytoscape(paths["simple"], None, tocytoscape_cli_args[args])

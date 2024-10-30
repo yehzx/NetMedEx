@@ -124,7 +124,8 @@ def pubtator2cytoscape(
     if args["community"]:
         set_network_communities(G)
 
-    save_network(G, savepath, args["format"])
+    if savepath is not None:
+        save_network(G, savepath, args["format"])
 
     return G
 
