@@ -183,12 +183,12 @@ def set_network_communities(G: nx.Graph, seed: int = 1):
         weight = math.log(weight) * 5
         pmids = list(set(inter_edge_pmids[(c_0, c_1)]))
         edge_data = CommunityEdgeData(
-            _id=str(idx),
+            _id=str(create_id()),
             edge_weight=weight,
             scaled_edge_weight=weight,
             pmids=pmids,
         )
-        G.add_edge(c_0, c_1, **asdict(edge_data))
+        G.add_edge(c_0, c_1, type="community", **asdict(edge_data))
 
 
 def save_network(G: nx.Graph,
@@ -533,7 +533,7 @@ def add_edge_to_graph(G: nx.Graph,
             pmids=list(unique_pmids),
         )
 
-        G.add_edge(pair[0], pair[1], **asdict(edge_data))
+        G.add_edge(pair[0], pair[1], type="node", **asdict(edge_data))
 
     edge_weights = nx.get_edge_attributes(G, "edge_weight")
     scale_factor = calculate_scale_factor(edge_weights.values(),
@@ -557,10 +557,11 @@ def calculate_scale_factor(edge_weights: Iterable[float],
 
 
 def remove_edges_by_weight(G: nx.Graph, cut_weight: int):
-    scaled_weights = nx.get_edge_attributes(G, "scaled_edge_weight")
-    for edge, scaled_weight in scaled_weights.items():
-        if scaled_weight < cut_weight:
-            G.remove_edge(edge[0], edge[1])
+    to_remove = []
+    for u, v, edge_attrs in G.edges(data=True):
+        if edge_attrs["scaled_edge_weight"] < cut_weight:
+            to_remove.append((u, v))
+    G.remove_edges_from(to_remove)
 
 
 def remove_isolated_nodes(G: nx.Graph):

@@ -152,5 +152,6 @@ def test_write_output(output, savepath, use_mesh, expected):
     "args_weight",
     "args_xgmml",
 ])
-def test_tocytoscape_cli(args, paths, tocytoscape_cli_args):
-    pubtator2cytoscape(paths["simple"], None, tocytoscape_cli_args[args])
+def test_tocytoscape_cli(args, paths, tempdir, tocytoscape_cli_args):
+    savepath = tempdir / "tests.out"
+    pubtator2cytoscape(paths["simple"], savepath, tocytoscape_cli_args[args])
