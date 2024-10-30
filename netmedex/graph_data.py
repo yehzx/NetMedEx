@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, Sequence
 
 
 @dataclass
@@ -13,6 +13,7 @@ class GraphNodeData:
     document_frequency: int
     marked: bool = False
     parent: Optional[str] = None
+    pos: Optional[Sequence[float]] = None
 
 
 @dataclass
