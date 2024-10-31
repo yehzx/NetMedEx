@@ -85,6 +85,9 @@ def get_biocjson_annotations(res_json, retain_ori_text, abstract_idx=None):
             annotation["name"] = get_name(retain_ori_text,
                                           annotation_entry,
                                           annotation)
+            if annotation["type"] == "Variant":
+                annotation["type"] = annotation_entry["infons"]["subtype"]
+
             if annotation["name"] is None:
                 continue
             annotation_list.append(annotation)
@@ -101,7 +104,6 @@ def get_name(retain_ori_text, annotation_entry, annotation):
             name = annotation_entry["text"]
             # Variant can be either SNP, DNAMutation, or ProteinMutation
         elif annotation["type"] == "Variant":
-            name = annotation_entry["infons"]["subtype"]
             # Some variants may not have standardized name
             try:
                 name = annotation_entry["infons"]["name"]
