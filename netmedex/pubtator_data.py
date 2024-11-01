@@ -112,13 +112,15 @@ class PubTatorLine:
                 mesh = f'{match_data["rs"]}{match_data["hgvs"]}{match_data["gene"]}'.strip(";")
             elif anno_type == "SNP":
                 mesh = f'{match_data["rs"]}{match_data["hgvs"]}{match_data["gene"]}'.strip(";")
-            mesh_list = [mesh]
+            result = [{"key": mesh, "mesh": mesh}]
         elif anno_type == "Gene":
             mesh_list = mesh.split(";")
-            mesh_list = [convert_mesh(mesh, "gene") for mesh in mesh_list]
+            result = [{"key": convert_mesh(mesh, "gene"),
+                       "mesh": mesh} for mesh in mesh_list]
         elif anno_type == "Species":
-            mesh_list = [convert_mesh(mesh, "species")]
+            result = [{"key": convert_mesh(mesh, "species"),
+                       "mesh": mesh}]
         else:
-            mesh_list = [mesh]
+            result = [{"key": mesh, "mesh": mesh}]
 
-        return mesh_list
+        return result
