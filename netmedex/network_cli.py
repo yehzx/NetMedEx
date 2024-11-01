@@ -372,7 +372,7 @@ def merge_same_name_genes(node_dict: dict[str, PubTatorNodeData],
                           edge_dict: defaultdict[str, list[PubTatorEdgeData]]):
     gene_name_dict = defaultdict(list)
     for node_id, node_data in node_dict.items():
-        if node_data.type != "Gene":
+        if node_data.type != "Gene" or node_data.mesh == "-":
             continue
         gene_name_dict[node_data.name].append({
             "node_id": node_id,
