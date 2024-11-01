@@ -18,7 +18,7 @@ MUTATION_PATTERNS = {
 
 @dataclass
 class PubTatorNodeData:
-    id: int
+    id: str
     mesh: str
     type: str
     name: Union[str, defaultdict[str, int]]
@@ -27,7 +27,7 @@ class PubTatorNodeData:
 
 @dataclass
 class PubTatorEdgeData:
-    id: int
+    id: str
     pmid: str
     relation: Optional[str] = None
 

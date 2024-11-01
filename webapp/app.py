@@ -10,6 +10,7 @@ import threading
 from pathlib import Path
 from queue import Queue
 from types import SimpleNamespace
+import uuid
 
 import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
@@ -633,10 +634,35 @@ def update_graph_layout(layout, node_degree, weight, elements):
                           weight,
                           with_layout=True)
         graph_json = create_cytoscape_js(G, style="dash")
+        graph_json = generate_new_id(graph_json)
         elements = [*graph_json["elements"]["nodes"],
                     *graph_json["elements"]["edges"]]
 
     return {"name": layout}, elements
+
+
+# TODO: temporary workaround for cannot create edge for non-existence source or target
+# https://github.com/plotly/dash-cytoscape/issues/106
+def generate_new_id(graph_json):
+    id_map = {}
+    # Give new id to each node
+    for node in graph_json["elements"]["nodes"]:
+        new_id = str(uuid.uuid4())
+        old_id = node["data"]["id"]
+        id_map[old_id] = new_id
+        node["data"]["id"] = new_id
+
+    # Update parent node id
+    for node in graph_json["elements"]["nodes"]:
+        if (old_parent_id := node["data"]["parent"]) is not None:
+            node["data"]["parent"] = id_map[old_parent_id]
+
+    # Update source and target for each edge
+    for edge in graph_json["elements"]["edges"]:
+        edge["data"]["source"] = id_map[edge["data"]["source"]]
+        edge["data"]["target"] = id_map[edge["data"]["target"]]
+
+    return graph_json
 
 
 def rebuild_graph(node_degree,
@@ -696,6 +722,7 @@ def update_graph(new_node_degree,
                           new_cut_weight,
                           with_layout=True)
         graph_json = create_cytoscape_js(G, style="dash")
+        graph_json = generate_new_id(graph_json)
         cy_graph = generate_cytoscape_js_network(graph_layout, graph_json)
         return cy_graph, False, new_node_degree, new_cut_weight
     else:

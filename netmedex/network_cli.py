@@ -5,11 +5,11 @@ import math
 import pickle
 import re
 import sys
+import uuid
 from argparse import ArgumentParser
 from collections import defaultdict
 from dataclasses import asdict
 from datetime import datetime
-from itertools import count
 from operator import itemgetter
 from pathlib import Path
 from typing import Any, Iterable, Literal, Mapping, Union
@@ -183,7 +183,7 @@ def set_network_communities(G: nx.Graph, seed: int = 1):
         weight = math.log(weight) * 5
         pmids = list(set(inter_edge_pmids[(c_0, c_1)]))
         edge_data = CommunityEdgeData(
-            _id=str(create_id()),
+            _id=create_id(),
             edge_weight=weight,
             scaled_edge_weight=weight,
             pmids=pmids,
@@ -464,8 +464,8 @@ def add_node(line: PubTatorLine,
             node_dict[node_id].pmids.add(data.pmid)
 
 
-def create_id(id=count(1)) -> int:
-    return next(id)
+def create_id():
+    return str(uuid.uuid4())
 
 
 def add_node_to_graph(G: nx.Graph,
