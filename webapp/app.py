@@ -144,7 +144,7 @@ api = html.Div([
             ],
             switch=True,
             id="pubtator-params",
-            value=[],
+            value=["use_mesh"],
         ),
     ], className="param"),
 ], id="api-wrapper")
@@ -180,7 +180,7 @@ cytoscape = html.Div([
                    tooltip={"placement": "bottom", "always_visible": True}),
     ], className="param"),
     html.Div([
-        html.H5("Cytoscape Parameters"),
+        html.H5("Network Parameters"),
         dbc.Checklist(
             options=[
                 {"label": "Community", "value": "community"},
@@ -304,7 +304,9 @@ content = html.Div([
     html.Div([api_toggle, api, pubtator_file, cytoscape, progress],
              className="sidebar"),
     html.Div([
-        html.H2("PubTator3 To Cytoscape"),
+        html.Div([
+            html.Img(src=app.get_asset_url("NetMedEx.png"), height="40px"),
+        ], className="d-flex flex-row justify-content-center"),
         html.Div([
             toolbox,
             bottom,
