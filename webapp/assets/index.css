@@ -157,6 +157,7 @@ a:hover {
 }
 
 #edge-info-container {
+    position: relative;
     overflow-y: auto;
     height: 200px;
     border-right: 10px;
@@ -189,6 +190,12 @@ a:hover {
 
 #edge-info p {
     margin-bottom: 0;
+}
+
+#export-edge-btn {
+    position: absolute;
+    right: 10px;
+    top: 10px;
 }
 
 .upload-preview {

@@ -39,7 +39,8 @@ APP_ROOT = Path(__file__).parent
 DATA = {"graph": APP_ROOT / "G.pkl",
         "xgmml": APP_ROOT / "output.xgmml",
         "html": APP_ROOT / "output.html",
-        "pubtator": APP_ROOT / "output.pubtator"}
+        "pubtator": APP_ROOT / "output.pubtator",
+        "edge_info": APP_ROOT / "output.csv"}
 MAX_ARTICLES = 1000
 
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP],
@@ -275,6 +276,8 @@ toolbox = html.Div([
 
 edge_info = html.Div([
     html.H5("Edge Info", className="text-center"),
+    dbc.Button("Export (CSV)", id="export-edge-btn", className="export-btn"),
+    dcc.Download(id="export-edge-csv"),
     html.Div(id="edge-info"),
 ], id="edge-info-container", className="flex-grow-1", style=visibility.hidden)
 
@@ -755,6 +758,24 @@ def export_xgmml(n_clicks, layout, node_degree, weight):
     G = rebuild_graph(node_degree, weight, with_layout=True)
     save_as_xgmml(G, DATA["xgmml"])
     return dcc.send_file(DATA["xgmml"])
+
+
+@callback(
+    Output("export-edge-csv", "data"),
+    Input("export-edge-btn", "n_clicks"),
+    State("cy", "tapEdgeData"),
+    State("pmid-title-dict", "data"),
+    prevent_initial_call=True,
+)
+def export_edge_csv(n_clicks, tap_edge, pmid_title):
+    import csv
+    with open(DATA["edge_info"], "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["PMID", "Title"])
+        writer.writerows([[pmid, pmid_title[pmid]] for pmid in tap_edge["pmids"]])
+    n1, n2 = tap_edge["label"].split(" (interacts with) ")
+    filename = f"{n1}_{n2}.csv"
+    return dcc.send_file(DATA["edge_info"], filename=filename)
 
 
 clientside_callback(
