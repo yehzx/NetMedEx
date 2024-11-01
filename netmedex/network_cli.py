@@ -450,15 +450,18 @@ def add_node(line: PubTatorLine,
         mesh_list = line.parse_mesh(mesh_map)
 
         for mesh in mesh_list:
-            if not _node_id_registered(node_dict, line, mesh):
-                node_dict[mesh] = PubTatorNodeData(id=create_id(),
-                                                   mesh=data.mesh,
-                                                   type=data.type,
-                                                   name=defaultdict(int),
-                                                   pmids=set())
-            node_dict_each.setdefault(mesh, node_dict[mesh])
-            node_dict[mesh].name[data.name] += 1
-            node_dict[mesh].pmids.add(data.pmid)
+            node_id = mesh["key"]
+            if not _node_id_registered(node_dict, line, node_id):
+                node_dict[node_id] = PubTatorNodeData(
+                    id=create_id(),
+                    mesh=mesh["mesh"],
+                    type=data.type,
+                    name=defaultdict(int),
+                    pmids=set()
+                )
+            node_dict_each.setdefault(node_id, node_dict[node_id])
+            node_dict[node_id].name[data.name] += 1
+            node_dict[node_id].pmids.add(data.pmid)
 
 
 def create_id(id=count(1)) -> int:
