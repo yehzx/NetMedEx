@@ -211,6 +211,13 @@ progress = html.Div([
 
 toolbox = html.Div([
     dbc.Button(
+        "PubTator File",
+        id="download-pubtator-btn",
+        className="export-btn",
+        color="success",
+        style=visibility.hidden),
+    dcc.Download(id="download-pubtator"),
+    dbc.Button(
         "Export (html)",
         id="export-btn-html",
         className="export-btn"),
@@ -397,14 +404,21 @@ def update_pubtator_upload(pubtator_data, filename):
     Output("graph-settings-collapse", "style", allow_duplicate=True),
     Output("graph-cut-weight", "value"),
     Output("graph-cut-weight", "tooltip", allow_duplicate=True),
+    Output("download-pubtator-btn", "style"),
     Input("cy-graph-container", "style"),
     State("memory-graph-cut-weight", "data"),
+    State("api-toggle-items", "value"),
     prevent_initial_call=True,
 )
-def update_graph_params(container_style, cut_weight):
+def update_graph_params(container_style, cut_weight, api_or_file):
+    if api_or_file == "api" and container_style.get("visibility") == "visible":
+        pubtator_btn_visibility = visibility.visible
+    else:
+        pubtator_btn_visibility = visibility.hidden
     return (visibility.hidden,
             cut_weight,
-            {"placement": "bottom", "always_visible": False})
+            {"placement": "bottom", "always_visible": False},
+            pubtator_btn_visibility)
 
 
 @app.long_callback(
@@ -730,6 +744,15 @@ def update_graph(new_node_degree,
         return cy_graph, False, new_node_degree, new_cut_weight
     else:
         return no_update, False, new_node_degree, new_cut_weight
+
+
+@callback(
+    Output("download-pubtator", "data"),
+    Input("download-pubtator-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
+def download_pubtator(n_clicks):
+    return dcc.send_file(str(DATA["pubtator"]))
 
 
 @callback(
