@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Literal
 
 import networkx as nx
@@ -8,6 +9,7 @@ from netmedex.cytoscape_html_template import HTML_TEMPLATE
 SHAPE_JS_MAP = {
     "PARALLELOGRAM": "RHOMBOID"
 }
+COMMUNITY_NODE_PATTERN = re.compile(r"^c\d+$")
 
 
 def save_as_html(G: nx.Graph, savepath: str, layout="preset"):
@@ -60,7 +62,7 @@ def create_cytoscape_node(node):
     }
 
     # Community nodes
-    if node_attr["_id"].startswith("c"):
+    if COMMUNITY_NODE_PATTERN.search(node_attr["_id"]):
         node_info["classes"] = "top-center"
 
     return node_info
