@@ -35,6 +35,7 @@ def tocytoscape_cli_args():
         "weighting_method": "freq",
         "pmid_weight": None,
         "community": False,
+        "max_edges": 0,
     }
     return {
         "args_basic": args,

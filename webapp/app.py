@@ -7,10 +7,10 @@ import base64
 import os
 import pickle
 import threading
+import uuid
 from pathlib import Path
 from queue import Queue
 from types import SimpleNamespace
-import uuid
 
 import dash_bootstrap_components as dbc
 import dash_cytoscape as cyto
@@ -27,7 +27,7 @@ from netmedex.cytoscape_xgmml import save_as_xgmml
 from netmedex.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
 from netmedex.network_cli import (pubtator2cytoscape, remove_edges_by_weight,
                                   remove_isolated_nodes,
-                                  set_network_communities, spring_layout)
+                                  set_network_communities, set_network_layout)
 from netmedex.utils import config_logger
 from netmedex.utils_threading import run_thread_with_error_notification
 
@@ -179,6 +179,11 @@ cytoscape = html.Div([
     html.Div([
         html.H5("Edge Weight Cutoff"),
         dcc.Slider(1, 20, 1, value=3, marks=None, id="cut-weight",
+                   tooltip={"placement": "bottom", "always_visible": True}),
+    ], className="param"),
+    html.Div([
+        html.H5("Max Edges"),
+        dcc.Slider(0, 500, 10, value=0, marks=None, id="max-edges",
                    tooltip={"placement": "bottom", "always_visible": True}),
     ], className="param"),
     html.Div([
@@ -419,6 +424,7 @@ def update_graph_params(container_style, cut_weight):
      State("pmid-file-data", "contents"),
      State("pubtator-file-data", "contents"),
      State("cut-weight", "value"),
+     State("max-edges", "value"),
      State("pubtator-params", "value"),
      State("cy-params", "value"),
      State("weighting-method", "value"),
@@ -438,6 +444,7 @@ def run_pubtator3_api(set_progress,
                       pmid_file_data,
                       pubtator_file_data,
                       weight,
+                      max_edges,
                       pubtator_params,
                       cy_params,
                       weighting_method,
@@ -516,6 +523,7 @@ def run_pubtator3_api(set_progress,
         "format": "html",
         "node_type": node_type,
         "weighting_method": weighting_method,
+        "max_edges": max_edges,
         "pmid_weight": None,
         "community": False,
     }
@@ -681,7 +689,7 @@ def rebuild_graph(node_degree,
     filter_node(G, node_degree)
 
     if with_layout:
-        spring_layout(G)
+        set_network_layout(G)
 
     if G.graph.get("is_community", False):
         set_network_communities(G)
