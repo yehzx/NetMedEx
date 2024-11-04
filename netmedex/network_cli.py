@@ -115,6 +115,8 @@ def pubtator2cytoscape(
             pickle.dump(G, f)
 
     remove_edges_by_weight(G, args["cut_weight"])
+    remove_edges_by_rank(G, args["max_edges"])
+
     remove_isolated_nodes(G)
 
     assert_graph_properties(G)
@@ -567,17 +569,20 @@ def remove_edges_by_weight(G: nx.Graph, cut_weight: int):
     G.remove_edges_from(to_remove)
 
 
+def remove_edges_by_rank(G: nx.Graph, num_edges: int):
+    if num_edges <= 0:
+        return
+
+    if G.number_of_edges() > num_edges:
+        edges = sorted(G.edges(data=True),
+                       key=lambda x: x[2]["scaled_edge_weight"],
+                       reverse=True)
+        for edge in edges[num_edges:]:
+            G.remove_edge(edge[0], edge[1])
+
+
 def remove_isolated_nodes(G: nx.Graph):
     G.remove_nodes_from(list(nx.isolates(G)))
-
-
-def spring_layout(G: nx.Graph):
-    pos = nx.spring_layout(G,
-                           weight="scaled_edge_weight",
-                           scale=300,
-                           k=0.25,
-                           iterations=15)
-    nx.set_node_attributes(G, pos, "pos")
 
 
 def normalized_pointwise_mutual_information(n_x: float,
@@ -647,6 +652,10 @@ def setup_argparsers():
     parser.add_argument("--community",
                         action="store_true",
                         help="Divide nodes into distinct communities by the Louvain method")
+    parser.add_argument("--max_edges",
+                        type=int,
+                        default=0,
+                        help="Maximum number of edges to display (default: 0, no limit)")
 
     return parser
 
