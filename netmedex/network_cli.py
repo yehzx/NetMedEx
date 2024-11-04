@@ -447,6 +447,11 @@ def add_node(line: PubTatorLine,
     else:
         # By MeSH
         global mesh_map
+
+        # TODO: better way to deal with unseen MeSH types (e.g. Chromosome)
+        if data.type == "Chromosome":
+            return
+
         mesh_list = line.parse_mesh(mesh_map)
 
         for mesh in mesh_list:
