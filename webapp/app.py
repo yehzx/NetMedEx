@@ -178,7 +178,7 @@ cytoscape = html.Div([
     ], className="param"),
     html.Div([
         html.H5("Edge Weight Cutoff"),
-        dcc.Slider(1, 20, 1, value=3, marks=None, id="cut-weight",
+        dcc.Slider(0, 20, 1, value=3, marks=None, id="cut-weight",
                    tooltip={"placement": "bottom", "always_visible": True}),
     ], className="param"),
     html.Div([
@@ -271,7 +271,7 @@ toolbox = html.Div([
         ], className="param"),
         html.Div([
             html.H5("Edge Weight Cutoff"),
-            dcc.Slider(1, 20, 1, value=3, marks=None, id="graph-cut-weight",
+            dcc.Slider(0, 20, 1, value=3, marks=None, id="graph-cut-weight",
                        tooltip={"placement": "bottom", "always_visible": False}),
             dcc.Store(id="memory-graph-cut-weight", data=3),
         ], className="param"),
@@ -526,7 +526,7 @@ def run_pubtator3_api(set_progress,
     args = {
         "input": DATA["pubtator"],
         "output": DATA["html"],
-        "cut_weight": 1,
+        "cut_weight": 0,
         "format": "html",
         "node_type": node_type,
         "weighting_method": weighting_method,
