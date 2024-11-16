@@ -54,7 +54,7 @@ NODE_SHAPE_MAP = {
     "SNP": "OCTAGON"
 }
 
-MIN_EDGE_WIDTH = 1
+MIN_EDGE_WIDTH = 0
 MAX_EDGE_WIDTH = 20
 EDGE_BASE_COLOR = "#AD1A66"
 
@@ -186,6 +186,7 @@ def set_network_communities(G: nx.Graph, seed: int = 1):
             _id=create_id(),
             edge_weight=weight,
             scaled_edge_weight=weight,
+            edge_width=int(max(weight, MIN_EDGE_WIDTH)),
             pmids=pmids,
         )
         G.add_edge(c_0, c_1, type="community", **asdict(edge_data))
@@ -505,10 +506,6 @@ def add_edge_to_graph(G: nx.Graph,
             for row in reader:
                 doc_weights[row[0]] = float(row[1])
 
-    max_width = MAX_EDGE_WIDTH
-    # Change min_width to 0 in npmi
-    min_width = MIN_EDGE_WIDTH if weighting_method == "freq" else 0
-
     for pair, edge_data_list in edge_dict.items():
         if not G.has_node(pair[0]) or not G.has_node(pair[1]):
             continue
@@ -524,7 +521,7 @@ def add_edge_to_graph(G: nx.Graph,
             n_xy=len(unique_pmids),
             N=pmid_counter,
             n_threshold=2,
-            below_threshold_default=MIN_EDGE_WIDTH / max_width,
+            below_threshold_default=MIN_EDGE_WIDTH / MAX_EDGE_WIDTH,
         )
 
         if weighting_method == "npmi":
@@ -535,7 +532,7 @@ def add_edge_to_graph(G: nx.Graph,
         edge_data = GraphEdgeData(
             _id=str(edge_data_list[0].id),
             raw_frequency=len(unique_pmids),
-            weighted_frequency=w_freq,
+            doc_weighted_frequency=w_freq,
             npmi=npmi,
             edge_weight=edge_weight,
             pmids=list(unique_pmids),
@@ -545,11 +542,12 @@ def add_edge_to_graph(G: nx.Graph,
 
     edge_weights = nx.get_edge_attributes(G, "edge_weight")
     scale_factor = calculate_scale_factor(edge_weights.values(),
-                                          max_width=max_width,
+                                          max_width=MAX_EDGE_WIDTH,
                                           weighting_method=weighting_method)
     for edge, weight in edge_weights.items():
-        G.edges[edge]["scaled_edge_weight"] = max(
-            int(round(weight * scale_factor, 0)), min_width)
+        scaled_weight = max(weight * scale_factor, 0.)
+        G.edges[edge]["scaled_edge_weight"] = round(scaled_weight, 2)
+        G.edges[edge]["edge_width"] = int(max(scaled_weight, MIN_EDGE_WIDTH))
 
 
 def calculate_scale_factor(edge_weights: Iterable[float],
@@ -567,7 +565,7 @@ def calculate_scale_factor(edge_weights: Iterable[float],
 def remove_edges_by_weight(G: nx.Graph, cut_weight: int):
     to_remove = []
     for u, v, edge_attrs in G.edges(data=True):
-        if edge_attrs["scaled_edge_weight"] < cut_weight:
+        if edge_attrs["edge_width"] < cut_weight:
             to_remove.append((u, v))
     G.remove_edges_from(to_remove)
 

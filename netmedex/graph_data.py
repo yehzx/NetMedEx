@@ -20,11 +20,12 @@ class GraphNodeData:
 class GraphEdgeData:
     _id: str
     raw_frequency: int
-    weighted_frequency: float
+    doc_weighted_frequency: float
     npmi: float
     edge_weight: float
     pmids: list[str]
     scaled_edge_weight: Optional[float] = None
+    edge_width: Optional[int] = None
 
 
 @dataclass
@@ -32,4 +33,5 @@ class CommunityEdgeData:
     _id: int
     edge_weight: float
     scaled_edge_weight: float
+    edge_width: int
     pmids: list[str]
