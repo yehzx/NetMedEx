@@ -201,6 +201,10 @@ def _create_edge_xml(edge, G):
             E.att(
                 name_value("scaled edge weight",
                            str(edge_attr["scaled_edge_weight"]),
+                           with_type="double")),
+            E.att(
+                name_value("edge width",
+                           str(edge_attr["edge_width"]),
                            with_type="integer")),
             E.att(name_value("pubmed id", ",".join(edge_attr["pmids"]))),
             E.graphics(

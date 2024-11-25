@@ -178,7 +178,7 @@ cytoscape = html.Div([
     ], className="param"),
     html.Div([
         html.H5("Edge Weight Cutoff"),
-        dcc.Slider(1, 20, 1, value=3, marks=None, id="cut-weight",
+        dcc.Slider(0, 20, 1, value=3, marks=None, id="cut-weight",
                    tooltip={"placement": "bottom", "always_visible": True}),
     ], className="param"),
     html.Div([
@@ -215,6 +215,13 @@ progress = html.Div([
 ], id="progress-wrapper")
 
 toolbox = html.Div([
+    dbc.Button(
+        "PubTator File",
+        id="download-pubtator-btn",
+        className="export-btn",
+        color="success",
+        style=visibility.hidden),
+    dcc.Download(id="download-pubtator"),
     dbc.Button(
         "Export (html)",
         id="export-btn-html",
@@ -269,7 +276,7 @@ toolbox = html.Div([
         ], className="param"),
         html.Div([
             html.H5("Edge Weight Cutoff"),
-            dcc.Slider(1, 20, 1, value=3, marks=None, id="graph-cut-weight",
+            dcc.Slider(0, 20, 1, value=3, marks=None, id="graph-cut-weight",
                        tooltip={"placement": "bottom", "always_visible": False}),
             dcc.Store(id="memory-graph-cut-weight", data=3),
         ], className="param"),
@@ -402,14 +409,21 @@ def update_pubtator_upload(pubtator_data, filename):
     Output("graph-settings-collapse", "style", allow_duplicate=True),
     Output("graph-cut-weight", "value"),
     Output("graph-cut-weight", "tooltip", allow_duplicate=True),
+    Output("download-pubtator-btn", "style"),
     Input("cy-graph-container", "style"),
     State("memory-graph-cut-weight", "data"),
+    State("api-toggle-items", "value"),
     prevent_initial_call=True,
 )
-def update_graph_params(container_style, cut_weight):
+def update_graph_params(container_style, cut_weight, api_or_file):
+    if api_or_file == "api" and container_style.get("visibility") == "visible":
+        pubtator_btn_visibility = visibility.visible
+    else:
+        pubtator_btn_visibility = visibility.hidden
     return (visibility.hidden,
             cut_weight,
-            {"placement": "bottom", "always_visible": False})
+            {"placement": "bottom", "always_visible": False},
+            pubtator_btn_visibility)
 
 
 @app.long_callback(
@@ -519,7 +533,7 @@ def run_pubtator3_api(set_progress,
     args = {
         "input": DATA["pubtator"],
         "output": DATA["html"],
-        "cut_weight": 1,
+        "cut_weight": 0,
         "format": "html",
         "node_type": node_type,
         "weighting_method": weighting_method,
@@ -738,6 +752,15 @@ def update_graph(new_node_degree,
         return cy_graph, False, new_node_degree, new_cut_weight
     else:
         return no_update, False, new_node_degree, new_cut_weight
+
+
+@callback(
+    Output("download-pubtator", "data"),
+    Input("download-pubtator-btn", "n_clicks"),
+    prevent_initial_call=True,
+)
+def download_pubtator(n_clicks):
+    return dcc.send_file(str(DATA["pubtator"]))
 
 
 @callback(
