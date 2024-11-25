@@ -72,24 +72,25 @@ def test_api_pubtator3_api_end_to_end(query, error_message, tempdir):
 
 
 @pytest.mark.parametrize("args,expected", [
-    (["api.py", "-q", "foo", "-o", "bar", "--max_articles", "100", "--full_text"],
-     {"query": "foo", "savepath": Path("bar"), "type": "query", "max_articles": 100, "full_text": True, "use_mesh": False}),
-    (["api.py", "-q", "foo", "-o", "bar", "--max_articles", "100", "--use_mesh"],
-     {"query": "foo", "savepath": Path("bar"), "type": "query", "max_articles": 100, "full_text": False, "use_mesh": True}),
+    (["api.py", "-q", "foo", "-o", "bar", "--max_articles", "100", "--full_text", "-s", "date"],
+     {"query": "foo", "savepath": Path("bar"), "type": "query", "max_articles": 100, "full_text": True, "use_mesh": False, "query_method": "cite"}),
+    (["api.py", "-q", "foo", "-o", "bar", "--max_articles", "100", "--use_mesh", "-s", "score"],
+     {"query": "foo", "savepath": Path("bar"), "type": "query", "max_articles": 100, "full_text": False, "use_mesh": True, "query_method": "search"}),
     (["api.py", "-q", "foo"],
-     {"query": "foo", "savepath": Path("query_foo.pubtator"), "type": "query", "max_articles": 1000, "full_text": False, "use_mesh": False}),
+     {"query": "foo", "savepath": Path("query_foo.pubtator"), "type": "query", "max_articles": 1000, "full_text": False, "use_mesh": False, "query_method": "cite"}),
     (["api.py", "-p", "123,456", "-o", "bar"],
-     {"query": ["123", "456"], "savepath": Path("bar"), "type": "pmids", "max_articles": 1000, "full_text": False, "use_mesh": False}),
+     {"query": ["123", "456"], "savepath": Path("bar"), "type": "pmids", "max_articles": 1000, "full_text": False, "use_mesh": False, "query_method": "cite"}),
     (["api.py", "-p", "123,456", "--full_text"],
-     {"query": ["123", "456"], "savepath": Path("pmids_123_total_2.pubtator"), "type": "pmids", "max_articles": 1000, "full_text": True, "use_mesh": False}),
+     {"query": ["123", "456"], "savepath": Path("pmids_123_total_2.pubtator"), "type": "pmids", "max_articles": 1000, "full_text": True, "use_mesh": False, "query_method": "cite"}),
     (["api.py", "-f", "./tests/test_data/pmid_list.txt", "--max_articles", "10000"],
-     {"query": ["34205807", "34895069", "35883435"], "savepath": Path("pmids_34205807_total_3.pubtator"), "type": "pmids", "max_articles": 10000, "full_text": False, "use_mesh": False}),
+     {"query": ["34205807", "34895069", "35883435"], "savepath": Path("pmids_34205807_total_3.pubtator"), "type": "pmids", "max_articles": 10000, "full_text": False, "use_mesh": False, "query_method": "cite"}),
 ])
 def test_pubtator3_api_main(args, expected, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("sys.argv", args)
     with mock.patch("netmedex.api_cli.run_query_pipeline") as mock_pipeline:
         main()
         mock_pipeline.assert_called_once_with(query=expected["query"],
+                                              query_method=expected["query_method"],
                                               savepath=expected["savepath"],
                                               type=expected["type"],
                                               max_articles=expected["max_articles"],

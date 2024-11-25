@@ -15,10 +15,16 @@ from tqdm.auto import tqdm
 from netmedex.biocjson_parser import convert_to_pubtator
 from netmedex.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
 from netmedex.utils import config_logger
+from dataclasses import dataclass
 
 # API GET limit: 100
 PMID_REQUEST_SIZE = 100
-QUERY_METHOD = ["search", "cite"][1]
+DEFAULT_QUERY_METHOD = ["search", "cite"][1]
+
+# users post no more than three requests per second
+# https://www.ncbi.nlm.nih.gov/research/pubtator3/api
+SLEEP = 0.5
+
 # Full text annotation is only availabe in `biocxml` and `biocjson` formats
 # RESPONSE_FORMAT = ["pubtator", "biocxml", "biocjson"][2]
 debug = False
@@ -60,9 +66,11 @@ def main():
             suffix = ""
         query = pmids
     savepath = create_savepath(args.output, type=search_type, suffix=suffix)
+    query_method = "cite" if args.sort == "date" else "search"
 
     try:
         run_query_pipeline(query=query,
+                           query_method=query_method,
                            savepath=savepath,
                            type=search_type,
                            max_articles=args.max_articles,
@@ -95,12 +103,15 @@ def run_query_pipeline(query: Union[str, list],
                        max_articles: int = 1000,
                        full_text: bool = False,
                        use_mesh: bool = False,
+                       query_method: Literal["search", "cite"] = DEFAULT_QUERY_METHOD,
                        queue: Optional[Queue] = None):
 
     if type == "query":
         if query is None or query.strip() == "":
             raise EmptyInput
-        pmid_list = get_search_results(query, max_articles)
+        pmid_list = get_search_results(query,
+                                       max_articles,
+                                       query_method=query_method)
     elif type == "pmids":
         if not query:
             raise EmptyInput
@@ -126,11 +137,13 @@ def run_query_pipeline(query: Union[str, list],
     write_output(output, savepath=savepath, use_mesh=use_mesh)
 
 
-def get_search_results(query, max_articles):
+def get_search_results(query,
+                       max_articles,
+                       query_method: Literal["search", "cite"]):
     logger.info(f"Query: {query}")
-    if QUERY_METHOD == "search":
+    if query_method == "search":
         article_list = get_by_search(query, max_articles)
-    elif QUERY_METHOD == "cite":
+    elif query_method == "cite":
         article_list = get_by_cite(query, max_articles)
 
     return article_list
@@ -166,13 +179,13 @@ def get_by_search(query, max_articles):
     return article_list[:n_articles_to_request]
 
 
-def send_search_query(query, type: Literal["search", "cite"] = QUERY_METHOD):
+def send_search_query(query, type: Literal["search", "cite"]):
     if type == "search":
         url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/search/"
     elif type == "cite":
         url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/cite/tsv"
     res = requests.get(url, params={"text": query})
-    time.sleep(0.5)
+    time.sleep(SLEEP)
     return res
 
 
@@ -180,7 +193,7 @@ def send_search_query_with_page(query, page, session=None):
     url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/search/"
     params = {"text": query, "sort": "score desc", "page": page}
     res = handle_session_get(url, params, session)
-    time.sleep(0.5)
+    time.sleep(SLEEP)
     return res
 
 
@@ -289,7 +302,7 @@ def send_publication_query(article_id, type: Literal["pmids", "pmcids"], format,
     if full_text:
         params["full"] = "true"
     res = handle_session_get(url, params, session)
-    time.sleep(0.5)
+    time.sleep(SLEEP)
     return res
 
 
@@ -353,6 +366,17 @@ def parse_args(args):
     return parser.parse_args(args)
 
 
+@dataclass
+class APIArgs:
+    query: str
+    query_type: Literal["text", "pmids"]
+    max_articles: int
+    full_text: bool
+    use_mesh: bool
+    debug: bool
+    output: Optional[str]
+
+
 def setup_argparsers():
     parser = argparse.ArgumentParser()
     parser.add_argument("-q", "--query", default=None,
@@ -363,6 +387,9 @@ def setup_argparsers():
                         help="PMIDs for the articles (comma-separated)")
     parser.add_argument("-f", "--pmid_file", default=None,
                         help="Filepath to load PMIDs")
+    parser.add_argument("-s", "--sort", default="date",
+                        choices=["score", "date"],
+                        help="Sort articles in descending order by (default: date)")
     parser.add_argument("--max_articles", type=int, default=1000,
                         help="Maximal articles to request from the searching result (default: 1000)")
     parser.add_argument("--full_text", action="store_true",
