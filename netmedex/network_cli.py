@@ -138,11 +138,14 @@ def assert_graph_properties(G: nx.Graph):
 
 
 def set_network_layout(G: nx.Graph):
-    pos = nx.spring_layout(G,
-                           weight="scaled_edge_weight",
-                           scale=300,
-                           k=0.25,
-                           iterations=15)
+    if G.number_of_edges() > 1000:
+        pos = nx.circular_layout(G, scale=300)
+    else:
+        pos = nx.spring_layout(G,
+                               weight="scaled_edge_weight",
+                               scale=300,
+                               k=0.25,
+                               iterations=15)
     nx.set_node_attributes(G, pos, "pos")
 
 
