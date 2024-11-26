@@ -1,4 +1,5 @@
 import pickle
+from typing import Literal
 
 import networkx as nx
 
@@ -18,7 +19,9 @@ def filter_node(G: nx.Graph, node_degree_threshold: int):
             G.remove_node(node)
 
 
-def rebuild_graph(node_degree, cut_weight, G=None, with_layout=False):
+def rebuild_graph(
+    node_degree, cut_weight, format: Literal["xgmml", "html"], G=None, with_layout=False
+):
     if G is None:
         with open(DATA["graph"], "rb") as f:
             G = pickle.load(f)
@@ -31,7 +34,7 @@ def rebuild_graph(node_degree, cut_weight, G=None, with_layout=False):
     if with_layout:
         set_network_layout(G)
 
-    if G.graph.get("is_community", False):
+    if G.graph.get("is_community", False) and format == "html":
         set_network_communities(G)
 
     return G
