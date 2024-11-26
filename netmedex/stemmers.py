@@ -1,6 +1,4 @@
-IRREGULAR_WORDS = {
-    "species": "species"
-}
+IRREGULAR_WORDS = {"species": "species"}
 
 
 def s_stemmer(word: str):

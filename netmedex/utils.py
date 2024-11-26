@@ -12,11 +12,11 @@ def config_logger(is_debug, filename=None):
         handlers.append(logging.FileHandler(logfile, mode="w"))
 
     if is_debug:
-        logging.basicConfig(format="%(asctime)s [%(levelname)s] %(message)s",
-                            datefmt="%Y-%m-%d %H:%M:%S",
-                            level=logging.DEBUG,
-                            handlers=handlers)
+        logging.basicConfig(
+            format="%(asctime)s [%(levelname)s] %(message)s",
+            datefmt="%Y-%m-%d %H:%M:%S",
+            level=logging.DEBUG,
+            handlers=handlers,
+        )
     else:
-        logging.basicConfig(format="%(message)s",
-                            level=logging.INFO,
-                            handlers=handlers)
+        logging.basicConfig(format="%(message)s", level=logging.INFO, handlers=handlers)

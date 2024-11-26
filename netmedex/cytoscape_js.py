@@ -6,17 +6,14 @@ import networkx as nx
 
 from netmedex.cytoscape_html_template import HTML_TEMPLATE
 
-SHAPE_JS_MAP = {
-    "PARALLELOGRAM": "RHOMBOID"
-}
+SHAPE_JS_MAP = {"PARALLELOGRAM": "RHOMBOID"}
 COMMUNITY_NODE_PATTERN = re.compile(r"^c\d+$")
 
 
 def save_as_html(G: nx.Graph, savepath: str, layout="preset"):
     with open(savepath, "w") as f:
         cytoscape_js = create_cytoscape_js(G, style="cyjs")
-        f.write(HTML_TEMPLATE.format(cytoscape_js=json.dumps(cytoscape_js),
-                                     layout=layout))
+        f.write(HTML_TEMPLATE.format(cytoscape_js=json.dumps(cytoscape_js), layout=layout))
 
 
 def save_as_json(G: nx.Graph, savepath: str):
@@ -29,8 +26,7 @@ def create_cytoscape_js(G: nx.Graph, style: Literal["dash", "cyjs"] = "cyjs"):
     # TODO: Check whether to set id for edges
     with_id = False
     nodes = [create_cytoscape_node(node) for node in G.nodes(data=True)]
-    edges = [create_cytoscape_edge(edge, G, with_id)
-             for edge in G.edges(data=True)]
+    edges = [create_cytoscape_edge(edge, G, with_id) for edge in G.edges(data=True)]
 
     if style == "cyjs":
         elements = nodes + edges
@@ -58,7 +54,7 @@ def create_cytoscape_node(node):
         "position": {
             "x": round(node_attr["pos"][0], 3),
             "y": round(node_attr["pos"][1], 3),
-        }
+        },
     }
 
     # Community nodes
