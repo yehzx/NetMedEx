@@ -1,6 +1,7 @@
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
+from webapp.components.advanced_settings import advanced_settings
 from webapp.utils import display
 
 api_or_file = html.Div(
@@ -134,21 +135,6 @@ network_params = html.Div(
         ),
         html.Div(
             [
-                html.H5("Max Edges"),
-                dcc.Slider(
-                    0,
-                    500,
-                    10,
-                    value=0,
-                    marks=None,
-                    id="max-edges",
-                    tooltip={"placement": "bottom", "always_visible": True},
-                ),
-            ],
-            className="param",
-        ),
-        html.Div(
-            [
                 html.H5("Network Parameters"),
                 dbc.Checklist(
                     options=[
@@ -179,5 +165,6 @@ progress = html.Div(
 
 
 sidebar = html.Div(
-    [api_or_file, api_params, pubtator_file, network_params, progress], className="sidebar"
+    [advanced_settings, api_or_file, api_params, pubtator_file, network_params, progress],
+    className="sidebar",
 )

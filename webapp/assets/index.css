@@ -6,7 +6,7 @@
     --MAIN-BACKGROUND: #eeeeee;
     --SIDEBAR-BACKGROUND: #508c9b;
     --TEXT: #1f0737;
-    --GRAPH-SETTINGS-BACKGROUND: #e2dad6; 
+    --SETTINGS-BACKGROUND: #e2dad6; 
     --GRAY-TEXT: #585858;
 }
 
@@ -31,7 +31,7 @@ h1, h2, h3, h4 {
     color: var(--SIDEBAR-TEXT);
 }
 
-#graph-settings-collapse :is(h1, h2, h3, h4, h5, h6, p, label, .rc-slider-mark-text) {
+.settings-collapse :is(h1, h2, h3, h4, h5, h6, p, label, .rc-slider-mark-text) {
     color: var(--TEXT);
 }
 
@@ -53,10 +53,6 @@ h1, h2, h3, h4 {
     padding: 10px 10px 0 10px;
 }
 
-.graph-size {
-    max-height: calc(100% - );
-}
-
 a:hover {
     cursor: pointer;
 }
@@ -73,6 +69,7 @@ a:hover {
 
 .sidebar {
     flex: 0 0 350px;
+    position: relative;
     /* padding: 5px; */
     padding: 1.5rem 20px 0 20px;
     /* padding-top: 1.5rem; */
@@ -124,27 +121,36 @@ a:hover {
     margin: 2px;
 }
 
-#graph-settings {
+.settings {
     display: inline-block;
     margin: 2px;
 }
 
-#graph-settings-collapse {
+.settings-collapse {
     position: absolute;
     right: 0;
     top: 45px;
-    background-color: var(--GRAPH-SETTINGS-BACKGROUND);
+    background-color: var(--SETTINGS-BACKGROUND);
     border: 2px solid var(--TEXT);
+    width: 225px;
     padding: 10px;
 }
 
-#toolbox {
+.settings-container {
     display: flex;
     justify-content: end;
     position: absolute;
     right: 10px;
-    background-color: var(--MAIN-BACKGROUND);
     z-index: 100;
+}
+
+.settings-background {
+    background-color: var(--MAIN-BACKGROUND);
+}
+
+#advanced-settings {
+    position: absolute;
+    top: 5px;
 }
 
 #bottom-container {
@@ -201,7 +207,7 @@ a:hover {
 .upload-preview {
     overflow-y: "scroll";
     height: 100px;
-    background-color: var(--GRAPH-SETTINGS-BACKGROUND);
+    background-color: var(--SETTINGS-BACKGROUND);
     border: 1px solid var(--TEXT); 
     padding: 3px;
     margin-bottom: 0;

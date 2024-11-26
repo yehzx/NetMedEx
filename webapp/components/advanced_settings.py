@@ -1,0 +1,44 @@
+import dash
+import dash_bootstrap_components as dbc
+from dash import dcc, html
+
+from webapp.utils import visibility
+
+max_edges = html.Div(
+    [
+        html.H5("Max Edges"),
+        dcc.Slider(
+            0,
+            1000,
+            50,
+            value=1000,
+            marks=None,
+            id="max-edges",
+            tooltip={"placement": "bottom", "always_visible": False},
+        ),
+    ],
+    className="param",
+)
+
+
+advanced_settings = html.Div(
+    [
+        dbc.Button(
+            html.Img(src=dash.get_asset_url("icon_config.svg"), width=22, height=22),
+            # "Settings",
+            id="advanced-settings-btn",
+            className="btn-secondary settings",
+        ),
+        html.Div(
+            [
+                html.H5("Advanced Settings", className="text-center"),
+                max_edges,
+            ],
+            id="advanced-settings-collapse",
+            className="settings-collapse",
+            style=visibility.hidden,
+        ),
+    ],
+    id="advanced-settings",
+    className="settings-container",
+)
