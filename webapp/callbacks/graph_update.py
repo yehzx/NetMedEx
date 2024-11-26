@@ -133,7 +133,7 @@ def callbacks(app):
             is_new_graph or new_cut_weight != old_cut_weight or new_node_degree != old_node_degree
         )
         if conditions:
-            G = rebuild_graph(new_node_degree, new_cut_weight, with_layout=True)
+            G = rebuild_graph(new_node_degree, new_cut_weight, format="html", with_layout=True)
             graph_json = create_cytoscape_js(G, style="dash")
             graph_json = generate_new_id(graph_json)
             cy_graph = generate_cytoscape_js_network(graph_layout, graph_json)
@@ -152,7 +152,7 @@ def callbacks(app):
     )
     def update_graph_layout(layout, node_degree, weight, elements):
         if layout == "preset":
-            G = rebuild_graph(node_degree, weight, with_layout=True)
+            G = rebuild_graph(node_degree, weight, format="html", with_layout=True)
             graph_json = create_cytoscape_js(G, style="dash")
             graph_json = generate_new_id(graph_json)
             elements = [*graph_json["elements"]["nodes"], *graph_json["elements"]["edges"]]

@@ -24,7 +24,7 @@ def callbacks(app):
         prevent_initial_call=True,
     )
     def export_html(n_clicks, layout, node_degree, weight):
-        G = rebuild_graph(node_degree, weight, with_layout=True)
+        G = rebuild_graph(node_degree, weight, format="html", with_layout=True)
         save_as_html(G, DATA["html"], layout=layout)
         return dcc.send_file(str(DATA["html"]))
 
@@ -37,7 +37,7 @@ def callbacks(app):
         prevent_initial_call=True,
     )
     def export_xgmml(n_clicks, layout, node_degree, weight):
-        G = rebuild_graph(node_degree, weight, with_layout=True)
+        G = rebuild_graph(node_degree, weight, format="xgmml", with_layout=True)
         save_as_xgmml(G, DATA["xgmml"])
         return dcc.send_file(DATA["xgmml"])
 
