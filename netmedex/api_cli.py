@@ -4,6 +4,7 @@ import json
 import logging
 import sys
 import time
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 from queue import Queue
@@ -15,7 +16,6 @@ from tqdm.auto import tqdm
 from netmedex.biocjson_parser import convert_to_pubtator
 from netmedex.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
 from netmedex.utils import config_logger
-from dataclasses import dataclass
 
 # API GET limit: 100
 PMID_REQUEST_SIZE = 100
@@ -69,13 +69,15 @@ def main():
     query_method = "cite" if args.sort == "date" else "search"
 
     try:
-        run_query_pipeline(query=query,
-                           query_method=query_method,
-                           savepath=savepath,
-                           type=search_type,
-                           max_articles=args.max_articles,
-                           full_text=args.full_text,
-                           use_mesh=args.use_mesh)
+        run_query_pipeline(
+            query=query,
+            query_method=query_method,
+            savepath=savepath,
+            type=search_type,
+            max_articles=args.max_articles,
+            full_text=args.full_text,
+            use_mesh=args.use_mesh,
+        )
     except (NoArticles, EmptyInput, UnsuccessfulRequest) as e:
         logger.error(str(e))
 
@@ -97,21 +99,20 @@ def load_pmids(input_data, load_from: Literal["string", "file"]):
     return pmids
 
 
-def run_query_pipeline(query: Union[str, list],
-                       savepath: Union[str, Path, None],
-                       type: Literal["query", "pmids"],
-                       max_articles: int = 1000,
-                       full_text: bool = False,
-                       use_mesh: bool = False,
-                       query_method: Literal["search", "cite"] = DEFAULT_QUERY_METHOD,
-                       queue: Optional[Queue] = None):
-
+def run_query_pipeline(
+    query: Union[str, list],
+    savepath: Union[str, Path, None],
+    type: Literal["query", "pmids"],
+    max_articles: int = 1000,
+    full_text: bool = False,
+    use_mesh: bool = False,
+    query_method: Literal["search", "cite"] = DEFAULT_QUERY_METHOD,
+    queue: Optional[Queue] = None,
+):
     if type == "query":
         if query is None or query.strip() == "":
             raise EmptyInput
-        pmid_list = get_search_results(query,
-                                       max_articles,
-                                       query_method=query_method)
+        pmid_list = get_search_results(query, max_articles, query_method=query_method)
     elif type == "pmids":
         if not query:
             raise EmptyInput
@@ -120,26 +121,21 @@ def run_query_pipeline(query: Union[str, list],
     if not pmid_list:
         raise NoArticles
 
-    output = batch_publication_query(pmid_list,
-                                     type="pmids",
-                                     full_text=full_text,
-                                     use_mesh=use_mesh,
-                                     queue=queue)
+    output = batch_publication_query(
+        pmid_list, type="pmids", full_text=full_text, use_mesh=use_mesh, queue=queue
+    )
 
     if use_mesh or full_text:
         retain_ori_text = False if use_mesh else True
         output = [
-            convert_to_pubtator(articles,
-                                retain_ori_text=retain_ori_text,
-                                role_type="identifier") for articles in output
+            convert_to_pubtator(articles, retain_ori_text=retain_ori_text, role_type="identifier")
+            for articles in output
         ]
 
     write_output(output, savepath=savepath, use_mesh=use_mesh)
 
 
-def get_search_results(query,
-                       max_articles,
-                       query_method: Literal["search", "cite"]):
+def get_search_results(query, max_articles, query_method: Literal["search", "cite"]):
     logger.info(f"Query: {query}")
     if query_method == "search":
         article_list = get_by_search(query, max_articles)
@@ -257,10 +253,7 @@ def get_article_ids(res_json):
     return [str(article.get("pmid")) for article in res_json["results"]]
 
 
-def batch_publication_query(id_list, type,
-                            full_text=False,
-                            use_mesh=False,
-                            queue=None):
+def batch_publication_query(id_list, type, full_text=False, use_mesh=False, queue=None):
     return_progress = isinstance(queue, Queue)
     output = []
     format = "biocjson" if use_mesh or full_text else "pubtator"
@@ -271,8 +264,11 @@ def batch_publication_query(id_list, type,
                 end = end if end < len(id_list) else None
                 res = send_publication_query(
                     ",".join(id_list[start:end]),
-                    type=type, format=format, full_text=full_text,
-                    session=session)
+                    type=type,
+                    format=format,
+                    full_text=full_text,
+                    session=session,
+                )
                 if request_successful(res):
                     output.extend(append_json_or_text(res, full_text, use_mesh))
                 if end is not None:
@@ -295,8 +291,9 @@ def batch_publication_query(id_list, type,
     return output
 
 
-def send_publication_query(article_id, type: Literal["pmids", "pmcids"], format,
-                           full_text=False, session=None):
+def send_publication_query(
+    article_id, type: Literal["pmids", "pmcids"], format, full_text=False, session=None
+):
     url = f"https://www.ncbi.nlm.nih.gov/research/pubtator3-api/publications/export/{format}"
     params = {type: article_id}
     if full_text:
@@ -379,25 +376,34 @@ class APIArgs:
 
 def setup_argparsers():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-q", "--query", default=None,
-                        help="Query string")
-    parser.add_argument("-o", "--output", default=None,
-                        help="Output path")
-    parser.add_argument("-p", "--pmids", default=None, type=str,
-                        help="PMIDs for the articles (comma-separated)")
-    parser.add_argument("-f", "--pmid_file", default=None,
-                        help="Filepath to load PMIDs")
-    parser.add_argument("-s", "--sort", default="date",
-                        choices=["score", "date"],
-                        help="Sort articles in descending order by (default: date)")
-    parser.add_argument("--max_articles", type=int, default=1000,
-                        help="Maximal articles to request from the searching result (default: 1000)")
-    parser.add_argument("--full_text", action="store_true",
-                        help="Collect full-text annotations if available")
-    parser.add_argument("--use_mesh", action="store_true",
-                        help="Use MeSH vocabulary instead of the most commonly used original text in articles")
-    parser.add_argument("--debug", action="store_true",
-                        help="Print debug information")
+    parser.add_argument("-q", "--query", default=None, help="Query string")
+    parser.add_argument("-o", "--output", default=None, help="Output path")
+    parser.add_argument(
+        "-p", "--pmids", default=None, type=str, help="PMIDs for the articles (comma-separated)"
+    )
+    parser.add_argument("-f", "--pmid_file", default=None, help="Filepath to load PMIDs")
+    parser.add_argument(
+        "-s",
+        "--sort",
+        default="date",
+        choices=["score", "date"],
+        help="Sort articles in descending order by (default: date)",
+    )
+    parser.add_argument(
+        "--max_articles",
+        type=int,
+        default=1000,
+        help="Maximal articles to request from the searching result (default: 1000)",
+    )
+    parser.add_argument(
+        "--full_text", action="store_true", help="Collect full-text annotations if available"
+    )
+    parser.add_argument(
+        "--use_mesh",
+        action="store_true",
+        help="Use MeSH vocabulary instead of the most commonly used original text in articles",
+    )
+    parser.add_argument("--debug", action="store_true", help="Print debug information")
 
     return parser
 

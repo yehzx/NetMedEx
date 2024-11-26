@@ -1,7 +1,9 @@
-import pytest
-from netmedex.biocjson_parser import convert_to_pubtator
-from pathlib import Path
 import json
+from pathlib import Path
+
+import pytest
+
+from netmedex.biocjson_parser import convert_to_pubtator
 
 
 @pytest.fixture(scope="module")
@@ -18,36 +20,36 @@ def paths(request):
 
 
 def test_abstract_to_abstract_conversion(paths):
-    with open(paths["abstract_json"], "r") as f:
+    with open(paths["abstract_json"]) as f:
         data = json.load(f)
 
     result = convert_to_pubtator(data, retain_ori_text=True, only_abstract=True)
 
-    with open(paths["abstract_pubtator"], "r") as f:
+    with open(paths["abstract_pubtator"]) as f:
         expected = f.read()
 
     assert result == expected
 
 
 def test_full_to_abstract_conversion(paths):
-    with open(paths["full_json"], "r") as f:
+    with open(paths["full_json"]) as f:
         data = json.load(f)
 
     result = convert_to_pubtator(data, retain_ori_text=True, only_abstract=True)
 
-    with open(paths["full_to_abstract_pubtator"], "r") as f:
+    with open(paths["full_to_abstract_pubtator"]) as f:
         expected = f.read()
 
     assert result == expected
 
 
 def test_full_conversion(paths):
-    with open(paths["full_json"], "r") as f:
+    with open(paths["full_json"]) as f:
         data = json.load(f)
 
     result = convert_to_pubtator(data, retain_ori_text=True, only_abstract=False)
 
-    with open(paths["full_pubtator"], "r") as f:
+    with open(paths["full_pubtator"]) as f:
         expected = f.read()
 
     assert result == expected

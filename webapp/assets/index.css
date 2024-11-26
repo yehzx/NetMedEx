@@ -89,14 +89,14 @@ a:hover {
     height: 100%;
 }
 
-.wrapper {
+#main-container {
     height: 100vh;
     min-height: 600px;
     width: 100%;
 }
 
 @media screen and (max-width: 800px) {
-    .wrapper {
+    #main-container {
         width: 800px;
     }
 }

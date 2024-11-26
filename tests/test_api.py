@@ -8,12 +8,17 @@ from unittest import mock
 import pytest
 import requests_mock
 
-from netmedex.api_cli import (batch_publication_query, load_pmids,
-                              parse_cite_response, request_successful,
-                              run_query_pipeline, send_publication_query,
-                              send_search_query, unsuccessful_query)
-from netmedex.biocjson_parser import (convert_to_pubtator,
-                                      get_biocjson_annotations)
+from netmedex.api_cli import (
+    batch_publication_query,
+    load_pmids,
+    parse_cite_response,
+    request_successful,
+    run_query_pipeline,
+    send_publication_query,
+    send_search_query,
+    unsuccessful_query,
+)
+from netmedex.biocjson_parser import convert_to_pubtator, get_biocjson_annotations
 from netmedex.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
 
 TESTDATA_DIR = Path(__file__).parent / "test_data"
@@ -21,15 +26,19 @@ TESTDATA_DIR = Path(__file__).parent / "test_data"
 
 @pytest.fixture(scope="module")
 def paths():
-    filepaths = {"json": TESTDATA_DIR / "pubtator3.37026113_240614.json",
-                 "json_full-text": TESTDATA_DIR / "pubtator3.22429397_full_240916.json",
-                 "pubtator-std_relation-std": TESTDATA_DIR / "pubtator3.37026113_standardized_std-relation_240614.pubtator",
-                 "pubtator-std_relation-ori": TESTDATA_DIR / "pubtator3.37026113_standardized_ori-relation_240614.pubtator",
-                 "pubtator": TESTDATA_DIR / "pubtator3.37026113_240614.pubtator",
-                 "tsv": TESTDATA_DIR / "cite_tsv.tsv",
-                 "pmids": TESTDATA_DIR / "pmid_list.txt",
-                 "query_search": TESTDATA_DIR / "search_N-dimethylnitrosamine_and_Metformin_241008.pkl",
-                 "query_cite": TESTDATA_DIR / "cite_N-dimethylnitrosamine_and_Metformin_241008.pkl"}
+    filepaths = {
+        "json": TESTDATA_DIR / "pubtator3.37026113_240614.json",
+        "json_full-text": TESTDATA_DIR / "pubtator3.22429397_full_240916.json",
+        "pubtator-std_relation-std": TESTDATA_DIR
+        / "pubtator3.37026113_standardized_std-relation_240614.pubtator",
+        "pubtator-std_relation-ori": TESTDATA_DIR
+        / "pubtator3.37026113_standardized_ori-relation_240614.pubtator",
+        "pubtator": TESTDATA_DIR / "pubtator3.37026113_240614.pubtator",
+        "tsv": TESTDATA_DIR / "cite_tsv.tsv",
+        "pmids": TESTDATA_DIR / "pmid_list.txt",
+        "query_search": TESTDATA_DIR / "search_N-dimethylnitrosamine_and_Metformin_241008.pkl",
+        "query_cite": TESTDATA_DIR / "cite_N-dimethylnitrosamine_and_Metformin_241008.pkl",
+    }
     return filepaths
 
 
@@ -106,8 +115,7 @@ def test_search_publication_abstract(paths, **kwargs):
         json=res_json,
     )
     res = send_publication_query(pmid, type="pmids", format="biocjson", full_text=False)
-    annotation_list = get_biocjson_annotations(res.json()["PubTator3"][0],
-                                               retain_ori_text=False)
+    annotation_list = get_biocjson_annotations(res.json()["PubTator3"][0], retain_ori_text=False)
 
     assert len(annotation_list) == 33
 
@@ -126,8 +134,7 @@ def test_search_publication_full_text(paths, **kwargs):
     )
 
     res = send_publication_query(pmid, type="pmids", format="biocjson", full_text=True)
-    annotation_list = get_biocjson_annotations(res.json()["PubTator3"][0],
-                                               retain_ori_text=False)
+    annotation_list = get_biocjson_annotations(res.json()["PubTator3"][0], retain_ori_text=False)
 
     assert len(annotation_list) == 666
 
@@ -199,7 +206,7 @@ def test_use_mesh(paths, **kwargs):
 @requests_mock.Mocker(kw="mock")
 def test_batch_publication_queue(paths, **kwargs):
     kwargs["mock"].get(
-        f"https://www.ncbi.nlm.nih.gov/research/pubtator3-api/publications/export/pubtator",
+        "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/publications/export/pubtator",
         status_code=200,
         text="",
     )
@@ -207,11 +214,13 @@ def test_batch_publication_queue(paths, **kwargs):
     queue = Queue()
     progress = []
     expected = ["100/200", "200/200", None]
-    batch_publication_query(id_list=[str(i) for i in range(200)],
-                            type="pmids",
-                            full_text=False,
-                            use_mesh=False,
-                            queue=queue)
+    batch_publication_query(
+        id_list=[str(i) for i in range(200)],
+        type="pmids",
+        full_text=False,
+        use_mesh=False,
+        queue=queue,
+    )
     while True:
         result = queue.get()
         progress.append(result)
@@ -221,11 +230,14 @@ def test_batch_publication_queue(paths, **kwargs):
     assert progress == expected
 
 
-@pytest.mark.parametrize("args", [
-    (None, None, "query"),
-    ("   ", None, "query"),
-    ([], None, "pmids"),
-])
+@pytest.mark.parametrize(
+    "args",
+    [
+        (None, None, "query"),
+        ("   ", None, "query"),
+        ([], None, "pmids"),
+    ],
+)
 def test_empty_input(args):
     with pytest.raises(EmptyInput):
         run_query_pipeline(*args)
@@ -234,7 +246,7 @@ def test_empty_input(args):
 @requests_mock.Mocker(kw="mock")
 def test_no_articles(**kwargs):
     kwargs["mock"].get(
-        f"https://www.ncbi.nlm.nih.gov/research/pubtator3-api/cite/tsv?text=qwrsadga",
+        "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/cite/tsv?text=qwrsadga",
         status_code=200,
         text="",
     )
@@ -243,18 +255,21 @@ def test_no_articles(**kwargs):
 
 
 @requests_mock.Mocker(kw="mock")
-@pytest.mark.parametrize("type,full_text,use_mesh,file_format", [
-    ("query", False, False, "pubtator"),
-    ("query", True, False, "biocjson"),
-    ("query", False, True, "biocjson"),
-    ("query", True, True, "biocjson"),
-])
+@pytest.mark.parametrize(
+    "type,full_text,use_mesh,file_format",
+    [
+        ("query", False, False, "pubtator"),
+        ("query", True, False, "biocjson"),
+        ("query", False, True, "biocjson"),
+        ("query", True, True, "biocjson"),
+    ],
+)
 def test_run_query_pipeline_query(type, full_text, use_mesh, file_format, paths, **kwargs):
     with open(paths["query_cite"], "rb") as f:
         res_text = pickle.load(f).text
 
     kwargs["mock"].get(
-        f"https://www.ncbi.nlm.nih.gov/research/pubtator3-api/cite/tsv?text=N-dimethylnitrosamine+and+Metformin",
+        "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/cite/tsv?text=N-dimethylnitrosamine+and+Metformin",
         status_code=200,
         text=res_text,
     )
@@ -271,11 +286,13 @@ def test_run_query_pipeline_query(type, full_text, use_mesh, file_format, paths,
         **text_or_json,
     )
 
-    run_query_pipeline(query="N-dimethylnitrosamine and Metformin",
-                       savepath=None,
-                       type=type,
-                       full_text=full_text,
-                       use_mesh=use_mesh)
+    run_query_pipeline(
+        query="N-dimethylnitrosamine and Metformin",
+        savepath=None,
+        type=type,
+        full_text=full_text,
+        use_mesh=use_mesh,
+    )
 
 
 def test_load_pmids_file(paths):
@@ -284,37 +301,46 @@ def test_load_pmids_file(paths):
     assert pmid_list == ["34205807", "34895069", "35883435"]
 
 
-@pytest.mark.parametrize("query,expected", [
-    ("34205807, 34895069, 35883435", ["34205807", "34895069", "35883435"]),
-    ("34205807,34895069,35883435", ["34205807", "34895069", "35883435"]),
-    ("foo,bar,foobar", []),
-    ("", []),
-    (None, []),
-])
+@pytest.mark.parametrize(
+    "query,expected",
+    [
+        ("34205807, 34895069, 35883435", ["34205807", "34895069", "35883435"]),
+        ("34205807,34895069,35883435", ["34205807", "34895069", "35883435"]),
+        ("foo,bar,foobar", []),
+        ("", []),
+        (None, []),
+    ],
+)
 def test_load_pmids_string(query, expected):
     pmid_list = load_pmids(query, load_from="string")
 
     assert pmid_list == expected
 
 
-@pytest.mark.parametrize("status_code,expected", [
-    (200, True),
-    (404, False),
-    (502, False),
-])
+@pytest.mark.parametrize(
+    "status_code,expected",
+    [
+        (200, True),
+        (404, False),
+        (502, False),
+    ],
+)
 def test_request_successful(status_code, expected, **kwargs):
     res = SimpleNamespace(status_code=status_code)
     with mock.patch("netmedex.api_cli.logger") as mock_logger:
         assert request_successful(res) == expected
-        if expected == False:
+        if not expected:
             mock_logger.info.assert_called_with("Unsuccessful request")
             mock_logger.debug.assert_called_with(f"Response status code: {status_code}")
 
 
-@pytest.mark.parametrize("status_code,msg", [
-    (404, "Please retry later."),
-    (502, "Possibly too many articles. Please try more specific queries."),
-])
+@pytest.mark.parametrize(
+    "status_code,msg",
+    [
+        (404, "Please retry later."),
+        (502, "Possibly too many articles. Please try more specific queries."),
+    ],
+)
 def test_unsuccessful_query(status_code, msg, **kwargs):
     with pytest.raises(UnsuccessfulRequest):
         with mock.patch("netmedex.api_cli.logger") as mock_logger:

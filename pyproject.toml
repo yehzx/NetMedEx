@@ -3,7 +3,10 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["netmedex"]
+include = ["netmedex*", "webapp*"]
+
+[tool.setuptools.package-data]
+webapp = ["assets*"]
 
 [project]
 name = "netmedex"
@@ -20,6 +23,10 @@ dependencies = [
   "networkx[default]",
   "lxml",
   "python-dotenv",
+  "dash[diskcache]==2.17",
+  "dash-cytoscape",
+  "dash-bootstrap_components",
+  "dash-svg",
 ]
 classifiers = [
   "Programming Language :: Python :: 3",
@@ -28,13 +35,43 @@ classifiers = [
 ]
 
 [project.optional-dependencies]
-dash = [
-  "dash[diskcache]==2.17",
-  "dash-cytoscape",
-  "dash-bootstrap_components",
-  "dash-svg",
+dev = [
+  "pytest==8.3.2",
+  "pytest-xdist",
+  "pytest-cov",
+  "requests-mock",
+  "pytest-mock",
+  "ruff==0.8.0",
 ]
 
 [project.scripts]
 pubtator3 = "netmedex.api_cli:main"
 tocytoscape = "netmedex.network_cli:main"
+
+
+[tool.ruff]
+line-length = 99 
+target-version = "py39"
+# exclude = [""]
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "ARG001", # unused arguments in functions
+]
+ignore = [
+    "E402",  # module level import not at top of file
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "W191",  # indentation contains tabs
+    "B904",  # Allow raising exceptions without from e, for HTTPException
+]
+
+[tool.ruff.format]
+quote-style = "double"

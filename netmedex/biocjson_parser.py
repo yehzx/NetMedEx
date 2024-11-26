@@ -1,14 +1,16 @@
 import logging
-from typing import Literal
 from collections import defaultdict
-
+from typing import Literal
 
 logger = logging.getLogger(__name__)
 
 
-def convert_to_pubtator(res_json, retain_ori_text=True,
-                        only_abstract=False,
-                        role_type: Literal["identifier", "name"] = "identifier"):
+def convert_to_pubtator(
+    res_json,
+    retain_ori_text=True,
+    only_abstract=False,
+    role_type: Literal["identifier", "name"] = "identifier",
+):
     # 2024/05/26: PubTator has changed the format of the response
     res_json = res_json["PubTator3"]
 
@@ -28,17 +30,19 @@ def convert_to_pubtator(res_json, retain_ori_text=True,
             abstract_idx = None
 
         annotation_list = get_biocjson_annotations(
-            each_res_json,
-            retain_ori_text,
-            abstract_idx=abstract_idx)
+            each_res_json, retain_ori_text, abstract_idx=abstract_idx
+        )
         relation_list = get_biocjson_relations(each_res_json, role_type)
-        converted_strs.append(create_pubtator_str(
-            pmid,
-            # Only one title passage
-            title_passage["text"][0],
-            " ".join(abstract_passage["text"]),
-            annotation_list,
-            relation_list))
+        converted_strs.append(
+            create_pubtator_str(
+                pmid,
+                # Only one title passage
+                title_passage["text"][0],
+                " ".join(abstract_passage["text"]),
+                annotation_list,
+                relation_list,
+            )
+        )
 
     return "".join(converted_strs)
 
@@ -82,9 +86,7 @@ def get_biocjson_annotations(res_json, retain_ori_text, abstract_idx=None):
             annotation["id"] = "-" if id == "None" or id is None else id
             annotation["type"] = annotation_entry["infons"]["type"]
             annotation["locations"] = annotation_entry["locations"][0]
-            annotation["name"] = get_name(retain_ori_text,
-                                          annotation_entry,
-                                          annotation)
+            annotation["name"] = get_name(retain_ori_text, annotation_entry, annotation)
             if annotation["type"] == "Variant":
                 annotation["type"] = annotation_entry["infons"]["subtype"]
 
@@ -139,18 +141,27 @@ def create_pubtator_str(pmid, title, abstract, annotation_list, relation_list):
     title_str = f"{pmid}|t|{title}\n"
     abstract_str = f"{pmid}|a|{abstract}\n"
     annotation_list.sort(key=lambda x: x["locations"]["offset"])
-    annotation_str = [(f"{pmid}\t"
-                       f"{annotation['locations']['offset']}\t"
-                       f"{annotation['locations']['length'] + annotation['locations']['offset']}\t"
-                       f"{annotation['name']}\t"
-                       f"{annotation['type']}\t"
-                       f"{annotation['id']}")
-                      for annotation in annotation_list]
-    relation_str = [(f"{pmid}\t"
-                     f"{relation['type']}\t"
-                     f"{relation['role1']}\t"
-                     f"{relation['role2']}")
-                    for relation in relation_list]
+    annotation_str = [
+        (
+            f"{pmid}\t"
+            f"{annotation['locations']['offset']}\t"
+            f"{annotation['locations']['length'] + annotation['locations']['offset']}\t"
+            f"{annotation['name']}\t"
+            f"{annotation['type']}\t"
+            f"{annotation['id']}"
+        )
+        for annotation in annotation_list
+    ]
+    relation_str = [
+        (f"{pmid}\t" f"{relation['type']}\t" f"{relation['role1']}\t" f"{relation['role2']}")
+        for relation in relation_list
+    ]
 
-    return title_str + abstract_str + "\n".join(annotation_str) \
-        + "\n" + "\n".join(relation_str) + "\n\n"
+    return (
+        title_str
+        + abstract_str
+        + "\n".join(annotation_str)
+        + "\n"
+        + "\n".join(relation_str)
+        + "\n\n"
+    )

@@ -1,7 +1,8 @@
 import re
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Mapping, Optional, Sequence, Union
+from typing import Optional, Union
 
 from netmedex.stemmers import s_stemmer
 
@@ -12,7 +13,7 @@ MUTATION_PATTERNS = {
     "variantgroup": re.compile(r"(VariantGroup:[^;]+)"),
     "gene": re.compile(r"(CorrespondingGene:[^;]+)"),
     "species": re.compile(r"(CorrespondingSpecies:[^;]+)"),
-    "ca": re.compile(r"(CA#:[^;]+)")
+    "ca": re.compile(r"(CA#:[^;]+)"),
 }
 
 
@@ -106,8 +107,10 @@ class PubTatorLine:
                 except AttributeError:
                     match_data[key] = ""
             if anno_type == "DNAMutation":
-                mesh = (f'{match_data["gene"]}{match_data["species"]}{match_data["variantgroup"]}'
-                        f'{match_data["tmvar"].split("|")[0]}').strip(";")
+                mesh = (
+                    f'{match_data["gene"]}{match_data["species"]}{match_data["variantgroup"]}'
+                    f'{match_data["tmvar"].split("|")[0]}'
+                ).strip(";")
             elif anno_type == "ProteinMutation":
                 mesh = f'{match_data["rs"]}{match_data["hgvs"]}{match_data["gene"]}'.strip(";")
             elif anno_type == "SNP":
@@ -115,11 +118,9 @@ class PubTatorLine:
             result = [{"key": mesh, "mesh": mesh}]
         elif anno_type == "Gene":
             mesh_list = mesh.split(";")
-            result = [{"key": convert_mesh(mesh, "gene"),
-                       "mesh": mesh} for mesh in mesh_list]
+            result = [{"key": convert_mesh(mesh, "gene"), "mesh": mesh} for mesh in mesh_list]
         elif anno_type == "Species":
-            result = [{"key": convert_mesh(mesh, "species"),
-                       "mesh": mesh}]
+            result = [{"key": convert_mesh(mesh, "species"), "mesh": mesh}]
         else:
             result = [{"key": mesh, "mesh": mesh}]
 
