@@ -7,11 +7,11 @@ def callbacks(app):
     @app.callback(
         Output("graph-settings-collapse", "style", allow_duplicate=True),
         Output("graph-cut-weight", "tooltip"),
-        Input("graph-settings", "n_clicks"),
+        Input("graph-settings-btn", "n_clicks"),
         State("graph-settings-collapse", "style"),
         prevent_initial_call=True,
     )
-    def open_settings(n_clicks, style):
+    def open_graph_settings(n_clicks, style):
         visibility = style["visibility"]
         toggle = {"hidden": "visible", "visible": "hidden"}
         weight_toggle = {"hidden": True, "visible": False}

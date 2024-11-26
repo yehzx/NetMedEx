@@ -59,7 +59,7 @@ edge_weight_cutoff = html.Div(
     className="param",
 )
 
-graph_settings = html.Div(
+graph_tools = html.Div(
     [
         dbc.Button(
             "PubTator File",
@@ -88,8 +88,8 @@ graph_settings = html.Div(
                 ],
             ),
             # "Settings",
-            id="graph-settings",
-            className="btn-secondary",
+            id="graph-settings-btn",
+            className="btn-secondary settings",
         ),
         html.Div(
             [
@@ -99,8 +99,9 @@ graph_settings = html.Div(
                 edge_weight_cutoff,
             ],
             id="graph-settings-collapse",
+            className="settings-collapse",
             style=visibility.hidden,
         ),
     ],
-    id="toolbox",
+    className="settings-container settings-background",
 )
