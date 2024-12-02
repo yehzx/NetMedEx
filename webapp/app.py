@@ -2,12 +2,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
 import os
 
 import dash_bootstrap_components as dbc
 import diskcache
-from dash import Dash, html
+from dash import ClientsideFunction, Dash, Input, Output, html
 from dash.long_callback import DiskcacheLongCallbackManager
 
 from netmedex.utils import config_logger
@@ -36,12 +35,17 @@ content = html.Div(
     className="d-flex flex-row position-relative h-100",
 )
 
-app.layout = html.Div([content], id="main-container")
+app.layout = html.Div([content, html.Div(id="post-js-scripts")], id="main-container")
 
 
 if __name__ == "__main__":
     try:
         collect_callbacks(app)
+        app.clientside_callback(
+            ClientsideFunction(namespace="clientside", function_name="info_scroll"),
+            Output("post-js-scripts", "children"),
+            Input("post-js-scripts", "id"),
+        )
         app.run()
     finally:
         clean_up_files()

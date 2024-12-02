@@ -27,7 +27,7 @@ h1, h2, h3, h4 {
     text-align: center;
 }
 
-.sidebar :is(h1, h2, h3, h4, h5, h6, p, label, .rc-slider-mark-text) {
+.sidebar :is(h1, h2, h3, h4, h5, h6, label, .rc-slider-mark-text) {
     color: var(--SIDEBAR-TEXT);
 }
 
@@ -65,6 +65,11 @@ a:hover {
 
 .param {
     padding-bottom: 16px;
+    position: relative;
+}
+
+.param p {
+    color: var(--SIDEBAR-TEXT);
 }
 
 .sidebar {
@@ -217,4 +222,50 @@ a:hover {
     background-color: var(--SIDEBAR-TEXT);
     color: var(--TEXT);
     font-size: 14px;
+}
+
+
+.param-title {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.param-title h5 {
+    display: inline-block;
+    margin: 0;
+}
+
+.info-img {
+    display: inline-block;
+    height: 1.2rem;
+    width: 1.2rem;
+    margin: 0 8px;
+}
+
+.info-outer {
+    display: inline-block;
+}
+
+.info-inner {
+    visibility: hidden;
+    position: fixed;
+    background-color: whitesmoke;
+    border-radius: 4px;
+    padding: 0 5px;
+    box-shadow: 1px 1px 10px 1px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    transition-property: visibility;
+    transition-delay: 0s;
+}
+
+.info-outer:hover .info-inner {
+    visibility: visible;
+    transition-delay: 0.3s;
+}
+
+.info-inner p {
+    margin: 0;
+    color: var(--GRAY-TEXT);
 }
