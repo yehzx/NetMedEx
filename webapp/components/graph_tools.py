@@ -2,11 +2,17 @@ import dash_bootstrap_components as dbc
 import dash_svg as svg
 from dash import dcc, html
 
+from webapp.components.utils import generate_param_title
 from webapp.utils import visibility
 
 graph_layout = html.Div(
     [
-        html.H5("Graph Layout"),
+        generate_param_title(
+            "Graph Layout",
+            [
+                html.P("Select a layout to arrange the nodes"),
+            ],
+        ),
         dcc.Dropdown(
             id="graph-layout",
             options=[
@@ -28,7 +34,12 @@ graph_layout = html.Div(
 
 minimal_degree = html.Div(
     [
-        html.H5("Minimal Degree"),
+        generate_param_title(
+            "Minimal Degree",
+            [
+                html.P("Set the minimum node degree to filter the graph"),
+            ],
+        ),
         dbc.Input(
             id="node-degree",
             min=1,
@@ -44,7 +55,12 @@ minimal_degree = html.Div(
 
 edge_weight_cutoff = html.Div(
     [
-        html.H5("Edge Weight Cutoff"),
+        generate_param_title(
+            "Edge Weight Cutoff",
+            [
+                html.P("Set the minimum edge weight to filter the graph"),
+            ],
+        ),
         dcc.Slider(
             0,
             20,
@@ -95,8 +111,8 @@ graph_tools = html.Div(
             [
                 html.H4("Settings"),
                 graph_layout,
-                minimal_degree,
                 edge_weight_cutoff,
+                minimal_degree,
             ],
             id="graph-settings-collapse",
             className="settings-collapse",

@@ -244,10 +244,6 @@ a:hover {
     margin: 0 8px;
 }
 
-.info-outer {
-    display: inline-block;
-}
-
 .info-inner {
     visibility: hidden;
     position: fixed;
