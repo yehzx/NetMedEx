@@ -1,14 +1,22 @@
+import dash
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 from webapp.components.advanced_settings import advanced_settings
+from webapp.components.utils import generate_param_title
 from webapp.utils import display
 
 api_or_file = html.Div(
     [
         html.Div(
             [
-                html.H5("Source"),
+                generate_param_title(
+                    "Source",
+                    [
+                        html.P("PubTator3 API: Search + Network Generation"),
+                        html.P("PubTator File: Network Generation from PubTator File"),
+                    ],
+                ),
                 dbc.RadioItems(
                     id="api-toggle-items",
                     options=[
@@ -29,7 +37,14 @@ pubtator_file = html.Div(
     [
         html.Div(
             [
-                html.H5("PubTator File"),
+                generate_param_title(
+                    "PubTator File",
+                    [
+                        html.P(
+                            "The file downloaded using the 'PubTator File' button after running the 'PubTator3 API'"
+                        ),
+                    ],
+                ),
                 dcc.Upload(
                     id="pubtator-file-data",
                     children=html.Div(
@@ -50,7 +65,18 @@ api_params = html.Div(
     [
         html.Div(
             [
-                html.H5("Search Type"),
+                generate_param_title(
+                    "Search Type",
+                    [
+                        html.P(
+                            "Text Search: Query PubTator3 by text (use double quotes to match whole words and AND/OR to combine keywords)"
+                        ),
+                        html.P("PMID: Query PubTator3 by comma-separated PMIDs"),
+                        html.P(
+                            "PMID File: Query PubTator3 by a text file of PMIDs (one per line)"
+                        ),
+                    ],
+                ),
                 dcc.Dropdown(
                     id="input-type-selection",
                     options=[
@@ -67,7 +93,17 @@ api_params = html.Div(
         html.Div(id="input-type", className="param"),
         html.Div(
             [
-                html.H5("PubTator3 Parameters"),
+                generate_param_title(
+                    "PubTator3 Parameters",
+                    [
+                        html.P(
+                            "Use MeSH Vocabulary: Replace original text in articles with standardized MeSH terms"
+                        ),
+                        html.P(
+                            "Full Text: Build network from full-text articles if available, defaulting to abstracts otherwise (not recommended to enable)"
+                        ),
+                    ],
+                ),
                 dbc.Checklist(
                     options=[
                         {"label": "Use MeSH Vocabulary", "value": "use_mesh"},
@@ -89,13 +125,22 @@ network_params = html.Div(
     [
         html.Div(
             [
-                html.H5("Node Type"),
+                generate_param_title(
+                    "Node Filter",
+                    [
+                        html.P("All: Retain all annotations"),
+                        html.P("MeSH: Retain annotations with standardized MeSH terms only"),
+                        html.P(
+                            "BioREx Relation: Retain annotations with high-confidence relationships from PubTator3 BioREx model"
+                        ),
+                    ],
+                ),
                 dcc.Dropdown(
                     id="node-type",
                     options=[
-                        {"label": "Normalized Text", "value": "all"},
-                        {"label": "Has MeSH", "value": "mesh"},
-                        {"label": "BioREx Relation Only", "value": "relation"},
+                        {"label": "All", "value": "all"},
+                        {"label": "MeSH", "value": "mesh"},
+                        {"label": "BioREx Relation", "value": "relation"},
                     ],
                     value="all",
                     style={"width": "200px"},
@@ -105,7 +150,15 @@ network_params = html.Div(
         ),
         html.Div(
             [
-                html.H5("Weighting Method"),
+                generate_param_title(
+                    "Weighting Method",
+                    [
+                        html.P("Frequency: Calculate edge weights using co-occurence counts"),
+                        html.P(
+                            "NPMI: Calulate edge weights using normalized mutual pointwise information"
+                        ),
+                    ],
+                ),
                 dcc.Dropdown(
                     id="weighting-method",
                     options=[
@@ -120,7 +173,12 @@ network_params = html.Div(
         ),
         html.Div(
             [
-                html.H5("Edge Weight Cutoff"),
+                generate_param_title(
+                    "Edge Weight Cutoff",
+                    [
+                        html.P("Set the minimum edge weight to filter the graph"),
+                    ],
+                ),
                 dcc.Slider(
                     0,
                     20,
@@ -135,7 +193,12 @@ network_params = html.Div(
         ),
         html.Div(
             [
-                html.H5("Network Parameters"),
+                generate_param_title(
+                    "Network Parameters",
+                    [
+                        html.P("Community: Group nodes into communities"),
+                    ],
+                ),
                 dbc.Checklist(
                     options=[
                         {"label": "Community", "value": "community"},

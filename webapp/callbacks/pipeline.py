@@ -92,7 +92,7 @@ def callbacks(app):
                     MAX_ARTICLES,
                     full_text,
                     use_mesh,
-                    "cite",
+                    "search",
                     queue,
                 ),
             )

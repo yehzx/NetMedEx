@@ -2,11 +2,17 @@ import dash
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
+from webapp.components.utils import generate_param_title
 from webapp.utils import visibility
 
 max_edges = html.Div(
     [
-        html.H5("Max Edges"),
+        generate_param_title(
+            "Max Edges",
+            [
+                html.P("Set the maximum number of edges to display in the graph."),
+            ],
+        ),
         dcc.Slider(
             0,
             1000,
