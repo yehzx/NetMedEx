@@ -373,7 +373,7 @@ def merge_same_name_genes(
 ):
     gene_name_dict = defaultdict(list)
     for node_id, node_data in node_dict.items():
-        if node_data.type != "Gene" or node_data.mesh == "-":
+        if node_data.type != "Gene" or node_data.mesh in ("-", ""):
             continue
         gene_name_dict[node_data.name].append(
             {

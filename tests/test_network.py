@@ -100,9 +100,9 @@ def test_parse_header(data, expected, monkeypatch: pytest.MonkeyPatch):
 
 def test_merge_same_name_genes():
     node_dict = {
-        "gene_1": PubTatorNodeData(id=1, mesh="1", type="Gene", name="foo", pmids=set([10])),
-        "gene_2": PubTatorNodeData(id=2, mesh="2", type="Gene", name="foo", pmids=set([20])),
-        "bar": PubTatorNodeData(id=3, mesh="-", type="Chemical", name="bar", pmids=set([30])),
+        "gene_1": PubTatorNodeData(id=1, mesh="1", type="Gene", name="foo", pmids={10}),
+        "gene_2": PubTatorNodeData(id=2, mesh="2", type="Gene", name="foo", pmids={20}),
+        "bar": PubTatorNodeData(id=3, mesh="-", type="Chemical", name="bar", pmids={30}),
     }
     edge_dict = {
         ("gene_1", "bar"): [PubTatorEdgeData(id=4, pmid="30"), PubTatorEdgeData(id=5, pmid="40")],
@@ -112,10 +112,8 @@ def test_merge_same_name_genes():
     merge_same_name_genes(node_dict, edge_dict)
 
     assert node_dict == {
-        "bar": PubTatorNodeData(id=3, mesh="-", type="Chemical", name="bar", pmids=set([30])),
-        "gene_1;2": PubTatorNodeData(
-            id=2, mesh="1;2", type="Gene", name="foo", pmids=set([10, 20])
-        ),
+        "bar": PubTatorNodeData(id=3, mesh="-", type="Chemical", name="bar", pmids={30}),
+        "gene_1;2": PubTatorNodeData(id=2, mesh="1;2", type="Gene", name="foo", pmids={10, 20}),
     }
     assert edge_dict == {
         ("gene_1;2", "bar"): [
