@@ -179,7 +179,7 @@ def set_network_communities(G: nx.Graph, seed: int = 1):
             inter_edge_pmids[community_edge].extend(attrs["pmids"])
 
     G.remove_edges_from(to_remove)
-    for idx, ((c_0, c_1), weight) in enumerate(inter_edge_weight.items()):
+    for (c_0, c_1), weight in inter_edge_weight.items():
         # Log-adjusted weight for balance
         weight = math.log(weight) * 5
         pmids = list(set(inter_edge_pmids[(c_0, c_1)]))
