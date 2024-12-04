@@ -20,6 +20,8 @@ from netmedex.utils import config_logger
 # API GET limit: 100
 PMID_REQUEST_SIZE = 100
 DEFAULT_QUERY_METHOD = ["search", "cite"][1]
+# Fall back to "search" if "cite" failed
+FALLBACK_SEARCH = True
 
 # users post no more than three requests per second
 # https://www.ncbi.nlm.nih.gov/research/pubtator3/api
@@ -145,7 +147,7 @@ def get_search_results(query, max_articles, query_method: Literal["search", "cit
     return article_list
 
 
-def get_by_search(query, max_articles):
+def get_by_search(query, max_articles, sort: Literal["score", "date"] = "score"):
     res = send_search_query(query, type="search")
 
     article_list = []
@@ -167,7 +169,7 @@ def get_by_search(query, max_articles):
             while current_page * page_size < n_articles_to_request:
                 pbar.update(page_size)
                 current_page += 1
-                res = send_search_query_with_page(query, current_page, session)
+                res = send_search_query_with_page(query, current_page, sort, session)
                 if request_successful(res):
                     article_list.extend(get_article_ids(res.json()))
             pbar.n = pbar.total
@@ -185,9 +187,12 @@ def send_search_query(query, type: Literal["search", "cite"]):
     return res
 
 
-def send_search_query_with_page(query, page, session=None):
+def send_search_query_with_page(query, page, sort: Literal["score", "date"], session=None):
     url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/search/"
-    params = {"text": query, "sort": "score desc", "page": page}
+    if sort == "score":
+        params = {"text": query, "sort": "score desc", "page": page}
+    elif sort == "date":
+        params = {"text": query, "sort": "date desc", "page": page}
     res = handle_session_get(url, params, session)
     time.sleep(SLEEP)
     return res
@@ -204,7 +209,11 @@ def get_by_cite(query, max_articles):
     logger.info("Obtaining article PMIDs...")
     res = send_search_query(query, type="cite")
     if not request_successful(res):
-        unsuccessful_query(res.status_code)
+        if FALLBACK_SEARCH:
+            logger.warning("Fetching articles by 'cite' method failed. Switch to 'search'.")
+            return get_by_search(query, max_articles, sort="date")
+        else:
+            unsuccessful_query(res.status_code)
 
     pmid_list = parse_cite_response(res.text)
     n_articles_to_request = get_n_articles(max_articles, len(pmid_list))
@@ -285,9 +294,10 @@ def batch_publication_query(id_list, type, full_text=False, use_mesh=False, queu
     global debug
     if debug:
         now = datetime.now().strftime("%y%m%d%H%M%S")
-        with open(f"./pubtator3_api_{now}.txt", "w") as f:
+        with open(f"./pubtator3_response_{now}.txt", "w") as f:
             f.writelines([json.dumps(o) + "\n" for o in output])
-
+        with open(f"./pubtator3_pmid_{now}.txt", "w") as f:
+            f.writelines([f"{id}\n" for id in id_list])
     return output
 
 
