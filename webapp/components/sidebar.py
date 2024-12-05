@@ -11,10 +11,10 @@ api_or_file = html.Div(
             [
                 generate_param_title(
                     "Source",
-                    [
-                        html.P("PubTator3 API: Search + Network Generation"),
-                        html.P("PubTator File: Network Generation from PubTator File"),
-                    ],
+                    (
+                        "PubTator3 API: Search + Network Generation\n"
+                        "PubTator File: Network Generation from PubTator File"
+                    ),
                 ),
                 dbc.RadioItems(
                     id="api-toggle-items",
@@ -38,11 +38,7 @@ pubtator_file = html.Div(
             [
                 generate_param_title(
                     "PubTator File",
-                    [
-                        html.P(
-                            "The file downloaded using the 'PubTator File' button after running the 'PubTator3 API'"
-                        ),
-                    ],
+                    "The file downloaded using the 'PubTator File' button after running the 'PubTator3 API'",
                 ),
                 dcc.Upload(
                     id="pubtator-file-data",
@@ -66,15 +62,11 @@ api_params = html.Div(
             [
                 generate_param_title(
                     "Search Type",
-                    [
-                        html.P(
-                            "Text Search: Query PubTator3 by text (use double quotes to match whole words and AND/OR to combine keywords)"
-                        ),
-                        html.P("PMID: Query PubTator3 by comma-separated PMIDs"),
-                        html.P(
-                            "PMID File: Query PubTator3 by a text file of PMIDs (one per line)"
-                        ),
-                    ],
+                    (
+                        "Text Search: Query PubTator3 by text (use double quotes to match whole words and AND/OR to combine keywords)\n"
+                        "PMID: Query PubTator3 by comma-separated PMIDs\n"
+                        "PMID File: Query PubTator3 by a text file of PMIDs (one per line)"
+                    ),
                 ),
                 dcc.Dropdown(
                     id="input-type-selection",
@@ -92,16 +84,27 @@ api_params = html.Div(
         html.Div(id="input-type", className="param"),
         html.Div(
             [
+                generate_param_title("Sort", "Sort articles by recency or relevance"),
+                dbc.RadioItems(
+                    id="sort-toggle-methods",
+                    options=[
+                        {"label": "Recency", "value": "date"},
+                        {"label": "Relevance", "value": "score"},
+                    ],
+                    value="date",
+                    inline=True,
+                ),
+            ],
+            className="param",
+        ),
+        html.Div(
+            [
                 generate_param_title(
                     "PubTator3 Parameters",
-                    [
-                        html.P(
-                            "Use MeSH Vocabulary: Replace original text in articles with standardized MeSH terms"
-                        ),
-                        html.P(
-                            "Full Text: Build network from full-text articles if available, defaulting to abstracts otherwise (not recommended to enable)"
-                        ),
-                    ],
+                    (
+                        "Use MeSH Vocabulary: Replace original text in articles with standardized MeSH terms\n"
+                        "Full Text: Build network from full-text articles if available, defaulting to abstracts otherwise (not recommended to enable)"
+                    ),
                 ),
                 dbc.Checklist(
                     options=[
@@ -126,13 +129,11 @@ network_params = html.Div(
             [
                 generate_param_title(
                     "Node Filter",
-                    [
-                        html.P("All: Retain all annotations"),
-                        html.P("MeSH: Retain annotations with standardized MeSH terms only"),
-                        html.P(
-                            "BioREx Relation: Retain annotations with high-confidence relationships from PubTator3 BioREx model"
-                        ),
-                    ],
+                    (
+                        "All: Retain all annotations\n"
+                        "MeSH: Retain annotations with standardized MeSH terms only\n"
+                        "BioREx Relation: Retain annotations with high-confidence relationships from PubTator3 BioREx model"
+                    ),
                 ),
                 dcc.Dropdown(
                     id="node-type",
@@ -151,12 +152,10 @@ network_params = html.Div(
             [
                 generate_param_title(
                     "Weighting Method",
-                    [
-                        html.P("Frequency: Calculate edge weights using co-occurence counts"),
-                        html.P(
-                            "NPMI: Calulate edge weights using normalized mutual pointwise information"
-                        ),
-                    ],
+                    (
+                        "Frequency: Calculate edge weights using co-occurence counts\n"
+                        "NPMI: Calulate edge weights using normalized mutual pointwise information"
+                    ),
                 ),
                 dcc.Dropdown(
                     id="weighting-method",
@@ -174,9 +173,7 @@ network_params = html.Div(
             [
                 generate_param_title(
                     "Edge Weight Cutoff",
-                    [
-                        html.P("Set the minimum edge weight to filter the graph"),
-                    ],
+                    "Set the minimum edge weight to filter the graph",
                 ),
                 dcc.Slider(
                     0,
@@ -194,9 +191,7 @@ network_params = html.Div(
             [
                 generate_param_title(
                     "Network Parameters",
-                    [
-                        html.P("Community: Group nodes into communities"),
-                    ],
+                    "Community: Group nodes into communities",
                 ),
                 dbc.Checklist(
                     options=[

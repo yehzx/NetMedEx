@@ -1,18 +1,21 @@
 window.dash_clientside = window.dash_clientside || {}
 window.dash_clientside.clientside = {
   info_scroll: function (trigger) {
-    const infoElements = document.querySelectorAll(".info-outer")
-    const boxElements = document.querySelectorAll(".info-inner")
-    const sidebar = document.querySelector(".sidebar")
+    const infoElements = document.querySelectorAll("[data-tooltip]")
+    const rootElement = document.querySelector(":root")
+    // const sidebar = document.querySelector(".sidebar")
     
-    const offsetYs = {}
-    infoElements.forEach((headerFixed, idx) => {
-      headerFixed.addEventListener("mouseover", () => {
-        scrollTop = sidebar.scrollTop
-        if (offsetYs[idx] === undefined) {
-          offsetYs[idx] = boxElements[idx].offsetTop
+    // const offsetYs = {}
+    infoElements.forEach((infoElement) => {
+      infoElement.addEventListener("mouseover", () => {
+        console.log("triggered")
+        const position = infoElement.getBoundingClientRect()
+        if (infoElement.classList.contains("info-right")) {
+          rootElement.style.setProperty("--tooltip-x", `${position.right}px`)
+        } else {
+          rootElement.style.setProperty("--tooltip-x", `${position.left}px`)
         }
-        boxElements[idx].style.top = `${offsetYs[idx] - scrollTop}px`
+          rootElement.style.setProperty("--tooltip-y", `${position.bottom}px`)
       })
     }) 
     

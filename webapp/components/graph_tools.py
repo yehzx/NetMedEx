@@ -9,9 +9,8 @@ graph_layout = html.Div(
     [
         generate_param_title(
             "Graph Layout",
-            [
-                html.P("Select a layout to arrange the nodes"),
-            ],
+            "Select a layout to arrange the nodes",
+            is_right=True,
         ),
         dcc.Dropdown(
             id="graph-layout",
@@ -36,9 +35,8 @@ minimal_degree = html.Div(
     [
         generate_param_title(
             "Minimal Degree",
-            [
-                html.P("Set the minimum node degree to filter the graph"),
-            ],
+            "Set the minimum node degree to filter the graph",
+            is_right=True,
         ),
         dbc.Input(
             id="node-degree",
@@ -57,9 +55,8 @@ edge_weight_cutoff = html.Div(
     [
         generate_param_title(
             "Edge Weight Cutoff",
-            [
-                html.P("Set the minimum edge weight to filter the graph"),
-            ],
+            "Set the minimum edge weight to filter the graph",
+            is_right=True,
         ),
         dcc.Slider(
             0,

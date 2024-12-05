@@ -9,9 +9,7 @@ max_edges = html.Div(
     [
         generate_param_title(
             "Max Edges",
-            [
-                html.P("Set the maximum number of edges to display in the graph."),
-            ],
+            "Set the maximum number of edges to display in the graph.",
         ),
         dcc.Slider(
             0,

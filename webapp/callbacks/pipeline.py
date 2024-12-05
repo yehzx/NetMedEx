@@ -21,6 +21,7 @@ def callbacks(app):
         Input("submit-button", "n_clicks"),
         [
             State("api-toggle-items", "value"),
+            State("sort-toggle-methods", "value"),
             State("input-type-selection", "value"),
             State("data-input", "value"),
             State("pmid-file-data", "contents"),
@@ -45,6 +46,7 @@ def callbacks(app):
         set_progress,
         btn,
         source,
+        sort_by,
         input_type,
         data_input,
         pmid_file_data,
@@ -68,6 +70,7 @@ def callbacks(app):
         use_mesh = "use_mesh" in pubtator_params
         full_text = "full_text" in pubtator_params
         community = "community" in cy_params
+        query_method = "search" if sort_by == "score" else "cite"
 
         if source == "api":
             if input_type == "query":
@@ -92,19 +95,24 @@ def callbacks(app):
                     MAX_ARTICLES,
                     full_text,
                     use_mesh,
-                    "search",
+                    query_method,
                     queue,
                 ),
             )
-            set_progress((0, 1, "", "Finding articles..."))
+            set_progress((0, 1, "", "(Step 1/2): Finding articles..."))
 
             job.start()
             while True:
                 progress = queue.get()
                 if progress is None:
                     break
-                n, total = progress.split("/")
-                set_progress((n, total, progress, "Finding articles..."))
+                status, n, total = progress.split("/")
+                if status.startswith("search"):
+                    status_msg = "(Step 1/2): Finding articles..."
+                elif status == "get":
+                    status_msg = "(Step 2/2): Retrieving articles..."
+                progress_bar_msg = f"{n}/{total}"
+                set_progress((int(n), int(total), progress_bar_msg, status_msg))
 
             if _exception_type is not None:
                 known_exceptions = (
