@@ -8,6 +8,8 @@
     --TEXT: #1f0737;
     --SETTINGS-BACKGROUND: #e2dad6; 
     --GRAY-TEXT: #585858;
+    --tooltip-x: 0px;
+    --tooltip-y: 0px;
 }
 
 * {
@@ -48,7 +50,7 @@ h1, h2, h3, h4 {
 
 .main-div {
     background-color: var(--MAIN-BACKGROUND);
-    max-height: 100%;
+    max-height: calc(100% - 1px);
     max-width: calc(100% - 350px);
     padding: 10px 10px 0 10px;
 }
@@ -80,6 +82,7 @@ a:hover {
     /* padding-top: 1.5rem; */
     height: 100%;
     overflow-y: auto;
+    overflow-x: visible;
     background-color: var(--SIDEBAR-BACKGROUND);
 }
 
@@ -244,21 +247,40 @@ a:hover {
     margin: 0 8px;
 }
 
-.info-inner {
-    visibility: hidden;
+[data-tooltip]:before {
     position: fixed;
+    display: inline-block;
+    content: attr(data-tooltip);
     background-color: whitesmoke;
+    color: var(--GRAY-TEXT);
     border-radius: 4px;
-    padding: 0 5px;
+    text-align: left;
     box-shadow: 1px 1px 10px 1px rgba(0, 0, 0, 0.2);
-    z-index: 1;
-    transition-property: visibility;
-    transition-delay: 0s;
+    opacity: 0;
+    /* transform: translateX(-50%) translateY(-2px); */
+    transition: opacity .1s ease-out, transform .1s ease-out;
+    visibility: hidden;
+    padding: 0 5px;
+    z-index: 10;
+    white-space: pre-wrap;
 }
 
-.info-outer:hover .info-inner {
+[data-tooltip] {
+    position: relative;
+}
+
+[data-tooltip]:hover:before {
+    opacity: 1;
+    top: var(--tooltip-y);
     visibility: visible;
-    transition-delay: 0.3s;
+}
+
+.info-right[data-tooltip]:hover:before  {
+    right: calc(100% - var(--tooltip-x));
+}
+
+.info-left[data-tooltip]:hover:before  {
+    left: var(--tooltip-x);
 }
 
 .info-inner p {

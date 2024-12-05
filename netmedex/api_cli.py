@@ -114,7 +114,7 @@ def run_query_pipeline(
     if type == "query":
         if query is None or query.strip() == "":
             raise EmptyInput
-        pmid_list = get_search_results(query, max_articles, query_method=query_method)
+        pmid_list = get_search_results(query, max_articles, query_method=query_method, queue=queue)
     elif type == "pmids":
         if not query:
             raise EmptyInput
@@ -137,17 +137,18 @@ def run_query_pipeline(
     write_output(output, savepath=savepath, use_mesh=use_mesh)
 
 
-def get_search_results(query, max_articles, query_method: Literal["search", "cite"]):
+def get_search_results(query, max_articles, query_method: Literal["search", "cite"], queue=None):
     logger.info(f"Query: {query}")
     if query_method == "search":
-        article_list = get_by_search(query, max_articles)
+        article_list = get_by_search(query, max_articles, queue=queue)
     elif query_method == "cite":
-        article_list = get_by_cite(query, max_articles)
+        article_list = get_by_cite(query, max_articles, queue=queue)
 
     return article_list
 
 
-def get_by_search(query, max_articles, sort: Literal["score", "date"] = "score"):
+def get_by_search(query, max_articles, sort: Literal["score", "date"] = "score", queue=None):
+    return_progress = isinstance(queue, Queue)
     res = send_search_query(query, type="search")
 
     article_list = []
@@ -167,11 +168,13 @@ def get_by_search(query, max_articles, sort: Literal["score", "date"] = "score")
     with requests.Session() as session:
         with tqdm(total=n_articles_to_request, file=sys.stdout) as pbar:
             while current_page * page_size < n_articles_to_request:
-                pbar.update(page_size)
                 current_page += 1
                 res = send_search_query_with_page(query, current_page, sort, session)
                 if request_successful(res):
                     article_list.extend(get_article_ids(res.json()))
+                pbar.update(page_size)
+                if return_progress:
+                    queue.put(progress_message("search-search", pbar.n, pbar.total))
             pbar.n = pbar.total
 
     return article_list[:n_articles_to_request]
@@ -205,18 +208,21 @@ def get_n_articles(max_articles, total_articles):
     return n_articles_to_request
 
 
-def get_by_cite(query, max_articles):
+def get_by_cite(query, max_articles, queue=None):
+    return_progress = isinstance(queue, Queue)
     logger.info("Obtaining article PMIDs...")
     res = send_search_query(query, type="cite")
     if not request_successful(res):
         if FALLBACK_SEARCH:
             logger.warning("Fetching articles by 'cite' method failed. Switch to 'search'.")
-            return get_by_search(query, max_articles, sort="date")
+            return get_by_search(query, max_articles, sort="date", queue=queue)
         else:
             unsuccessful_query(res.status_code)
 
     pmid_list = parse_cite_response(res.text)
     n_articles_to_request = get_n_articles(max_articles, len(pmid_list))
+    if return_progress:
+        queue.put(progress_message("search-cite", n_articles_to_request, n_articles_to_request))
 
     return pmid_list[:n_articles_to_request]
 
@@ -286,7 +292,7 @@ def batch_publication_query(id_list, type, full_text=False, use_mesh=False, queu
                     pbar.n = len(id_list)
 
                 if return_progress:
-                    queue.put(f"{pbar.n}/{len(id_list)}")
+                    queue.put(progress_message("get", pbar.n, pbar.total))
 
     if return_progress:
         queue.put(None)
@@ -299,6 +305,10 @@ def batch_publication_query(id_list, type, full_text=False, use_mesh=False, queu
         with open(f"./pubtator3_pmid_{now}.txt", "w") as f:
             f.writelines([f"{id}\n" for id in id_list])
     return output
+
+
+def progress_message(status, progress, total):
+    return f"{status}/{progress}/{total}"
 
 
 def send_publication_query(
