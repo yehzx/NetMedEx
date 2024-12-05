@@ -9,7 +9,7 @@ from netmedex.api_cli import load_pmids, run_query_pipeline
 from netmedex.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
 from netmedex.network_cli import pubtator2cytoscape
 from netmedex.utils_threading import run_thread_with_error_notification
-from webapp.utils import DATA, MAX_ARTICLES, visibility
+from webapp.utils import DATA, visibility
 
 
 def callbacks(app):
@@ -28,6 +28,7 @@ def callbacks(app):
             State("pubtator-file-data", "contents"),
             State("cut-weight", "value"),
             State("max-edges", "value"),
+            State("max-articles", "value"),
             State("pubtator-params", "value"),
             State("cy-params", "value"),
             State("weighting-method", "value"),
@@ -53,6 +54,7 @@ def callbacks(app):
         pubtator_file_data,
         weight,
         max_edges,
+        max_articles,
         pubtator_params,
         cy_params,
         weighting_method,
@@ -92,7 +94,7 @@ def callbacks(app):
                     query,
                     str(DATA["pubtator"]),
                     input_type,
-                    MAX_ARTICLES,
+                    max_articles,
                     full_text,
                     use_mesh,
                     query_method,
