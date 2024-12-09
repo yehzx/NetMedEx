@@ -3,12 +3,9 @@ window.dash_clientside.clientside = {
   info_scroll: function (trigger) {
     const infoElements = document.querySelectorAll("[data-tooltip]")
     const rootElement = document.querySelector(":root")
-    // const sidebar = document.querySelector(".sidebar")
     
-    // const offsetYs = {}
     infoElements.forEach((infoElement) => {
       infoElement.addEventListener("mouseover", () => {
-        console.log("triggered")
         const position = infoElement.getBoundingClientRect()
         if (infoElement.classList.contains("info-right")) {
           rootElement.style.setProperty("--tooltip-x", `${position.right}px`)

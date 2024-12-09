@@ -101,7 +101,7 @@ def callbacks(app):
                     queue,
                 ),
             )
-            set_progress((0, 1, "", "(Step 1/2): Finding articles..."))
+            set_progress((0, 1, "", "(Step 1/2) Finding articles..."))
 
             job.start()
             while True:
@@ -110,9 +110,9 @@ def callbacks(app):
                     break
                 status, n, total = progress.split("/")
                 if status.startswith("search"):
-                    status_msg = "(Step 1/2): Finding articles..."
+                    status_msg = "(Step 1/2) Finding articles..."
                 elif status == "get":
-                    status_msg = "(Step 2/2): Retrieving articles..."
+                    status_msg = "(Step 2/2) Retrieving articles..."
                 progress_bar_msg = f"{n}/{total}"
                 set_progress((int(n), int(total), progress_bar_msg, status_msg))
 
