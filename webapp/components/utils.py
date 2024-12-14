@@ -18,3 +18,12 @@ def generate_param_title(title, descriptions, is_right=False):
         ],
         className="param-title",
     )
+
+
+def icon_download():
+    return html.Img(
+        src=dash.get_asset_url("icon_download.svg"),
+        width=20,
+        height=20,
+        style={"margin-right": "5px"},
+    )

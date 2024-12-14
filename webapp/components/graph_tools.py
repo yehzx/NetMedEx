@@ -1,8 +1,8 @@
+import dash
 import dash_bootstrap_components as dbc
-import dash_svg as svg
 from dash import dcc, html
 
-from webapp.components.utils import generate_param_title
+from webapp.components.utils import generate_param_title, icon_download
 from webapp.utils import visibility
 
 graph_layout = html.Div(
@@ -75,30 +75,37 @@ edge_weight_cutoff = html.Div(
 graph_tools = html.Div(
     [
         dbc.Button(
-            "PubTator File",
+            [
+                icon_download(),
+                "PubTator",
+            ],
             id="download-pubtator-btn",
             className="export-btn",
             color="success",
             style=visibility.hidden,
         ),
         dcc.Download(id="download-pubtator"),
-        dbc.Button("Export (html)", id="export-btn-html", className="export-btn"),
+        dbc.Button(
+            [
+                icon_download(),
+                "HTML",
+            ],
+            id="export-btn-html",
+            className="export-btn",
+        ),
         dcc.Download(id="export-html"),
-        dbc.Button("Export (xgmml)", id="export-btn-xgmml", className="export-btn"),
+        dbc.Button(
+            [
+                icon_download(),
+                "XGMML",
+            ],
+            id="export-btn-xgmml",
+            className="export-btn",
+        ),
         dcc.Download(id="export-xgmml"),
         dbc.Button(
-            svg.Svg(
-                xmlns="http://www.w3.org/2000/svg",
-                width="20",
-                height="20",
-                fill="currentColor",
-                className="bi bi-three-dots",
-                viewBox="0 0 16 16",
-                children=[
-                    svg.Path(
-                        d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"
-                    ),
-                ],
+            html.Img(
+                src=dash.get_asset_url("three-dots.svg"),
             ),
             # "Settings",
             id="graph-settings-btn",
