@@ -111,6 +111,7 @@ def callbacks(app):
         State("cy-graph-container", "style"),
         State("graph-layout", "value"),
         State("is-new-graph", "data"),
+        State("current-session-path", "data"),
         prevent_initial_call=True,
     )
     def update_graph(
@@ -121,6 +122,7 @@ def callbacks(app):
         container_style,
         graph_layout,
         is_new_graph,
+        savepath,
     ):
         if container_style["visibility"] == "hidden":
             cy_graph = generate_cytoscape_js_network(graph_layout, None)
@@ -133,7 +135,13 @@ def callbacks(app):
             is_new_graph or new_cut_weight != old_cut_weight or new_node_degree != old_node_degree
         )
         if conditions:
-            G = rebuild_graph(new_node_degree, new_cut_weight, format="html", with_layout=True)
+            G = rebuild_graph(
+                new_node_degree,
+                new_cut_weight,
+                format="html",
+                with_layout=True,
+                graph_path=savepath["graph"],
+            )
             graph_json = create_cytoscape_js(G, style="dash")
             graph_json = generate_new_id(graph_json)
             cy_graph = generate_cytoscape_js_network(graph_layout, graph_json)
@@ -148,11 +156,14 @@ def callbacks(app):
         State("node-degree", "value"),
         State("graph-cut-weight", "value"),
         State("cy", "elements"),
+        State("current-session-path", "data"),
         prevent_initial_call=True,
     )
-    def update_graph_layout(layout, node_degree, weight, elements):
+    def update_graph_layout(layout, node_degree, weight, elements, savepath):
         if layout == "preset":
-            G = rebuild_graph(node_degree, weight, format="html", with_layout=True)
+            G = rebuild_graph(
+                node_degree, weight, format="html", with_layout=True, graph_path=savepath["graph"]
+            )
             graph_json = create_cytoscape_js(G, style="dash")
             graph_json = generate_new_id(graph_json)
             elements = [*graph_json["elements"]["nodes"], *graph_json["elements"]["edges"]]
