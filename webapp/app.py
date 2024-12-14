@@ -26,6 +26,7 @@ app = Dash(
     suppress_callback_exceptions=True,
 )
 app.title = "NetMedEx"
+app._favicon = "NetMedEx_ico.ico"
 
 from webapp.components.graph import graph
 from webapp.components.sidebar import sidebar
