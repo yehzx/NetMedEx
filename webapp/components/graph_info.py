@@ -2,6 +2,7 @@ import dash
 import dash_bootstrap_components as dbc
 from dash import dcc, html
 
+from webapp.components.utils import icon_download
 from webapp.utils import visibility
 
 
@@ -18,7 +19,7 @@ def create_legend_box(icon, text):
 edge_info = html.Div(
     [
         html.H5("Edge Info", className="text-center"),
-        dbc.Button("Export (csv)", id="export-edge-btn", className="export-btn"),
+        dbc.Button([icon_download(), "CSV"], id="export-edge-btn", className="export-btn"),
         dcc.Download(id="export-edge-csv"),
         html.Div(id="edge-info"),
     ],
