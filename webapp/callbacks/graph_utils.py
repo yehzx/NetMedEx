@@ -10,7 +10,6 @@ from netmedex.network_cli import (
     set_network_communities,
     set_network_layout,
 )
-from webapp.utils import DATA
 
 
 def filter_node(G: nx.Graph, node_degree_threshold: int):
@@ -20,10 +19,15 @@ def filter_node(G: nx.Graph, node_degree_threshold: int):
 
 
 def rebuild_graph(
-    node_degree, cut_weight, format: Literal["xgmml", "html"], G=None, with_layout=False
+    node_degree,
+    cut_weight,
+    format: Literal["xgmml", "html"],
+    G=None,
+    with_layout=False,
+    graph_path=None,
 ):
     if G is None:
-        with open(DATA["graph"], "rb") as f:
+        with open(graph_path, "rb") as f:
             G = pickle.load(f)
 
     remove_edges_by_weight(G, cut_weight)

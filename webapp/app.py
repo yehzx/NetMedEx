@@ -6,7 +6,7 @@ import os
 
 import dash_bootstrap_components as dbc
 import diskcache
-from dash import ClientsideFunction, Dash, Input, Output, html
+from dash import ClientsideFunction, Dash, Input, Output, dcc, html
 from dash.long_callback import DiskcacheLongCallbackManager
 
 from netmedex.utils import config_logger
@@ -30,8 +30,10 @@ app.title = "NetMedEx"
 from webapp.components.graph import graph
 from webapp.components.sidebar import sidebar
 
+current_session_path = dcc.Store(id="current-session-path")
+
 content = html.Div(
-    [sidebar, graph],
+    [current_session_path, sidebar, graph],
     className="d-flex flex-row position-relative h-100",
 )
 
