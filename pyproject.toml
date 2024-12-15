@@ -16,7 +16,7 @@ authors = [
 ]
 description = "TODO"
 readme = "README.md"
-requires-python=">=3.9"
+requires-python=">=3.11"
 dependencies = [
   "requests",
   "tqdm",
@@ -46,13 +46,11 @@ dev = [
 ]
 
 [project.scripts]
-pubtator3 = "netmedex.api_cli:main"
-tocytoscape = "netmedex.network_cli:main"
-
+netmedex = "netmedex.cli:main"
 
 [tool.ruff]
 line-length = 99 
-target-version = "py39"
+target-version = "py311"
 # exclude = [""]
 
 [tool.ruff.lint]

@@ -8,18 +8,17 @@ from unittest import mock
 import pytest
 import requests_mock
 
-from netmedex.api_cli import (
-    batch_publication_query,
-    load_pmids,
+from netmedex.biocjson_parser import biocjson_to_pubtator, get_biocjson_annotations
+from netmedex.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
+from netmedex.pubtator_core import (
+    PubTatorAPI,
     parse_cite_response,
     request_successful,
-    run_query_pipeline,
     send_publication_query,
     send_search_query,
     unsuccessful_query,
 )
-from netmedex.biocjson_parser import convert_to_pubtator, get_biocjson_annotations
-from netmedex.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
+from netmedex.pubtator_utils import load_pmids
 
 TESTDATA_DIR = Path(__file__).parent / "test_data"
 
@@ -114,7 +113,7 @@ def test_search_publication_abstract(paths, **kwargs):
         status_code=200,
         json=res_json,
     )
-    res = send_publication_query(pmid, type="pmids", format="biocjson", full_text=False)
+    res = send_publication_query(pmid, article_id_type="pmids", format="biocjson", full_text=False)
     annotation_list = get_biocjson_annotations(res.json()["PubTator3"][0], retain_ori_text=False)
 
     assert len(annotation_list) == 33
@@ -133,7 +132,7 @@ def test_search_publication_full_text(paths, **kwargs):
         json=res_json,
     )
 
-    res = send_publication_query(pmid, type="pmids", format="biocjson", full_text=True)
+    res = send_publication_query(pmid, article_id_type="pmids", format="biocjson", full_text=True)
     annotation_list = get_biocjson_annotations(res.json()["PubTator3"][0], retain_ori_text=False)
 
     assert len(annotation_list) == 666
@@ -141,7 +140,7 @@ def test_search_publication_full_text(paths, **kwargs):
 
 def test_api_search_publication_full_text():
     pmid = "37026113"
-    res = send_publication_query(pmid, type="pmids", format="biocjson", full_text=True)
+    res = send_publication_query(pmid, article_id_type="pmids", format="biocjson", full_text=True)
 
     expected_len = 379
     if res.status_code == 200:
@@ -159,7 +158,9 @@ def test_biocjson_pubtator_equal(paths):
 
     with open(pubtator_path) as pubtator, open(biocjson_path) as cjson:
         pubtator = pubtator.read()
-        cjson = convert_to_pubtator(json.load(cjson), retain_ori_text=True, role_type="identifier")
+        cjson = biocjson_to_pubtator(
+            json.load(cjson), retain_ori_text=True, role_type="identifier"
+        )
         assert cjson == pubtator
 
 
@@ -196,8 +197,20 @@ def test_use_mesh(paths, **kwargs):
         json=res_json,
     )
 
-    output = batch_publication_query(["37026113"], type="pmids", full_text=False, use_mesh=True)
-    result = convert_to_pubtator(output[0], retain_ori_text=False)
+    pubtator_api = PubTatorAPI(
+        query=None,
+        pmid_list=["37026113"],
+        savepath=None,
+        search_type="pmids",
+        sort="date",
+        max_articles=1000,
+        use_mesh=True,
+        full_text=False,
+        debug=False,
+        queue=None,
+    )
+    output = pubtator_api.batch_publication_search()
+    result = biocjson_to_pubtator(output[0], retain_ori_text=False)
 
     with open(test_filepath) as f:
         assert result == f.read()
@@ -213,14 +226,20 @@ def test_batch_publication_queue(paths, **kwargs):
 
     queue = Queue()
     progress = []
-    expected = ["100/200", "200/200", None]
-    batch_publication_query(
-        id_list=[str(i) for i in range(200)],
-        type="pmids",
-        full_text=False,
+    expected = ["get/100/200", "get/200/200", None]
+    pubtator_api = PubTatorAPI(
+        query=None,
+        pmid_list=[str(i) for i in range(200)],
+        savepath=None,
+        search_type="pmids",
+        sort="date",
+        max_articles=1000,
         use_mesh=False,
+        full_text=False,
+        debug=False,
         queue=queue,
     )
+    pubtator_api.batch_publication_search()
     while True:
         result = queue.get()
         progress.append(result)
@@ -239,19 +258,43 @@ def test_batch_publication_queue(paths, **kwargs):
     ],
 )
 def test_empty_input(args):
+    pubtator_api = PubTatorAPI(
+        query=args[0],
+        pmid_list=args[1],
+        savepath=None,
+        search_type=args[2],
+        sort="date",
+        max_articles=1000,
+        use_mesh=False,
+        full_text=False,
+        debug=False,
+        queue=None,
+    )
     with pytest.raises(EmptyInput):
-        run_query_pipeline(*args)
+        pubtator_api.run()
 
 
 @requests_mock.Mocker(kw="mock")
 def test_no_articles(**kwargs):
+    pubtator_api = PubTatorAPI(
+        query="qwrsadga",
+        pmid_list=None,
+        savepath=None,
+        search_type="query",
+        sort="date",
+        max_articles=1000,
+        use_mesh=False,
+        full_text=False,
+        debug=False,
+        queue=None,
+    )
     kwargs["mock"].get(
         "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/cite/tsv?text=qwrsadga",
         status_code=200,
         text="",
     )
     with pytest.raises(NoArticles):
-        run_query_pipeline("qwrsadga", None, "query")
+        pubtator_api.run()
 
 
 @requests_mock.Mocker(kw="mock")
@@ -285,14 +328,19 @@ def test_run_query_pipeline_query(type, full_text, use_mesh, file_format, paths,
         status_code=200,
         **text_or_json,
     )
-
-    run_query_pipeline(
+    pubtator_api = PubTatorAPI(
         query="N-dimethylnitrosamine and Metformin",
+        pmid_list=None,
         savepath=None,
-        type=type,
-        full_text=full_text,
+        search_type=type,
+        sort="date",
+        max_articles=1000,
         use_mesh=use_mesh,
+        full_text=full_text,
+        debug=False,
+        queue=None,
     )
+    pubtator_api.run()
 
 
 def test_load_pmids_file(paths):
@@ -327,7 +375,7 @@ def test_load_pmids_string(query, expected):
 )
 def test_request_successful(status_code, expected, **kwargs):
     res = SimpleNamespace(status_code=status_code)
-    with mock.patch("netmedex.api_cli.logger") as mock_logger:
+    with mock.patch("netmedex.pubtator_core.logger") as mock_logger:
         assert request_successful(res) == expected
         if not expected:
             mock_logger.info.assert_called_with("Unsuccessful request")
@@ -343,6 +391,6 @@ def test_request_successful(status_code, expected, **kwargs):
 )
 def test_unsuccessful_query(status_code, msg, **kwargs):
     with pytest.raises(UnsuccessfulRequest):
-        with mock.patch("netmedex.api_cli.logger") as mock_logger:
+        with mock.patch("netmedex.pubtator_core.logger") as mock_logger:
             unsuccessful_query(status_code)
             mock_logger.warning.assert_called_with(msg)

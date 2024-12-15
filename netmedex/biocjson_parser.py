@@ -5,10 +5,10 @@ from typing import Literal
 logger = logging.getLogger(__name__)
 
 
-def convert_to_pubtator(
+def biocjson_to_pubtator(
     res_json,
-    retain_ori_text=True,
-    only_abstract=False,
+    retain_ori_text: bool = True,
+    only_abstract: bool = False,
     role_type: Literal["identifier", "name"] = "identifier",
 ):
     # 2024/05/26: PubTator has changed the format of the response

@@ -1,18 +1,15 @@
 from unittest import mock
 
-import networkx as nx
 import pytest
 
-from netmedex.network_cli import (
+from netmedex.network_core import NetworkBuilder
+from netmedex.pubtator_parser import (
     HEADER_SYMBOL,
-    add_edge_to_graph,
-    add_node_to_graph,
-    merge_same_name_genes,
-    parse_header,
-    parse_pubtator,
-    remove_isolated_nodes,
+    PubTatorEdgeData,
+    PubTatorLine,
+    PubTatorNodeData,
+    PubTatorParser,
 )
-from netmedex.pubtator_data import PubTatorEdgeData, PubTatorNodeData
 
 
 @pytest.fixture(scope="module")
@@ -24,18 +21,26 @@ def paths():
     }
 
 
-def build_graph(result):
-    G = nx.Graph()
-    add_node_to_graph(G, result["node_dict"], result["non_isolated_nodes"])
-    add_edge_to_graph(G, result["node_dict"], result["edge_dict"], None, "freq")
-    remove_isolated_nodes(G)
+@pytest.fixture()
+def network_args():
+    return {
+        "pubtator_filepath": None,
+        "savepath": None,
+        "node_type": "all",
+        "output_filetype": "html",
+        "weighting_method": "freq",
+        "edge_weight_cutoff": 0,
+        "pmid_weight_filepath": None,
+        "community": False,
+        "max_edges": 0,
+        "debug": False,
+    }
 
-    return G
 
-
-def test_index_by_text(paths):
-    result = parse_pubtator(paths["simple"], node_type="all")
-    G = build_graph(result)
+def test_index_by_text(paths, network_args):
+    network_args["pubtator_filepath"] = paths["simple"]
+    network_builder = NetworkBuilder(**network_args)
+    G = network_builder.run()
 
     assert G.nodes.get(
         "RS#:854560;HGVS:p.L55M;CorrespondingGene:5444", False
@@ -44,9 +49,11 @@ def test_index_by_text(paths):
     assert len(G.edges) == 47, f"result: {len(G.edges)} nodes\nexpected: 47 edges"
 
 
-def test_index_by_relation(paths):
-    result = parse_pubtator(paths["simple"], node_type="relation")
-    G = build_graph(result)
+def test_index_by_relation(paths, network_args):
+    network_args["pubtator_filepath"] = paths["simple"]
+    network_args["node_type"] = "relation"
+    network_builder = NetworkBuilder(**network_args)
+    G = network_builder.run()
 
     assert G.nodes.get(
         "RS#:854560;HGVS:p.L55M;CorrespondingGene:5444", False
@@ -55,9 +62,11 @@ def test_index_by_relation(paths):
     assert len(G.edges) == 9, f"result: {len(G.edges)} nodes\nexpected: 9 edges"
 
 
-def test_index_by_mesh(paths):
-    result = parse_pubtator(paths["simple"], node_type="mesh")
-    G = build_graph(result)
+def test_index_by_mesh(paths, network_args):
+    network_args["pubtator_filepath"] = paths["simple"]
+    network_args["node_type"] = "mesh"
+    network_builder = NetworkBuilder(**network_args)
+    G = network_builder.run()
 
     assert G.nodes.get(
         "RS#:854560;HGVS:p.L55M;CorrespondingGene:5444", False
@@ -66,17 +75,19 @@ def test_index_by_mesh(paths):
     assert len(G.edges) == 41, f"result: {len(G.edges)} nodes\nexpected: 41 edges"
 
 
-def test_mesh_collision_handling(paths):
-    result = parse_pubtator(paths["mesh_collision"], node_type="all")
-    G = build_graph(result)
+def test_mesh_collision_handling(paths, network_args):
+    network_args["pubtator_filepath"] = paths["mesh_collision"]
+    network_builder = NetworkBuilder(**network_args)
+    G = network_builder.run()
 
     assert len(G.nodes) == 7, f"result: {len(G.nodes)} nodes\nexpected: 7 nodes"
     assert len(G.edges) == 21, f"result: {len(G.edges)} nodes\nexpected: 21 edges"
 
 
-def test_merge_genes(paths):
-    result = parse_pubtator(paths["merge_genes"], node_type="all")
-    G = build_graph(result)
+def test_merge_genes(paths, network_args):
+    network_args["pubtator_filepath"] = paths["merge_genes"]
+    network_builder = NetworkBuilder(**network_args)
+    G = network_builder.run()
 
     assert len(G.nodes) == 7, f"result: {len(G.nodes)} nodes\nexpected: 7 nodes"
     assert len(G.edges) == 11, f"result: {len(G.nodes)} nodes\nexpected: 11 edges"
@@ -92,10 +103,11 @@ def test_merge_genes(paths):
 )
 def test_parse_header(data, expected, monkeypatch: pytest.MonkeyPatch):
     monkeypatch.setattr("builtins.open", mock.mock_open(read_data=data))
-    flags = {}
-    with mock.patch("netmedex.network_cli.flags", flags):
-        parse_header("")
-        assert flags.get("use_mesh", False) == expected
+    pubtator_line = PubTatorLine
+    with mock.patch("netmedex.pubtator_parser.PubTatorLine", pubtator_line):
+        parser = PubTatorParser(data, node_type="all")
+        parser.parse()
+        assert pubtator_line.use_mesh == expected
 
 
 def test_merge_same_name_genes():
@@ -109,7 +121,10 @@ def test_merge_same_name_genes():
         ("gene_1", "gene_2"): [PubTatorEdgeData(id=6, pmid="20")],
         ("foo", "bar"): [PubTatorEdgeData(id=7, pmid="30"), PubTatorEdgeData(id=8, pmid="40")],
     }
-    merge_same_name_genes(node_dict, edge_dict)
+    parser = PubTatorParser(pubtator_filepath="", node_type="all")
+    parser.node_dict = node_dict
+    parser.edge_dict = edge_dict
+    parser._merge_same_name_genes()
 
     assert node_dict == {
         "bar": PubTatorNodeData(id=3, mesh="-", type="Chemical", name="bar", pmids={30}),
