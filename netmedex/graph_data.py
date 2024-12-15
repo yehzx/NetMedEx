@@ -1,6 +1,5 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Optional
 
 
 @dataclass
@@ -13,8 +12,8 @@ class GraphNodeData:
     name: str
     document_frequency: int
     marked: bool = False
-    parent: Optional[str] = None
-    pos: Optional[Sequence[float]] = None
+    parent: str | None = None
+    pos: Sequence[float] | None = None
 
 
 @dataclass
@@ -25,8 +24,8 @@ class GraphEdgeData:
     npmi: float
     edge_weight: float
     pmids: list[str]
-    scaled_edge_weight: Optional[float] = None
-    edge_width: Optional[int] = None
+    scaled_edge_weight: float | None = None
+    edge_width: int | None = None
 
 
 @dataclass
