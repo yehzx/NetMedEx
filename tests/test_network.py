@@ -1,3 +1,5 @@
+from pathlib import Path
+from tempfile import TemporaryDirectory
 from unittest import mock
 
 import pytest
@@ -10,6 +12,12 @@ from netmedex.pubtator_parser import (
     PubTatorNodeData,
     PubTatorParser,
 )
+
+
+@pytest.fixture(scope="module")
+def tempdir():
+    with TemporaryDirectory() as tempdir:
+        yield Path(tempdir)
 
 
 @pytest.fixture(scope="module")
@@ -137,3 +145,9 @@ def test_merge_same_name_genes():
         ],
         ("foo", "bar"): [PubTatorEdgeData(id=7, pmid="30"), PubTatorEdgeData(id=8, pmid="40")],
     }
+
+
+def test_save_network(tempdir, paths, network_args):
+    network_args["pubtator_filepath"] = paths["simple"]
+    network_args["savepath"] = str(tempdir / "output.html")
+    NetworkBuilder(**network_args).run()
