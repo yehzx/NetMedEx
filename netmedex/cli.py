@@ -94,11 +94,18 @@ def network_entry(args):
         weighting_method=args.weighting_method,
         edge_weight_cutoff=args.cut_weight,
         pmid_weight_filepath=args.pmid_weight,
+        max_edges=args.max_edges,
         community=args.community,
         debug=args.debug,
     )
 
     network_builder.run()
+
+
+def webapp_entry(args):
+    from webapp.app import main
+
+    main()
 
 
 def parse_args(args):
@@ -118,6 +125,12 @@ def parse_args(args):
         help="Build a network from annotations",
     )
     network_subparser.set_defaults(entry_func=network_entry)
+
+    webapp_subparser = subparser.add_parser(
+        "run",
+        help="Run NetMedEx app",
+    )
+    webapp_subparser.set_defaults(entry_func=webapp_entry)
 
     return parser.parse_args(args)
 
@@ -199,8 +212,8 @@ def get_network_parser():
         "-w",
         "--cut_weight",
         type=int,
-        default=5,
-        help="Discard the edges with weight smaller than the specified value (default: 5)",
+        default=2,
+        help="Discard the edges with weight smaller than the specified value (default: 2)",
     )
     parser.add_argument(
         "-f",

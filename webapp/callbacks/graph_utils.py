@@ -1,15 +1,8 @@
-import pickle
 from typing import Literal
 
 import networkx as nx
 
-from netmedex.network_cli import (
-    remove_edges_by_rank,
-    remove_edges_by_weight,
-    remove_isolated_nodes,
-    set_network_communities,
-    set_network_layout,
-)
+from netmedex.network_core import NetworkBuilder
 
 
 def filter_node(G: nx.Graph, node_degree_threshold: int):
@@ -27,18 +20,30 @@ def rebuild_graph(
     graph_path=None,
 ):
     if G is None:
-        with open(graph_path, "rb") as f:
-            G = pickle.load(f)
+        G = NetworkBuilder.load_graph(graph_path)
 
-    remove_edges_by_weight(G, cut_weight)
-    remove_edges_by_rank(G, G.graph.get("max_edges", 0))
-    remove_isolated_nodes(G)
+    network_builder = NetworkBuilder(
+        pubtator_filepath="",
+        savepath=None,
+        node_type="",
+        output_filetype="",
+        weighting_method="",
+        edge_weight_cutoff=cut_weight,
+        pmid_weight_filepath=None,
+        community=G.graph.get("is_community", False),
+        max_edges=G.graph.get("max_edges", 0),
+        debug=False,
+    )
+
+    network_builder.remove_edges_by_weight(G)
+    network_builder.remove_edges_by_rank(G)
+    network_builder.remove_isolated_nodes(G)
     filter_node(G, node_degree)
 
     if with_layout:
-        set_network_layout(G)
+        network_builder.set_network_layout(G)
 
     if G.graph.get("is_community", False) and format == "html":
-        set_network_communities(G)
+        network_builder.set_network_communities(G)
 
     return G
