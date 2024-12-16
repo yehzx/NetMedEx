@@ -68,6 +68,21 @@ def test_api_pubtator3_api_error(query, error_msg, tempdir, monkeypatch: pytest.
         mock_logger.error.assert_called_with(error_msg)
 
 
+def test_api_pubtator3_api_fallback_search(tempdir, monkeypatch: pytest.MonkeyPatch):
+    args = [
+        "netmedex",
+        "search",
+        "-q",
+        "covid19",
+        "-o",
+        str(tempdir / "test.pubtator"),
+        "--max_articles",
+        "10",
+    ]
+    monkeypatch.setattr("sys.argv", args)
+    main()
+
+
 @pytest.mark.parametrize(
     "args,expected",
     [
