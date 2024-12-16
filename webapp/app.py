@@ -41,7 +41,7 @@ content = html.Div(
 app.layout = html.Div([content, html.Div(id="post-js-scripts")], id="main-container")
 
 
-if __name__ == "__main__":
+def main():
     try:
         collect_callbacks(app)
         app.clientside_callback(
@@ -52,3 +52,7 @@ if __name__ == "__main__":
         app.run()
     finally:
         clean_up_files()
+
+
+if __name__ == "__main__":
+    main()
