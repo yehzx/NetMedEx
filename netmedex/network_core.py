@@ -287,7 +287,11 @@ class NetworkBuilder:
         G.remove_edges_from(to_remove)
         for (c_0, c_1), weight in inter_edge_weight.items():
             # Log-adjusted weight for balance
-            weight = math.log(weight) * 5
+            try:
+                weight = math.log(weight) * 5
+                weight = 0.0 if weight < 0.0 else weight
+            except ValueError:
+                weight = 0.0
             pmids = list(set(inter_edge_pmids[(c_0, c_1)]))
             edge_data = CommunityEdgeData(
                 _id=generate_uuid(),
@@ -315,9 +319,16 @@ class NetworkBuilder:
             "json": "netmedex.cytoscape_js.save_as_json",
         }
 
-        module_path, func_name = FORMAT_FUNCTION_MAP[format].rsplit(".", 1)
+        module_path, func_name = FORMAT_FUNCTION_MAP[self.output_filetype].rsplit(".", 1)
         module = importlib.import_module(module_path)
         save_func = getattr(module, func_name)
 
         save_func(G, self.savepath)
         logger.info(f"Save graph to {self.savepath}")
+
+    @staticmethod
+    def load_graph(graph_pickle_path: str):
+        with open(graph_pickle_path, "rb") as f:
+            G = pickle.load(f)
+
+        return G
