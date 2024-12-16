@@ -9,7 +9,7 @@ from netmedex.api_cli import load_pmids, run_query_pipeline
 from netmedex.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
 from netmedex.network_cli import pubtator2cytoscape
 from netmedex.utils_threading import run_thread_with_error_notification
-from webapp.utils import DATA, visibility
+from webapp.utils import generate_session_id, get_data_savepath, visibility
 
 
 def callbacks(app):
@@ -18,6 +18,7 @@ def callbacks(app):
         Output("memory-graph-cut-weight", "data", allow_duplicate=True),
         Output("is-new-graph", "data"),
         Output("pmid-title-dict", "data"),
+        Output("current-session-path", "data"),
         Input("submit-button", "n_clicks"),
         [
             State("api-toggle-items", "value"),
@@ -73,6 +74,7 @@ def callbacks(app):
         full_text = "full_text" in pubtator_params
         community = "community" in cy_params
         query_method = "search" if sort_by == "score" else "cite"
+        savepath = get_data_savepath(generate_session_id())
 
         if source == "api":
             if input_type == "query":
@@ -92,7 +94,7 @@ def callbacks(app):
                 target=run_thread_with_error_notification(run_query_pipeline, queue),
                 args=(
                     query,
-                    str(DATA["pubtator"]),
+                    str(savepath["pubtator"]),
                     input_type,
                     max_articles,
                     full_text,
@@ -127,18 +129,18 @@ def callbacks(app):
                 else:
                     exception_msg = "An unexpected error occurred."
                 set_progress((1, 1, "", exception_msg))
-                return (no_update, weight, False, no_update)
+                return (no_update, weight, False, no_update, no_update)
 
             job.join()
         elif source == "file":
-            with open(DATA["pubtator"], "w") as f:
+            with open(savepath["pubtator"], "w") as f:
                 content_type, content_string = pubtator_file_data.split(",")
                 decoded_content = base64.b64decode(content_string).decode("utf-8")
                 f.write(decoded_content)
 
         args = {
-            "input": DATA["pubtator"],
-            "output": DATA["html"],
+            "input": savepath["pubtator"],
+            "output": savepath["html"],
             "cut_weight": 0,
             "format": "html",
             "node_type": node_type,
@@ -155,7 +157,7 @@ def callbacks(app):
         G.graph["is_community"] = True if community else False
         G.graph["max_edges"] = max_edges
 
-        with open(DATA["graph"], "wb") as f:
+        with open(savepath["graph"], "wb") as f:
             pickle.dump(G, f)
 
-        return (visibility.visible, weight, True, G.graph["pmid_title"])
+        return (visibility.visible, weight, True, G.graph["pmid_title"], savepath)
