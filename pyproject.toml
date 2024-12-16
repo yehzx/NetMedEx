@@ -6,37 +6,39 @@ build-backend = "setuptools.build_meta"
 include = ["netmedex*", "webapp*"]
 
 [tool.setuptools.package-data]
-webapp = ["assets*"]
+webapp = ["assets/*.js", "assets/*.svg", "assets/*.css", "assets/*.ico", "assets/*.png"]
 
 [project]
 name = "netmedex"
-version = "0.1.0"
+version = "0.1.0-beta"
 authors = [
   { name = "Zheng-Xiang Ye", email="r12b48005@ntu.edu.tw"},
 ]
-description = "TODO"
+description = "A tool to extract BioConcept entities (e.g., genes, diseases, chemicals, and species) from Pubtator3 and generate a co-mention network for interactive use."
 readme = "README.md"
 requires-python=">=3.11"
 dependencies = [
   "requests",
   "tqdm",
-  "networkx[default]",
+  "networkx[default]~=3.3",
   "lxml",
   "python-dotenv",
-  "dash[diskcache]==2.17",
+  "dash[diskcache]~=2.17",
   "dash-cytoscape",
   "dash-bootstrap_components",
-  "dash-svg",
 ]
 classifiers = [
+  "Development Status :: 4 - Beta",
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "License :: OSI Approved :: MIT License",
   "Operating System :: OS Independent",
 ]
 
 [project.optional-dependencies]
 dev = [
-  "pytest==8.3.2",
+  "pytest~=8.3.2",
   "pytest-xdist",
   "pytest-cov",
   "requests-mock",
