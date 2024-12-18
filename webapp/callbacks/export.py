@@ -13,7 +13,7 @@ def callbacks(app):
         prevent_initial_call=True,
     )
     def download_pubtator(n_clicks, savepath):
-        return dcc.send_file(str(savepath["pubtator"]))
+        return dcc.send_file(savepath["pubtator"], filename="output.pubtator")
 
     @app.callback(
         Output("export-html", "data"),
@@ -29,7 +29,7 @@ def callbacks(app):
             node_degree, weight, format="html", with_layout=True, graph_path=savepath["graph"]
         )
         save_as_html(G, savepath["html"], layout=layout)
-        return dcc.send_file(str(savepath["html"]))
+        return dcc.send_file(savepath["html"], filename="output.html")
 
     @app.callback(
         Output("export-xgmml", "data"),
@@ -45,7 +45,7 @@ def callbacks(app):
             node_degree, weight, format="xgmml", with_layout=True, graph_path=savepath["graph"]
         )
         save_as_xgmml(G, savepath["xgmml"])
-        return dcc.send_file(savepath["xgmml"])
+        return dcc.send_file(savepath["xgmml"], filename="output.xgmml")
 
     @app.callback(
         Output("export-edge-csv", "data"),

@@ -95,7 +95,7 @@ def callbacks(app):
             pubtator_api = PubTatorAPI(
                 query=query,
                 pmid_list=pmid_list,
-                savepath=str(savepath["pubtator"]),
+                savepath=savepath["pubtator"],
                 search_type=input_type,
                 sort=sort_by,
                 max_articles=max_articles,
