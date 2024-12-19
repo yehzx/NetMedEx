@@ -63,9 +63,9 @@ api_params = html.Div(
                 generate_param_title(
                     "Search Type",
                     (
-                        "Text Search: Query PubTator3 by text (use double quotes to match whole words and AND/OR to combine keywords)\n"
-                        "PMID: Query PubTator3 by comma-separated PMIDs\n"
-                        "PMID File: Query PubTator3 by a text file of PMIDs (one per line)"
+                        "Text Search: Use keywords to retrieve relevant articles (use double quotes to match whole words and AND/OR to combine keywords)\n"
+                        "PMID: Retrieve articles by PubMed Identifier (PMID)\n"
+                        "PMID File: Retrieve articles by a text file of PMIDs (one per line)"
                     ),
                 ),
                 dcc.Dropdown(
