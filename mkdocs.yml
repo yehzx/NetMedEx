@@ -6,6 +6,7 @@ site_description: NetMedEx
 # repo_name: 
 
 theme:
+  favicon: img/NetMedEx_icon.png
   name: material
   highlightjs: true
   features:
@@ -62,7 +63,7 @@ theme:
   font:
     text: Roboto
     code: Roboto Mono
-  logo: assets/NetMedEx.png
+  logo: img/NetMedEx.png
 
 markdown_extensions:
   - pymdownx.tilde
