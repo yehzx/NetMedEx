@@ -1,9 +1,9 @@
 site_name: NetMedEx
-# site_url:
+site_url: https://yehzx.github.io/NetMedEx/
 site_description: NetMedEx
 
-# repo_url: 
-# repo_name: 
+repo_url: https://github.com/lsbnb/NetMedEx
+repo_name: lsbnb/NetMedEx
 
 theme:
   favicon: img/NetMedEx_icon.png
