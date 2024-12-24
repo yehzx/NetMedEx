@@ -238,11 +238,11 @@ class PubTatorParser:
         if not self.node_dict.get(mesh_1, False):
             mesh_1 = self._match_mutation(data.mesh1)
             if not mesh_1:
-                logger.warning(f"PMID: {data.pmid} | Unable to parse {data.mesh1}")
+                logger.warning(f"[Error] PMID: {data.pmid} | Unable to parse {data.mesh1}")
         if not self.node_dict.get(mesh_2, False):
             mesh_2 = self._match_mutation(data.mesh2)
             if not mesh_2:
-                logger.warning(f"PMID: {data.pmid} | Unable to parse {data.mesh2}")
+                logger.warning(f"[Error] PMID: {data.pmid} | Unable to parse {data.mesh2}")
 
         self.edge_dict[(mesh_1, mesh_2)].append(
             PubTatorEdgeData(id=generate_uuid(), pmid=data.pmid, relation=data.relation)
@@ -375,7 +375,8 @@ class PubTatorParser:
                     popped_edge_data = self.edge_dict.pop((u, v))
                 except KeyError:
                     # The same gene but given different ids in the same article
-                    assert neighbor in removed_node_ids
+                    if neighbor not in removed_node_ids:
+                        logger.warning(f"[Error] Same gene but given different IDs: {(u, v)}")
                 if neighbor in removed_node_ids:
                     continue
                 merged_edges[(node_key, neighbor)].extend(popped_edge_data)
