@@ -62,12 +62,10 @@ class PubTatorAPI:
             A list of PubMed IDs to directly fetch annotations. Mutually exclusive with `query`.
         sort (Literal["score", "date"]):
             Sorting method for search results; "score" for relevance, "date" for most recent. Defaults to "score".
-        request_format (Literal["biocjson", "pubtator", "auto"]):
-            Format of the response; "auto" chooses based on `use_mesh` or `full_text`. Defaults to "auto".
+        request_format (Literal["biocjson", "pubtator"]):
+            Format of the response. "biocjson" responses contain extra info for each article. Defaults to "biocjson".
         max_articles (int):
             Maximum number of articles to retrieve. Defaults to 1000.
-        use_mesh (bool):
-            Whether to include MeSH terms in annotations. Defaults to True.
         full_text (bool):
             Whether to request full-text annotations (available only in `biocjson`). Defaults to False.
         return_pmid_only (bool):
@@ -81,30 +79,21 @@ class PubTatorAPI:
         query: str | None = None,
         pmid_list: Sequence[str | int] | None = None,
         sort: Literal["score", "date"] = "score",
-        request_format: Literal["biocjson", "pubtator", "auto"] = "auto",
+        request_format: Literal["biocjson", "pubtator"] = "biocjson",
         max_articles: int = 1000,
-        use_mesh: bool = True,
         full_text: bool = False,
         return_pmid_only: bool = False,
         queue: Queue | None = None,
     ):
         self.query = query
         self.pmid_list = pmid_list
-        self.sort: Literal["score", "date"] = sort
         self.max_articles = max_articles
-        self.use_mesh = use_mesh
         self.full_text = full_text
         self.return_pmid_only = return_pmid_only
         self.queue = queue if isinstance(queue, Queue) else None
-        self.api_method: Literal["search", "cite"] = "cite" if sort == "date" else "search"
-        if request_format == "auto":
-            request_format = "biocjson" if self.use_mesh or self.full_text else "pubtator"
-        elif request_format == "pubtator":
-            if self.use_mesh or self.full_text:
-                raise ValueError(
-                    "Please set `request_format` to `biocjson` or `auto` if `full_text` is set to True."
-                )
+        self.sort: Literal["score", "date"] = sort
         self.response_format: Literal["biocjson", "pubtator"] = request_format
+        self.api_method: Literal["search", "cite"] = "cite" if sort == "date" else "search"
 
     def run(self):
         return asyncio.run(self._run())
