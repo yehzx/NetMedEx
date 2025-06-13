@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import pytest
 
 
@@ -11,3 +13,8 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         if item.name.startswith("test_api_"):
             item.add_marker(skip_tests_need_cnx)
+
+
+@pytest.fixture(scope="session")
+def data_dir() -> Path:
+    return Path(__file__).parent / "test_data"
