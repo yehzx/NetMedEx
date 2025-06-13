@@ -1,6 +1,27 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+NODE_COLOR_MAP = {
+    "Chemical": "#67A9CF",
+    "Gene": "#74C476",
+    "Species": "#FD8D3C",
+    "Disease": "#8C96C6",
+    "DNAMutation": "#FCCDE5",
+    "ProteinMutation": "#FA9FB5",
+    "CellLine": "#BDBDBD",
+    "SNP": "#FFFFB3",
+}
+NODE_SHAPE_MAP = {
+    "Chemical": "ELLIPSE",
+    "Gene": "TRIANGLE",
+    "Species": "DIAMOND",
+    "Disease": "ROUNDRECTANGLE",
+    "DNAMutation": "PARALLELOGRAM",
+    "ProteinMutation": "HEXAGON",
+    "CellLine": "VEE",
+    "SNP": "OCTAGON",
+}
+
 
 @dataclass
 class GraphNodeData:
@@ -10,7 +31,9 @@ class GraphNodeData:
     shape: str
     type: str
     name: str
-    document_frequency: int
+    pmids: set[str]
+    num_articles: int | None = None
+    weighted_num_articles: float | None = None
     marked: bool = False
     parent: str | None = None
     pos: Sequence[float] | None = None
@@ -19,19 +42,17 @@ class GraphNodeData:
 @dataclass
 class GraphEdgeData:
     _id: str
-    raw_frequency: int
-    doc_weighted_frequency: float
-    npmi: float
-    edge_weight: float
-    pmids: list[str]
-    scaled_edge_weight: float | None = None
-    edge_width: int | None = None
+    relations: dict[str, set[str]]
+    num_relations: int | None = None
+    weighted_num_relations: float | None = None
+    npmi: float | None = None
+    edge_weight: float | None = None
+    edge_width: float | None = None
 
 
 @dataclass
 class CommunityEdgeData:
-    _id: int
+    _id: str
     edge_weight: float
-    scaled_edge_weight: float
-    edge_width: int
-    pmids: list[str]
+    pmids: set[str]
+    edge_width: float | None = None

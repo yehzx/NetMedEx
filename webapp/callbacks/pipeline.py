@@ -88,24 +88,25 @@ def callbacks(app):
                 decoded_content = base64.b64decode(content_string).decode("utf-8")
                 decoded_content = decoded_content.replace("\n", ",")
                 pmid_list = load_pmids(decoded_content, load_from="string")
-                input_type = "pmids"
 
             queue = Queue()
             threading.excepthook = custom_hook
-            pubtator_api = PubTatorAPI(
-                query=query,
-                pmid_list=pmid_list,
-                savepath=savepath["pubtator"],
-                search_type=input_type,
-                sort=sort_by,
-                max_articles=max_articles,
-                full_text=full_text,
-                use_mesh=use_mesh,
-                debug=False,
-                queue=queue,
-            )
+
+            def run_pubtator_and_save():
+                result = PubTatorAPI(
+                    query=query,
+                    pmid_list=pmid_list,
+                    sort=sort_by,
+                    max_articles=max_articles,
+                    full_text=full_text,
+                    use_mesh=use_mesh,
+                    queue=queue,
+                ).run()
+                with open(savepath["pubtator"], "w") as f:
+                    f.write(result.to_pubtator_str(annotation_use_identifier_name=use_mesh))
+
             job = threading.Thread(
-                target=run_thread_with_error_notification(pubtator_api.run, queue),
+                target=run_thread_with_error_notification(run_pubtator_and_save, queue),
             )
             set_progress((0, 1, "", "(Step 1/2) Finding articles..."))
 

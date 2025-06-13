@@ -177,8 +177,8 @@ class NetworkBuilder:
 
             edge_data = GraphEdgeData(
                 _id=str(edge_data_list[0].id),
-                raw_frequency=len(unique_pmids),
-                doc_weighted_frequency=w_freq,
+                num_relations=len(unique_pmids),
+                weighted_num_relations=w_freq,
                 npmi=npmi,
                 edge_weight=edge_weight,
                 pmids=list(unique_pmids),
