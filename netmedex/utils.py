@@ -25,3 +25,11 @@ def config_logger(is_debug, filename=None):
         )
     else:
         logging.basicConfig(format="%(message)s", level=logging.INFO, handlers=handlers)
+
+
+def is_notebook():
+    try:
+        shell = get_ipython().__class__.__name__
+        return shell == "ZMQInteractiveShell"
+    except NameError:
+        return False

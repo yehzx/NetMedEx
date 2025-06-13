@@ -23,6 +23,9 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
   "requests",
+  "aiohttp",
+  "aiometer",
+  "tenacity",
   "tqdm",
   "networkx[default]~=3.3",
   "lxml",
@@ -80,3 +83,8 @@ ignore = [
 
 [tool.ruff.format]
 quote-style = "double"
+
+
+[tool.pyright]
+include = ["./netmedex"]
+typeCheckingMode = "standard"

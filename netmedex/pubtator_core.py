@@ -1,253 +1,337 @@
 # https://www.ncbi.nlm.nih.gov/research/pubtator3/api
-import json
+import asyncio
 import logging
 import sys
 import time
-from collections.abc import Sequence
-from datetime import datetime
+from collections.abc import Awaitable, Callable, Sequence
+from functools import partial
 from queue import Queue
-from typing import Literal
+from typing import Any, Literal
 
-import requests
-from requests import Response, Session
+import aiohttp
+import aiometer
+from aiohttp import ClientResponse, ClientSession
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_fixed
 from tqdm.auto import tqdm
 
 from netmedex.biocjson_parser import biocjson_to_pubtator
-from netmedex.exceptions import EmptyInput, NoArticles, UnsuccessfulRequest
+from netmedex.exceptions import EmptyInput, NoArticles, RetryableError, UnsuccessfulRequest
+from netmedex.pubtator_data import PubTatorArticle, PubTatorCollection
+from netmedex.pubtator_parser import PubTatorIterator
+from netmedex.types import T
+from netmedex.utils import config_logger
 
 # API GET limit: 100
 PMID_REQUEST_SIZE = 100
 # Fall back to "search" if "cite" failed
 FALLBACK_SEARCH = True
 
-# users post no more than three requests per second
+PUBTATOR_SEARCH_URL = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/search/"
+PUBTATOR_CITE_URL = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/cite/tsv"
+
+# Users post no more than three requests per second
 # https://www.ncbi.nlm.nih.gov/research/pubtator3/api
-SLEEP = 0.5
+MAX_CONCURRENT_REQUESTS = 5
+REQUEST_INTERVAL = 0.5
+
+PUBTATOR_RETRY_ERRORS = {
+    # Error code: custom error message
+    408: "Please retry later",  # Request Timeout
+    429: "Too many requests. Please run this program later.",  # Too Many Requests
+    500: "Please retry later",  # Internal Server Error
+    502: "Possibly too many articles. Please try more specific queries.",  # Bad Gateway
+    503: "Please retry later",  # Service Unavailable
+    504: "Please retry later",  # Gateway Timeout
+}
 
 # Full text annotation is only availabe in `biocxml` and `biocjson` formats
 # RESPONSE_FORMAT = ["pubtator", "biocxml", "biocjson"][2]
 logger = logging.getLogger(__name__)
+config_logger(is_debug=False)
 
 
 class PubTatorAPI:
+    """Retrieve PubMed articles with entity annotations via PubTator3 API.
+
+    Input either a free-text PubMed query (e.g. '"COVID-19" AND "PON1"') or a
+    list of PubMed IDs (PMIDs).
+    """
+
     def __init__(
         self,
-        query: str | None,
-        pmid_list: Sequence[str] | None,
-        savepath: str | None,
-        search_type: Literal["query", "pmids"],
-        sort: Literal["score", "date"],
-        max_articles: int,
-        use_mesh: bool,
-        full_text: bool,
-        debug: bool,
+        query: str | None = None,
+        pmid_list: Sequence[str | int] | None = None,
+        sort: Literal["score", "date"] = "score",
+        max_articles: int = 1000,
+        use_mesh: bool = True,
+        full_text: bool = False,
+        return_pmid_only: bool = False,
         queue: Queue | None = None,
     ):
         self.query = query
         self.pmid_list = pmid_list
-        self.savepath = savepath
-        self.search_type = search_type
-        self.sort = sort
+        self.sort: Literal["score", "date"] = sort
         self.max_articles = max_articles
         self.use_mesh = use_mesh
         self.full_text = full_text
-        self.debug = debug
-        self.queue = queue
-        self.api_method = "cite" if sort == "date" else "search"
-        self.return_progress = isinstance(queue, Queue)
+        self.return_pmid_only = return_pmid_only
+        self.response_format: Literal["biocjson", "pubtator"] = (
+            "biocjson" if self.use_mesh or self.full_text else "pubtator"
+        )
+        self.queue = queue if isinstance(queue, Queue) else None
+        self.api_method: Literal["search", "cite"] = "cite" if sort == "date" else "search"
 
     def run(self):
-        if self.search_type == "query":
-            if self.query is None or self.query.strip() == "":
+        return asyncio.run(self._run())
+
+    async def arun(self):
+        return await asyncio.create_task(self._run())
+
+    async def _run(self):
+        if self.query is not None and self.pmid_list is not None:
+            raise ValueError("Only one of `query` and `pmid_list` may be provided.")
+
+        pmid_list = None
+        # Searchy by free-text
+        if self.query is not None:
+            self.query = self.query.strip()
+            if not self.query:
                 raise EmptyInput
-            self.pmid_list = self.get_query_results()
-        elif self.search_type == "pmids":
+            pmid_list = await self.get_query_results(self.query)
+        # Search by PMID list
+        elif self.pmid_list is not None:
             if not self.pmid_list:
                 raise EmptyInput
+            pmid_list = [str(pmid) for pmid in self.pmid_list]
 
-        if not self.pmid_list:
+        if not pmid_list:
             raise NoArticles
 
-        search_results = self.batch_publication_search()
+        if self.return_pmid_only:
+            return PubTatorCollection(headers=[], articles=[], metadata={"pmid_list": pmid_list})
 
-        if self.use_mesh or self.full_text:
-            retain_ori_text = False if self.use_mesh else True
-            search_results = [
-                biocjson_to_pubtator(
-                    articles, retain_ori_text=retain_ori_text, role_type="identifier"
+        responses = await self.batch_publication_search(pmid_list)
+
+        articles: list[PubTatorArticle] = []
+        if self.response_format == "biocjson":
+            for res_json in responses:
+                articles.extend(
+                    biocjson_to_pubtator(
+                        res_json=res_json,
+                        full_text=self.full_text,
+                    )
                 )
-                for articles in search_results
-            ]
+        elif self.response_format == "pubtator":
+            for result in responses:
+                articles.extend(
+                    [article for article in PubTatorIterator(result) if article is not None]
+                )
 
-        self._write_results(search_results)
+        return PubTatorCollection(headers=[], articles=articles, metadata={"pmid_list": pmid_list})
 
-    def get_query_results(self):
-        logger.info(f"Query: {self.query}")
-        if self.api_method == "search":
-            article_list = self._get_by_search()
-        elif self.api_method == "cite":
-            article_list = self._get_by_cite()
+    async def get_query_results(self, query: str):
+        logger.info(f"Query: {query}")
+        article_list: list[str] = []
+        async with ClientSession() as session:
+            if self.api_method == "search":
+                article_list = await self._handle_query_search(query, session=session)
+            elif self.api_method == "cite":
+                article_list = await self._handle_query_cite(query, session=session)
 
         return article_list
 
-    def _get_by_search(self):
-        res = send_search_query(self.query, type="search")
+    async def _handle_query_search(self, query: str, session: ClientSession):
+        res_json = await send_search_query(query, session=session)
 
-        article_list = []
-        if not request_successful(res):
-            return article_list
-
-        res_json = res.json()
+        collected_article_ids: list[str] = []
         total_articles = int(res_json["count"])
         page_size = int(res_json["page_size"])
-        article_list.extend(get_article_ids(res_json))
+        collected_article_ids.extend(get_article_ids(res_json))
 
         n_articles_to_request = get_n_articles(self.max_articles, total_articles)
+        if n_articles_to_request <= page_size:
+            return collected_article_ids[:n_articles_to_request]
+
+        num_page = n_articles_to_request // page_size
+        if n_articles_to_request % page_size > 0:
+            num_page += 1
+        pages = range(2, num_page + 1)
 
         # Get search results in different pages until the max_articles is reached
-        logger.info("Obtaining article PMIDs...")
-        current_page = 1
-        with Session() as session:
-            with tqdm(total=n_articles_to_request, file=sys.stdout) as pbar:
-                while current_page * page_size < n_articles_to_request:
-                    current_page += 1
-                    res = send_search_query_with_page(self.query, current_page, self.sort, session)
-                    if request_successful(res):
-                        article_list.extend(get_article_ids(res.json()))
-                    pbar.update(page_size)
-                    if self.return_progress:
-                        self.queue.put(progress_message("search-search", pbar.n, pbar.total))
-                pbar.n = pbar.total
+        logger.info("Step 1/2: Requesting article PMIDs...")
 
-        return article_list[:n_articles_to_request]
+        async def each_request(page, pbar):
+            article_ids = get_article_ids(
+                await send_search_query_with_page(query, page, self.sort, session)
+            )
 
-    def _get_by_cite(self):
-        logger.info("Obtaining article PMIDs...")
-        res = send_search_query(self.query, type="cite")
-        if not request_successful(res):
+            # Display progress
+            update = page_size
+            if pbar.n + page_size > pbar.total:
+                update = pbar.total - pbar.n
+            pbar.update(update)
+
+            if self.queue is not None:
+                # For frontend display
+                self.queue.put(progress_message("search-search", pbar.n, pbar.total))
+
+            return article_ids
+
+        with tqdm(total=n_articles_to_request, file=sys.stdout) as pbar:
+            article_id_lists = await batch_request([partial(each_request, p, pbar) for p in pages])
+            if len(article_id_lists) != len(pages):
+                logger.error(
+                    f"Missing output: expected {len(article_id_lists)} batch outputs but only have {len(pages)}."
+                )
+            pbar.n = pbar.total
+
+        for article_ids in article_id_lists:
+            collected_article_ids.extend(article_ids)
+
+        return collected_article_ids[:n_articles_to_request]
+
+    async def _handle_query_cite(self, query: str, session: ClientSession):
+        logger.info("Step 1/2: Requesting article PMIDs...")
+        try:
+            res_text = await send_cite_query(query, session=session)
+        except (UnsuccessfulRequest, TypeError) as e:
+            # TypeError happens if no response is returned
             if FALLBACK_SEARCH:
                 logger.warning("Fetching articles by 'cite' method failed. Switch to 'search'.")
-                return self._get_by_search()
+                return await self._handle_query_search(query, session=session)
             else:
-                unsuccessful_query(res.status_code)
+                raise e
 
-        pmid_list = parse_cite_response(res.text)
+        pmid_list = parse_cite_response(res_text)
         n_articles_to_request = get_n_articles(self.max_articles, len(pmid_list))
-        if self.return_progress:
+
+        with tqdm(total=n_articles_to_request, file=sys.stdout) as pbar:
+            pbar.n = pbar.total
+
+        if self.queue is not None:
             self.queue.put(
                 progress_message("search-cite", n_articles_to_request, n_articles_to_request)
             )
 
         return pmid_list[:n_articles_to_request]
 
-    def batch_publication_search(self):
-        results = []
-        format = "biocjson" if self.use_mesh or self.full_text else "pubtator"
-        with Session() as session:
-            with tqdm(total=len(self.pmid_list), file=sys.stdout) as pbar:
-                for start in range(0, len(self.pmid_list), PMID_REQUEST_SIZE):
-                    end = start + PMID_REQUEST_SIZE
-                    end = end if end < len(self.pmid_list) else None
-                    res = send_publication_query(
-                        pmid_string=",".join(self.pmid_list[start:end]),
-                        article_id_type="pmids",
-                        format=format,
-                        full_text=self.full_text,
-                        session=session,
+    async def batch_publication_search(self, pmid_list: Sequence[str]):
+        logger.info("Step 2/2: Requesting article annotations...")
+
+        async with ClientSession() as session:
+
+            async def each_request(batch, pbar):
+                pmid_start = batch * PMID_REQUEST_SIZE
+                pmid_end = pmid_start + PMID_REQUEST_SIZE
+                if pmid_end >= len(pmid_list):
+                    pmid_end = None
+
+                res_txt_or_json = await send_publication_request(
+                    pmid_string=",".join(pmid_list[pmid_start:pmid_end]),
+                    article_id_type="pmids",
+                    format=self.response_format,
+                    full_text=self.full_text,
+                    session=session,
+                )
+
+                # Display progress
+                update = PMID_REQUEST_SIZE
+                if pbar.n + PMID_REQUEST_SIZE > pbar.total:
+                    update = pbar.total - pbar.n
+                pbar.update(update)
+
+                if self.queue is not None:
+                    # For frontend display
+                    self.queue.put(progress_message("get", pbar.n, pbar.total))
+
+                return res_txt_or_json
+
+            num_articles = len(pmid_list)
+            with tqdm(total=num_articles, file=sys.stdout) as pbar:
+                num_batch = num_articles // PMID_REQUEST_SIZE
+                if num_articles % PMID_REQUEST_SIZE > 0:
+                    num_batch += 1
+                batches = range(0, num_batch)
+
+                res_list = await batch_request(
+                    [partial(each_request, batch, pbar) for batch in batches],
+                )
+
+                if len(res_list) != len(batches):
+                    logger.error(
+                        f"Missing output: expected {len(res_list)} batch outputs but only have {len(batches)}."
                     )
-                    if request_successful(res):
-                        results.extend(self._append_json_or_text(res))
-                    if end is not None:
-                        pbar.update(PMID_REQUEST_SIZE)
-                    else:
-                        pbar.n = len(self.pmid_list)
+                pbar.n = pbar.total
 
-                    if self.return_progress:
-                        self.queue.put(progress_message("get", pbar.n, pbar.total))
-
-        if self.return_progress:
+        # End frontend progress display
+        if self.queue is not None:
             self.queue.put(None)
 
-        if self.debug:
-            now = datetime.now().strftime("%y%m%d%H%M%S")
-            with open(f"./pubtator3_response_{now}.txt", "w") as f:
-                f.writelines([json.dumps(o) + "\n" for o in results])
-            with open(f"./pubtator3_pmid_{now}.txt", "w") as f:
-                f.writelines([f"{id}\n" for id in self.pmid_list])
-        return results
+        result = []
+        for res in res_list:
+            if isinstance(res, str):
+                res = [res]
+            result.extend(res)
 
-    def _append_json_or_text(self, res: Response):
-        if self.full_text or self.use_mesh:
-            if len(res.text.split("\n")) > 2:
-                content = [json.loads(text) for text in res.text.split("\n")[:-1]]
-            else:
-                content = [res.json()]
-        else:
-            content = [res.text]
-
-        return content
-
-    def _write_results(self, results):
-        if self.savepath is None:
-            return
-
-        header = []
-
-        if self.use_mesh:
-            header.append("##USE-MESH-VOCABULARY")
-        if len(header) > 0:
-            header.append("\n")
-
-        with open(self.savepath, "w") as f:
-            f.writelines(header)
-            f.writelines(results)
-            logger.info(f"Save to {self.savepath}")
+        return result
 
 
-def send_search_query(
+async def send_search_query(
     query: str,
-    type: Literal["search", "cite"],
-    session: Session | None = None,
+    session: ClientSession,
 ):
-    if type == "search":
-        url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/search/"
-    elif type == "cite":
-        url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/cite/tsv"
-    res = handle_session_get(url, params={"text": query}, session=session)
-    time.sleep(SLEEP)
-    return res
+    return await request_pubtator3(
+        PUBTATOR_SEARCH_URL,
+        params={"text": query},
+        session=session,
+        is_json=True,
+    )
 
 
-def send_search_query_with_page(
+async def send_cite_query(
+    query: str,
+    session: ClientSession,
+):
+    return await request_pubtator3(
+        PUBTATOR_CITE_URL,
+        params={"text": query},
+        session=session,
+        is_json=False,
+    )
+
+
+async def send_search_query_with_page(
     query: str,
     page: int,
     sort: Literal["score", "date"],
-    session: Session | None = None,
+    session: ClientSession,
 ):
     url = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/search/"
     if sort == "score":
         params = {"text": query, "sort": "score desc", "page": page}
     elif sort == "date":
         params = {"text": query, "sort": "date desc", "page": page}
-    res = handle_session_get(url, params, session)
-    time.sleep(SLEEP)
-    return res
+    return await request_pubtator3(url, params, session, is_json=True)
 
 
-def send_publication_query(
+async def send_publication_request(
     pmid_string: str,
     article_id_type: Literal["pmids", "pmcids"],
     format: Literal["biocjson", "pubtator"],
     full_text: bool,
-    session: Session | None = None,
+    session: ClientSession,
 ):
     url = f"https://www.ncbi.nlm.nih.gov/research/pubtator3-api/publications/export/{format}"
     params = {article_id_type: pmid_string}
     if full_text:
         params["full"] = "true"
-    res = handle_session_get(url, params, session)
-    time.sleep(SLEEP)
-    return res
+
+    if format == "biocjson":
+        is_json = True
+    elif format == "pubtator":
+        is_json = False
+
+    return await request_pubtator3(url, params, session, is_json=is_json)
 
 
 def get_n_articles(max_articles: int, total_articles: int):
@@ -257,12 +341,12 @@ def get_n_articles(max_articles: int, total_articles: int):
     return n_articles_to_request
 
 
-def get_article_ids(res_json):
+def get_article_ids(res_json: Any):
     return [str(article.get("pmid")) for article in res_json["results"]]
 
 
 def parse_cite_response(res_text: str):
-    pmid_list = []
+    pmid_list: list[str] = []
     for line in res_text.split("\n"):
         if line.startswith("#") or line == "":
             continue
@@ -272,31 +356,75 @@ def parse_cite_response(res_text: str):
     return pmid_list
 
 
-def request_successful(res: Response):
-    if res.status_code != 200:
-        logger.info("Unsuccessful request")
-        logger.debug(f"Response status code: {res.status_code}")
-        return False
-    return True
+def check_if_need_retry(res: ClientResponse):
+    if res.status == 200:
+        return
 
-
-def unsuccessful_query(status_code: int):
-    if status_code == 502:
-        msg = "Possibly too many articles. Please try more specific queries."
+    if (error_msg := PUBTATOR_RETRY_ERRORS.get(res.status, None)) is not None:
+        logger.error(f"Request error occurred in input: {res.url}")
+        raise RetryableError(error_msg)
     else:
-        msg = "Please retry later."
+        logger.error(f"Request error occurred in input: {res.url}")
+        raise UnsuccessfulRequest()
 
-    raise UnsuccessfulRequest(msg)
 
-
-def handle_session_get(url: str, params, session: Session | None = None):
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_fixed(2),
+    sleep=time.sleep,
+    reraise=True,
+    retry=retry_if_exception(
+        lambda e: isinstance(e, TypeError)
+    ),  # This happens when nothing is returned
+)
+async def request_pubtator3(
+    url: str,
+    params: Any,
+    session: ClientSession,
+    is_json: bool = True,
+) -> Any:
+    """Request PubTator3 API using GET method and return result."""
     try:
-        res = session.get(url, params=params)
-    except Exception:
-        res = requests.get(url, params=params)
+        return await _request_pubtator3(url, params, session, is_json=is_json)
+    except TypeError as e:
+        logger.warning("Empty response. Retry again.")
+        raise e
 
-    return res
+
+@retry(
+    stop=stop_after_attempt(2),
+    wait=wait_fixed(2),
+    sleep=time.sleep,
+    reraise=True,
+    retry=retry_if_exception(
+        lambda e: isinstance(e, RetryableError | aiohttp.ServerDisconnectedError)
+    ),
+)
+async def _request_pubtator3(
+    url: str,
+    params: Any,
+    session: ClientSession,
+    is_json: bool = True,
+) -> Any:
+    async with session.get(url, params=params) as res:
+        check_if_need_retry(res)
+        if is_json:
+            result = await res.json()
+        else:
+            result = await res.text()
+
+    return result
 
 
 def progress_message(status, progress, total):
     return f"{status}/{progress}/{total}"
+
+
+async def batch_request(
+    jobs: Sequence[Callable[[], Awaitable[T]]],
+) -> list[T]:
+    return await aiometer.run_all(
+        jobs,
+        max_at_once=MAX_CONCURRENT_REQUESTS,
+        max_per_second=1 / REQUEST_INTERVAL,
+    )
