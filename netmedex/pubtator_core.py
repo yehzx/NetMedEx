@@ -287,13 +287,7 @@ class PubTatorAPI:
         if self.queue is not None:
             self.queue.put(None)
 
-        result = []
-        for res in res_list:
-            if isinstance(res, str):
-                res = [res]
-            result.extend(res)
-
-        return result
+        return res_list
 
 
 async def send_search_query(
