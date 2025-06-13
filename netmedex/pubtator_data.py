@@ -1,9 +1,35 @@
+import logging
+import re
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Any, TypedDict
 
 from netmedex.stemmers import s_stemmer
 
 HEADER_SYMBOL = "##"
+MUTATION_PATTERNS = {
+    "tmvar": re.compile(r"(tmVar:[^;]+)"),
+    "hgvs": re.compile(r"(HGVS:[^;]+)"),
+    "rs": re.compile(r"(RS#:[^;]+)"),
+    "variantgroup": re.compile(r"(VariantGroup:[^;]+)"),
+    "gene": re.compile(r"(CorrespondingGene:[^;]+)"),
+    "species": re.compile(r"(CorrespondingSpecies:[^;]+)"),
+    "ca": re.compile(r"(CA#:[^;]+)"),
+}
+
+ANNOTATION_TYPES = {
+    "Chemical",
+    "Gene",
+    "Species",
+    "Disease",
+    "DNAMutation",
+    "ProteinMutation",
+    "CellLine",
+    "SNP",
+    # "Chromosome",  # Exclude Chromosome
+}
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -167,3 +193,68 @@ class PubTatorCollection:
 class PubTatorHeaderResult(TypedDict):
     headers: list[str]
     non_header_line: str | None
+
+
+class PubTatorRelationParser:
+    _mesh_node_id_mapping: dict[str, str]
+    """{mesh: node_id} mapping for non-mutation terms"""
+    _mutation_mesh_node_info: dict[str, dict[str, str | None]]
+    """{node_id: mutation_info} for parsing mutation terms"""
+
+    def __init__(self, mesh_node_ids: Sequence[str]) -> None:
+        self._mesh_node_id_mapping = {}
+        self._mutation_mesh_node_info = {}
+
+        for mesh_node_id in mesh_node_ids:
+            if len(mesh_node_id.split(";", 1)) == 1:
+                self._mesh_node_id_mapping[
+                    PubTatorAnnotation.get_mesh_from_mesh_node_id(mesh_node_id)
+                ] = mesh_node_id
+            else:
+                # Likely a mutation term
+                self._mutation_mesh_node_info[mesh_node_id] = self._get_mutation_info(
+                    PubTatorAnnotation.get_mesh_from_mesh_node_id(mesh_node_id)
+                )
+
+    @staticmethod
+    def _get_mutation_info(mesh: str) -> dict[str, str | None]:
+        mutation_info = {}
+        for name, pattern in MUTATION_PATTERNS.items():
+            if (matched := pattern.search(mesh)) is not None:
+                mutation_info[name] = matched.group(1)
+            else:
+                mutation_info[name] = None
+
+        return mutation_info
+
+    def parse(self, relation: PubTatorRelation) -> tuple[str, str] | None:
+        """Parse a relation and return the node IDs of the two nodes"""
+        nodes = []
+        for mesh in (relation.mesh1, relation.mesh2):
+            node = self._mesh_node_id_mapping.get(mesh, self.match_mutation_mesh(mesh))
+            if node is None:
+                logger.warning(f"Mutation not found: {mesh} (PMID: {relation.pmid})")
+                return
+            nodes.append(node)
+
+        if nodes[0] <= nodes[1]:
+            return tuple(nodes)
+        else:
+            return tuple(reversed(nodes))
+
+    def match_mutation_mesh(self, mesh: str) -> str | None:
+        matched_node_id = None
+        mutation_info = self._get_mutation_info(mesh)
+        for node_id, info_to_match in self._mutation_mesh_node_info.items():
+            is_matched = True
+            for attr, value in mutation_info.items():
+                if value is None:
+                    continue
+                if info_to_match[attr] != value:
+                    is_matched = False
+                    break
+            if is_matched:
+                matched_node_id = node_id
+                break
+
+        return matched_node_id

@@ -12,23 +12,21 @@ from netmedex.pubtator_core import (
 )
 from netmedex.pubtator_utils import load_pmids
 
-TESTDATA_DIR = Path(__file__).parent / "test_data"
-
 
 @pytest.fixture(scope="module")
-def paths() -> dict[str, Path]:
+def paths(data_dir) -> dict[str, Path]:
     """Collect test data paths once per module."""
     return {
-        "json_abstract": TESTDATA_DIR / "22439397_abstract_240916.json",
-        "json_full": TESTDATA_DIR / "22429397_full_240916.json",
-        "pubtator": TESTDATA_DIR / "22429397_abstract_240916.pubtator",
-        "pmids": TESTDATA_DIR / "pmid_list.txt",
+        "json_abstract": data_dir / "22439397_abstract_240916.json",
+        "json_full": data_dir / "22429397_full_240916.json",
+        "pubtator": data_dir / "22429397_abstract_240916.pubtator",
+        "pmids": data_dir / "pmid_list.txt",
     }
 
 
 @pytest.fixture()
 def stub_network(monkeypatch: pytest.MonkeyPatch, paths: dict[str, Path]):
-    async def _fake_send_cite_query(query: str, session: Any):  # noqa: D401
+    async def _fake_send_cite_query(query: str, session: Any):
         # header + 3 PMIDs
         return (
             "#PMID\tTitle\tJournal\n"
@@ -74,7 +72,7 @@ def test_empty_input():
 
 
 def test_no_articles(monkeypatch: pytest.MonkeyPatch):
-    async def _fake_send_cite_query(query: str, session: Any):  # noqa: D401
+    async def _fake_send_cite_query(query: str, session: Any):
         return ""
 
     monkeypatch.setattr(
