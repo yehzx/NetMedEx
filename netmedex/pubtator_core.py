@@ -2,7 +2,6 @@
 import asyncio
 import logging
 import sys
-import time
 from collections.abc import Awaitable, Callable, Sequence
 from functools import partial
 from queue import Queue
@@ -11,7 +10,7 @@ from typing import Any, Literal
 import aiohttp
 import aiometer
 from aiohttp import ClientResponse, ClientSession
-from tenacity import retry, retry_if_exception, stop_after_attempt, wait_fixed
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 from tqdm.auto import tqdm
 
 from netmedex.biocjson_parser import biocjson_to_pubtator
@@ -31,8 +30,8 @@ PUBTATOR_CITE_URL = "https://www.ncbi.nlm.nih.gov/research/pubtator3-api/cite/ts
 
 # Users post no more than three requests per second
 # https://www.ncbi.nlm.nih.gov/research/pubtator3/api
-MAX_CONCURRENT_REQUESTS = 5
-REQUEST_INTERVAL = 0.5
+MAX_CONCURRENT_REQUESTS = 3
+REQUEST_INTERVAL = 0.8
 
 PUBTATOR_RETRY_ERRORS = {
     # Error code: custom error message
@@ -55,6 +54,26 @@ class PubTatorAPI:
 
     Input either a free-text PubMed query (e.g. '"COVID-19" AND "PON1"') or a
     list of PubMed IDs (PMIDs).
+
+    Args:
+        query (str | None):
+            A free-text search query for PubMed articles. Mutually exclusive with `pmid_list`.
+        pmid_list (Sequence[str | int] | None):
+            A list of PubMed IDs to directly fetch annotations. Mutually exclusive with `query`.
+        sort (Literal["score", "date"]):
+            Sorting method for search results; "score" for relevance, "date" for most recent. Defaults to "score".
+        request_format (Literal["biocjson", "pubtator", "auto"]):
+            Format of the response; "auto" chooses based on `use_mesh` or `full_text`. Defaults to "auto".
+        max_articles (int):
+            Maximum number of articles to retrieve. Defaults to 1000.
+        use_mesh (bool):
+            Whether to include MeSH terms in annotations. Defaults to True.
+        full_text (bool):
+            Whether to request full-text annotations (available only in `biocjson`). Defaults to False.
+        return_pmid_only (bool):
+            Whether to return only the list of PMIDs without fetching full annotations. Defaults to False.
+        queue (Queue | None):
+            Optional queue for progress messaging (e.g., for UI or frontend logging).
     """
 
     def __init__(
@@ -62,6 +81,7 @@ class PubTatorAPI:
         query: str | None = None,
         pmid_list: Sequence[str | int] | None = None,
         sort: Literal["score", "date"] = "score",
+        request_format: Literal["biocjson", "pubtator", "auto"] = "auto",
         max_articles: int = 1000,
         use_mesh: bool = True,
         full_text: bool = False,
@@ -75,11 +95,16 @@ class PubTatorAPI:
         self.use_mesh = use_mesh
         self.full_text = full_text
         self.return_pmid_only = return_pmid_only
-        self.response_format: Literal["biocjson", "pubtator"] = (
-            "biocjson" if self.use_mesh or self.full_text else "pubtator"
-        )
         self.queue = queue if isinstance(queue, Queue) else None
         self.api_method: Literal["search", "cite"] = "cite" if sort == "date" else "search"
+        if request_format == "auto":
+            request_format = "biocjson" if self.use_mesh or self.full_text else "pubtator"
+        elif request_format == "pubtator":
+            if self.use_mesh or self.full_text:
+                raise ValueError(
+                    "Please set `request_format` to `biocjson` or `auto` if `full_text` is set to True."
+                )
+        self.response_format: Literal["biocjson", "pubtator"] = request_format
 
     def run(self):
         return asyncio.run(self._run())
@@ -158,7 +183,10 @@ class PubTatorAPI:
         pages = range(2, num_page + 1)
 
         # Get search results in different pages until the max_articles is reached
-        logger.info("Step 1/2: Requesting article PMIDs...")
+        if self.return_pmid_only:
+            logger.info("Step 1/1: Requesting article PMIDs...")
+        else:
+            logger.info("Step 1/2: Requesting article PMIDs...")
 
         async def each_request(page, pbar):
             article_ids = get_article_ids(
@@ -191,7 +219,10 @@ class PubTatorAPI:
         return collected_article_ids[:n_articles_to_request]
 
     async def _handle_query_cite(self, query: str, session: ClientSession):
-        logger.info("Step 1/2: Requesting article PMIDs...")
+        if self.return_pmid_only:
+            logger.info("Step 1/1: Requesting article PMIDs...")
+        else:
+            logger.info("Step 1/2: Requesting article PMIDs...")
         try:
             res_text = await send_cite_query(query, session=session)
         except (UnsuccessfulRequest, TypeError) as e:
@@ -361,21 +392,20 @@ def check_if_need_retry(res: ClientResponse):
         return
 
     if (error_msg := PUBTATOR_RETRY_ERRORS.get(res.status, None)) is not None:
-        logger.error(f"Request error occurred in input: {res.url}")
+        logger.warning(f"Request error occurred in input: {res.url} Retrying.")
         raise RetryableError(error_msg)
     else:
-        logger.error(f"Request error occurred in input: {res.url}")
+        logger.warning(f"Request error occurred in input: {res.url} Retrying.")
         raise UnsuccessfulRequest()
 
 
 @retry(
     stop=stop_after_attempt(3),
-    wait=wait_fixed(2),
-    sleep=time.sleep,
+    wait=wait_exponential(multiplier=1, min=5, max=10),
     reraise=True,
     retry=retry_if_exception(
-        lambda e: isinstance(e, TypeError)
-    ),  # This happens when nothing is returned
+        lambda e: isinstance(e, RetryableError | aiohttp.ServerDisconnectedError)
+    ),
 )
 async def request_pubtator3(
     url: str,
@@ -383,35 +413,17 @@ async def request_pubtator3(
     session: ClientSession,
     is_json: bool = True,
 ) -> Any:
-    """Request PubTator3 API using GET method and return result."""
-    try:
-        return await _request_pubtator3(url, params, session, is_json=is_json)
-    except TypeError as e:
-        logger.warning("Empty response. Retry again.")
-        raise e
-
-
-@retry(
-    stop=stop_after_attempt(2),
-    wait=wait_fixed(2),
-    sleep=time.sleep,
-    reraise=True,
-    retry=retry_if_exception(
-        lambda e: isinstance(e, RetryableError | aiohttp.ServerDisconnectedError)
-    ),
-)
-async def _request_pubtator3(
-    url: str,
-    params: Any,
-    session: ClientSession,
-    is_json: bool = True,
-) -> Any:
     async with session.get(url, params=params) as res:
         check_if_need_retry(res)
-        if is_json:
-            result = await res.json()
-        else:
-            result = await res.text()
+        try:
+            if is_json:
+                result = await res.json()
+            else:
+                result = await res.text()
+        except Exception:
+            msg = f"Failed to parse response: {res.url}"
+            logger.warning(f"{msg} Retrying.")
+            raise RetryableError(msg)
 
     return result
 
