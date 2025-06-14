@@ -24,7 +24,7 @@ NODE_SHAPE_MAP = {
 
 
 @dataclass
-class GraphNodeData:
+class GraphNode:
     _id: str
     color: str
     label_color: str
@@ -40,9 +40,10 @@ class GraphNodeData:
 
 
 @dataclass
-class GraphEdgeData:
+class GraphEdge:
     _id: str
     relations: dict[str, set[str]]
+    type: str
     num_relations: int | None = None
     weighted_num_relations: float | None = None
     npmi: float | None = None
@@ -51,8 +52,9 @@ class GraphEdgeData:
 
 
 @dataclass
-class CommunityEdgeData:
+class CommunityEdge:
     _id: str
+    type: str
     edge_weight: float
     pmids: set[str]
     edge_width: float | None = None
