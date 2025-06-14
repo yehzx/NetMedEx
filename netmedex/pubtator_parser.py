@@ -1,11 +1,11 @@
+from dataclasses import dataclass
+from io import TextIOBase
 from pathlib import Path
-from typing import TextIO
 
 from netmedex.pubtator_data import (
     PubTatorAnnotation,
     PubTatorArticle,
     PubTatorCollection,
-    PubTatorHeaderResult,
     PubTatorLine,
     PubTatorRelation,
 )
@@ -25,16 +25,16 @@ class PubTatorIO:
         articles: list[PubTatorArticle] = []
         with open(filepath) as stream:
             result = PubTatorIO._parse_header(stream)
-            if (non_header_line := result["non_header_line"]) is not None:
+            if (non_header_line := result.non_header_line) is not None:
                 for article in PubTatorIterator(stream, non_header_line):
                     if article is None:
                         break
                     articles.append(article)
 
-        return PubTatorCollection(result["headers"], articles)
+        return PubTatorCollection(result.headers, articles)
 
     @staticmethod
-    def _parse_header(stream: TextIO) -> PubTatorHeaderResult:
+    def _parse_header(stream: TextIOBase) -> "PubTatorHeaderResult":
         headers = []
         for line in stream:
             if not line.startswith(HEADER_SYMBOL):
@@ -47,13 +47,13 @@ class PubTatorIO:
 class PubTatorIterator:
     """Iterate a Pubtator file or string line by line (excluded header)"""
 
-    def __init__(self, handle: str | Path | TextIO, first_line: str | None = None):
+    def __init__(self, handle: str | Path | TextIOBase, first_line: str | None = None):
         if isinstance(handle, str):
             # Treat it as a string
             self.stream = iter(handle.splitlines())
         elif isinstance(handle, Path):
             self.stream = open(handle)
-        elif isinstance(handle, TextIO):
+        elif isinstance(handle, TextIOBase):
             self.stream = handle
 
         if first_line is None:
@@ -142,3 +142,9 @@ class PubTatorIterator:
 
     def __iter__(self):
         return self
+
+
+@dataclass
+class PubTatorHeaderResult:
+    headers: list[str]
+    non_header_line: str | None
