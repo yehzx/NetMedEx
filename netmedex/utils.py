@@ -8,7 +8,7 @@ def generate_uuid():
     return str(uuid4())
 
 
-def config_logger(is_debug, filename=None):
+def config_logger(is_debug: bool, filename: str | None = None):
     handlers = [logging.StreamHandler(stream=sys.stdout)]
 
     if filename is not None:
@@ -29,7 +29,7 @@ def config_logger(is_debug, filename=None):
 
 def is_notebook():
     try:
-        shell = get_ipython().__class__.__name__
+        shell = get_ipython().__class__.__name__  # type: ignore
         return shell == "ZMQInteractiveShell"
     except NameError:
         return False

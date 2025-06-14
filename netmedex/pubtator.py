@@ -55,6 +55,10 @@ class PubTatorAPI:
     Input either a free-text PubMed query (e.g. '"COVID-19" AND "PON1"') or a
     list of PubMed IDs (PMIDs).
 
+    After creating a `PubTatorAPI` instance, **remember to call
+    `run` for synchronous execution** or **`arun` for asynchronous execution**
+    to actually fetch the requested articles.
+
     Args:
         query (str | None):
             A free-text search query for PubMed articles. Mutually exclusive with `pmid_list`.
@@ -93,7 +97,11 @@ class PubTatorAPI:
         self.queue = queue if isinstance(queue, Queue) else None
         self.sort: Literal["score", "date"] = sort
         self.response_format: Literal["biocjson", "pubtator"] = request_format
-        self.api_method: Literal["search", "cite"] = "cite" if sort == "date" else "search"
+        # self.api_method: Literal["search", "cite"] = "cite" if sort == "date" else "search"
+
+        # TODO: `cite` often fails when the number of articles exceeds ~7000
+        # Always use `search`
+        self.api_method: Literal["search", "cite"] = "search"
 
     def run(self):
         return asyncio.run(self._run())

@@ -1,48 +1,38 @@
+import importlib
 import logging
 import math
-import re
-from abc import ABC, abstractmethod
+import pickle
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from operator import itemgetter
+from pathlib import Path
 from typing import Literal
 
 import networkx as nx
-from typing_extensions import override
 
 from netmedex.graph_data import (
     NODE_COLOR_MAP,
     NODE_SHAPE_MAP,
-    CommunityEdgeData,
-    GraphEdgeData,
-    GraphNodeData,
+    CommunityEdge,
+    GraphEdge,
+    GraphNode,
 )
+from netmedex.headers import HEADERS
 from netmedex.npmi import normalized_pointwise_mutual_information
-from netmedex.pubtator_parser import PubTatorAnnotation, PubTatorArticle, PubTatorRelation
+from netmedex.pubtator_data import (
+    PubTatorArticle,
+    PubTatorCollection,
+    PubTatorRelation,
+    PubTatorRelationParser,
+)
+from netmedex.pubtator_graph_data import (
+    PubTatorEdge,
+    PubTatorNode,
+    PubTatorNodeCollection,
+)
 from netmedex.utils import generate_uuid
 
-MUTATION_PATTERNS = {
-    "tmvar": re.compile(r"(tmVar:[^;]+)"),
-    "hgvs": re.compile(r"(HGVS:[^;]+)"),
-    "rs": re.compile(r"(RS#:[^;]+)"),
-    "variantgroup": re.compile(r"(VariantGroup:[^;]+)"),
-    "gene": re.compile(r"(CorrespondingGene:[^;]+)"),
-    "species": re.compile(r"(CorrespondingSpecies:[^;]+)"),
-    "ca": re.compile(r"(CA#:[^;]+)"),
-}
-
-ANNOTATION_TYPES = {
-    "Chemical",
-    "Gene",
-    "Species",
-    "Disease",
-    "DNAMutation",
-    "ProteinMutation",
-    "CellLine",
-    "SNP",
-    # "Chromosome",  # Exclude Chromosome
-}
 MIN_EDGE_WIDTH = 0
 MAX_EDGE_WIDTH = 20
 
@@ -50,274 +40,54 @@ MAX_EDGE_WIDTH = 20
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class MeshNodeData:
-    mesh: str
-    type: str
-    name: defaultdict[str, int]
-    pmid: str
+class PubTatorGraphBuilder:
+    """Constructs a co-mention or BioREx relation network from PubTator3 articles.
 
+    Call `add_article` or `add_collection` to ingest articles, then invoke
+    and `build` once all articles have been added.
 
-@dataclass
-class PubTatorNodeData:
-    mesh: str
-    type: str
-    name: str
-    pmid: str
+    A NetworkX `Graph` is maintained incrementally:
 
+    * **Nodes** (`GraphNode`)
+      * color/shape reflect semantic type (gene, disease, chemical, ...)
+      * `pmids` stores every PubMed ID in which the concept appears
+      * attributes such as `num_articles`, `weighted_num_articles`,
+        community assignment (`parent`), and layout position (`pos`)
+        are filled during `build`.
+    * **Edges** (`GraphEdge`)
+      * `relations` is a mapping `{pmid: {"co-mention", "Inhibits", ...}}`
+      * statistical weights (frequency or NPMI) are calculated in `build`.
+    * **Graph-level attributes**
+      * `graph.graph["pmid_title"]` - `{pmid: title}`
+      * `graph.graph["num_communities"]` - set after community detection.
 
-@dataclass
-class PubTatorEdge:
-    node1_id: str
-    node2_id: str
-    pmid: str
-    relation: str
+    The typical workflow is:
 
+    ```python
+    builder = PubTatorGraphBuilder(node_type="all")
+    builder.add_collection(collection)           # or builder.add_article(...)
+    G = builder.build(
+        pmid_weights={"12345678": 2.0},          # optional importance
+        weighting_method="npmi",                 # or "freq"
+        edge_weight_cutoff=2,                    # prune weak links (max weight = 20)
+        community=True,                          # Louvain clustering
+        max_edges=500                            # keep top-500 edges
+    )
+    ```
 
-class NodeCollection(ABC):
-    @abstractmethod
-    def add_node(self, annotation: PubTatorAnnotation) -> None:
-        pass
+    Args:
+        node_type (Literal["all", "mesh", "relation"]):
+            Determines which annotations become nodes and which
+            edges are created.
+            * `"all"` - every PubTator annotation becomes a node and
+              both co-mention and explicit-relation edges are added.
+            * `"mesh"` - only MeSH terms become nodes; edge creation
+              behaves like `"all"`.
+            * `"relation"` - only MeSH terms appear as nodes *and*
+              **only** BioREx-annotated relations are added as edges.
+              Co-mention edges are skipped.
+    """
 
-    @abstractmethod
-    def to_clean_pubtator_nodes(self) -> dict[str, PubTatorNodeData]:
-        pass
-
-
-class NonMeshNodeCollection(NodeCollection):
-    nodes: dict[str, PubTatorNodeData]
-    node_id_occurrences: defaultdict[str, int]
-    node_names: defaultdict[str, set[str]]
-    """For removing nodes with the same name but annotated as different types
-        {standardized_name : {node_id, ...}}"""
-
-    def __init__(self) -> None:
-        self.nodes = {}
-        self.node_id_occurrences = defaultdict(int)
-        self.node_names = defaultdict(set)
-
-    @override
-    def add_node(self, annotation: PubTatorAnnotation) -> None:
-        # Normalize text
-        name = annotation.get_standardized_name()
-
-        # Text can take on different types depending on the context
-        # Append annotation type as suffix
-        node_id = annotation.get_non_mesh_node_id(name)
-        self.node_id_occurrences[node_id] += 1
-        self.node_names[name].add(node_id)
-
-        if node_id not in self.nodes:
-            self.nodes[node_id] = PubTatorNodeData(
-                mesh=annotation.mesh,
-                type=annotation.type,
-                name=name,
-                pmid=annotation.pmid,
-            )
-
-    @override
-    def to_clean_pubtator_nodes(self) -> dict[str, PubTatorNodeData]:
-        """Parse and remove redundant nodes
-
-        The initial non-MeSH nodes have the same attributes as the final nodes
-        we want. The only cleaning performed here is removing nodes with the
-        same name but annotated as different types. It is likely that, in the
-        same article, these nodes represent the same entity but are misannotated
-        as different types.
-        """
-        nodes = self.nodes.copy()
-        for node_id_set in self.node_names.values():
-            if len(node_id_set) > 1:
-                # Remove nodes with the same name but annotated as different types
-                # Choose the node with the most occurrences
-                node_id = max(node_id_set, key=lambda x: self.node_id_occurrences[x])
-                for node_id in node_id_set:
-                    if node_id != node_id:
-                        nodes.pop(node_id)
-        return nodes
-
-
-class MeshNodeCollection(NodeCollection):
-    use_mesh_vocabulary: bool
-    """Whether the PubTator file has standardized MeSH terms as names"""
-    nodes: dict[str, MeshNodeData]
-    node_occurrences: defaultdict[str, int]
-
-    def __init__(self, use_mesh_vocabulary: bool):
-        self.use_mesh_vocabulary = use_mesh_vocabulary
-        self.nodes = {}
-        self.node_occurrences = defaultdict(int)
-
-    @override
-    def add_node(self, annotation: PubTatorAnnotation):
-        node_id_list = annotation.get_mesh_node_id()
-        name = (
-            annotation.get_standardized_name() if not self.use_mesh_vocabulary else annotation.name
-        )
-
-        for node_id in node_id_list:
-            # Node occurrence information are not used for now, but still keep it
-            self.node_occurrences[node_id] += 1
-            if node_id not in self.nodes:
-                self.nodes[node_id] = MeshNodeData(
-                    mesh=annotation.mesh,
-                    type=annotation.type,
-                    name=defaultdict(int),
-                    pmid=annotation.pmid,
-                )
-            self.nodes[node_id].name[name] += 1
-
-    @override
-    def to_clean_pubtator_nodes(self) -> dict[str, PubTatorNodeData]:
-        """Parse and convert MeshNodeData to PubTatorNodeData
-
-        MeSH terms are always indexed by their MeSH IDs. If users choose to keep
-        the raw text of MeSH terms, we pick the most frequently occurring one
-        as the name for each term. If the raw text is already standardized as MeSH
-        terms, it will always be selected since there are no other entries in the
-        name.
-        """
-        nodes = {}
-        for node_id, node_data in self.nodes.items():
-            name: str = max(node_data.name, key=node_data.name.get)  # type: ignore
-            nodes[node_id] = PubTatorNodeData(
-                mesh=node_data.mesh,
-                type=node_data.type,
-                name=name,
-                pmid=node_data.pmid,
-            )
-
-        return nodes
-
-
-class PubTatorNodeCollection(NodeCollection):
-    mesh_only: bool
-    """Only Keep MeSH Nodes"""
-    use_mesh_vocabulary: bool
-    non_mesh_collection: NonMeshNodeCollection
-    mesh_collection: MeshNodeCollection
-    _mesh_nodes: dict[str, PubTatorNodeData]
-    _non_mesh_nodes: dict[str, PubTatorNodeData]
-    _nodes: dict[str, PubTatorNodeData]
-    _mesh_updated: bool
-    _non_mesh_updated: bool
-
-    def __init__(self, mesh_only: bool, use_mesh_vocabulary: bool):
-        self.mesh_only = mesh_only
-        self.use_mesh_vocabulary = use_mesh_vocabulary
-        self.non_mesh_collection = NonMeshNodeCollection()
-        self.mesh_collection = MeshNodeCollection(use_mesh_vocabulary)
-        self._mesh_nodes = {}
-        self._non_mesh_nodes = {}
-        self._nodes = {}
-        self._mesh_updated = False
-        self._non_mesh_updated = False
-
-    @override
-    def add_node(self, annotation: PubTatorAnnotation):
-        if annotation.type not in ANNOTATION_TYPES:
-            return
-
-        if annotation.mesh in ("-", ""):
-            if self.mesh_only:
-                return
-            self.non_mesh_collection.add_node(annotation)
-            self._non_mesh_updated = True
-        else:
-            self.mesh_collection.add_node(annotation)
-            self._mesh_updated = True
-
-    @override
-    def to_clean_pubtator_nodes(self) -> dict[str, PubTatorNodeData]:
-        return self.nodes
-
-    @property
-    def mesh_nodes(self) -> dict[str, PubTatorNodeData]:
-        if self._mesh_updated:
-            self._mesh_nodes = self.mesh_collection.to_clean_pubtator_nodes()
-            self._mesh_updated = False
-        return self._mesh_nodes
-
-    @property
-    def non_mesh_nodes(self) -> dict[str, PubTatorNodeData]:
-        if self._non_mesh_updated:
-            self._non_mesh_nodes = self.non_mesh_collection.to_clean_pubtator_nodes()
-            self._non_mesh_updated = False
-        return self._non_mesh_nodes
-
-    @property
-    def nodes(self) -> dict[str, PubTatorNodeData]:
-        if self._mesh_updated or self._non_mesh_updated:
-            self._nodes = self.non_mesh_nodes | self.mesh_nodes
-        return self._nodes
-
-
-class PubTatorRelationParser:
-    _mesh_node_id_mapping: dict[str, str]
-    """{mesh: node_id} mapping for non-mutation terms"""
-    _mutation_mesh_node_info: dict[str, dict[str, str | None]]
-    """{node_id: mutation_info} for parsing mutation terms"""
-
-    def __init__(self, mesh_node_ids: Sequence[str]) -> None:
-        self._mesh_node_id_mapping = {}
-        self._mutation_mesh_node_info = {}
-
-        for mesh_node_id in mesh_node_ids:
-            if len(mesh_node_id.split(";", 1)) == 1:
-                self._mesh_node_id_mapping[
-                    PubTatorAnnotation.get_mesh_from_mesh_node_id(mesh_node_id)
-                ] = mesh_node_id
-            else:
-                # Likely a mutation term
-                self._mutation_mesh_node_info[mesh_node_id] = self._get_mutation_info(
-                    PubTatorAnnotation.get_mesh_from_mesh_node_id(mesh_node_id)
-                )
-
-    @staticmethod
-    def _get_mutation_info(mesh: str) -> dict[str, str | None]:
-        mutation_info = {}
-        for name, pattern in MUTATION_PATTERNS.items():
-            if (matched := pattern.search(mesh)) is not None:
-                mutation_info[name] = matched.group(1)
-            else:
-                mutation_info[name] = None
-
-        return mutation_info
-
-    def parse(self, relation: PubTatorRelation) -> tuple[str, str] | None:
-        """Parse a relation and return the node IDs of the two nodes"""
-        nodes = []
-        for mesh in (relation.mesh1, relation.mesh2):
-            node = self._mesh_node_id_mapping.get(mesh, self.match_mutation_mesh(mesh))
-            if node is None:
-                logger.warning(f"Mutation not found: {mesh} (PMID: {relation.pmid})")
-                return
-            nodes.append(node)
-
-        if nodes[0] <= nodes[1]:
-            return tuple(nodes)
-        else:
-            return tuple(reversed(nodes))
-
-    def match_mutation_mesh(self, mesh: str) -> str | None:
-        matched_node_id = None
-        mutation_info = self._get_mutation_info(mesh)
-        for node_id, info_to_match in self._mutation_mesh_node_info.items():
-            is_matched = True
-            for attr, value in mutation_info.items():
-                if value is None:
-                    continue
-                if info_to_match[attr] != value:
-                    is_matched = False
-                    break
-            if is_matched:
-                matched_node_id = node_id
-                break
-
-        return matched_node_id
-
-
-class PubTatorGraph:
     node_type: Literal["all", "mesh", "relation"]
     num_articles: int
     _mesh_only: bool
@@ -336,6 +106,42 @@ class PubTatorGraph:
         self._updated = False
         self._init_graph_attributes()
 
+    def add_collection(
+        self,
+        collection: PubTatorCollection,
+    ):
+        use_mesh_vocabulary = HEADERS["use_mesh_vocabulary"] in collection.headers
+        for article in collection.articles:
+            self.add_article(article, use_mesh_vocabulary=use_mesh_vocabulary)
+
+    def add_article(
+        self,
+        article: PubTatorArticle,
+        use_mesh_vocabulary: bool = True,
+    ):
+        self._updated = True
+        self.num_articles += 1
+
+        node_collection = PubTatorNodeCollection(
+            mesh_only=self._mesh_only, use_mesh_vocabulary=use_mesh_vocabulary
+        )
+        for annotation in article.annotations:
+            node_collection.add_node(annotation)
+
+        edges = []
+        if self.node_type != "relation":
+            edges += self._create_complete_graph_edges(
+                list(node_collection.nodes.keys()), article.pmid
+            )
+
+        edges += self._create_relation_edges(
+            list(node_collection.mesh_nodes.keys()), article.relations
+        )
+
+        self._add_attributes(article)
+        self._add_nodes(node_collection.nodes)
+        self._add_edges(edges)
+
     def build(
         self,
         pmid_weights: dict[str, int | float] | None = None,
@@ -353,7 +159,7 @@ class PubTatorGraph:
         Args:
             pmid_weights (dict[str, int | float], optional):
                 The weight (importance) of each article.
-            weighting_method (Literal[&quot;freq&quot;, &quot;npmi&quot;], optional):
+            weighting_method (Literal["freq", "npmi"], optional):
                 Method used for calculating edge weights. Defaults to "freq".
             edge_weight_cutoff (int, optional):
                 For removing edges with weights below the cutoff. Defaults to 0.
@@ -363,27 +169,27 @@ class PubTatorGraph:
                 For keep top [max_edges] edges sorted descendingly by edge weights. Defaults to 0.
         """
 
-        self.build_nodes(pmid_weights)
-        self.build_edges(pmid_weights, weighting_method)
+        self._build_nodes(pmid_weights)
+        self._build_edges(pmid_weights, weighting_method)
 
-        self.remove_edges_by_weight(edge_weight_cutoff)
-        self.remove_edges_by_rank(max_edges)
+        self._remove_edges_by_weight(edge_weight_cutoff)
+        self._remove_edges_by_rank(max_edges)
 
-        self.remove_isolated_nodes()
+        self._remove_isolated_nodes()
 
-        self.check_graph_properties()
+        self._check_graph_properties()
 
-        self.set_network_layout()
+        self._set_network_layout()
 
         if community:
-            self.set_network_communities()
+            self._set_network_communities()
 
-        self.log_graph_info()
+        self._log_graph_info()
         self._updated = False
 
         return self.graph
 
-    def build_nodes(self, pmid_weights: dict[str, int | float] | None = None):
+    def _build_nodes(self, pmid_weights: dict[str, int | float] | None = None):
         for _, data in self.graph.nodes(data=True):
             data["num_articles"] = len(data["pmids"])
             if pmid_weights is not None:
@@ -393,7 +199,7 @@ class PubTatorGraph:
             else:
                 data["weighted_num_articles"] = data["num_articles"]
 
-    def build_edges(
+    def _build_edges(
         self,
         pmid_weights: dict[str, int | float] | None,
         weighting_method: Literal["npmi", "freq"],
@@ -438,14 +244,14 @@ class PubTatorGraph:
                 }
             )
 
-    def remove_edges_by_weight(self, edge_weight_cutoff: int | float):
+    def _remove_edges_by_weight(self, edge_weight_cutoff: int | float):
         to_remove = []
         for u, v, edge_attrs in self.graph.edges(data=True):
             if edge_attrs["edge_width"] < edge_weight_cutoff:
                 to_remove.append((u, v))
         self.graph.remove_edges_from(to_remove)
 
-    def remove_edges_by_rank(self, max_edges: int):
+    def _remove_edges_by_rank(self, max_edges: int):
         if max_edges <= 0:
             return
 
@@ -459,15 +265,15 @@ class PubTatorGraph:
             for edge in edges[max_edges:]:
                 self.graph.remove_edge(edge[0], edge[1])
 
-    def remove_isolated_nodes(self):
+    def _remove_isolated_nodes(self):
         self.graph.remove_nodes_from(list(nx.isolates(self.graph)))
 
-    def check_graph_properties(self):
+    def _check_graph_properties(self):
         num_selfloops = nx.number_of_selfloops(self.graph)
         if num_selfloops != 0:
             logger.warning(f"[Error] Find {num_selfloops} selfloops")
 
-    def set_network_layout(self):
+    def _set_network_layout(self):
         if self.graph.number_of_edges() > 1000:
             pos = nx.circular_layout(self.graph, scale=300)
         else:
@@ -476,12 +282,13 @@ class PubTatorGraph:
             )
         nx.set_node_attributes(self.graph, pos, "pos")
 
-    def set_network_communities(self, seed: int = 1):
-        communities = nx.community.louvain_communities(self.graph, seed=seed, weight="edge_weight")
+    def _set_network_communities(self, seed: int = 1):
+        communities = nx.community.louvain_communities(self.graph, seed=seed, weight="edge_weight")  # type: ignore
         community_labels = set()
         for c_idx, community in enumerate(communities):
             highest_degree_node = max(
-                self.graph.degree(community, weight="edge_weight"), key=itemgetter(1)
+                self.graph.degree(community, weight="edge_weight"),  # type: ignore
+                key=itemgetter(1),
             )[0]
             community_node = f"c{c_idx}"
             community_labels.add(community_node)
@@ -489,7 +296,7 @@ class PubTatorGraph:
             community_attrs.update(
                 {"label_color": "#dd4444", "parent": None, "_id": community_node}
             )
-            node_data = GraphNodeData(**community_attrs)
+            node_data = GraphNode(**community_attrs)
             self.graph.add_node(community_node, **asdict(node_data))
 
             for node in community:
@@ -520,48 +327,21 @@ class PubTatorGraph:
             except ValueError:
                 weight = 0.0
             pmids = set(inter_edge_pmids[(c_0, c_1)])
-            edge_data = CommunityEdgeData(
+            edge_data = CommunityEdge(
                 _id=generate_uuid(),
+                type="community",
                 edge_weight=weight,
                 edge_width=max(weight, MIN_EDGE_WIDTH),
                 pmids=set(pmids),
             )
-            self.graph.add_edge(c_0, c_1, type="community", **asdict(edge_data))
+            self.graph.add_edge(c_0, c_1, **asdict(edge_data))
 
-    def log_graph_info(self):
+    def _log_graph_info(self):
         logger.info(f"# articles: {len(self.graph.graph['pmid_title'])}")
         if num_communities := self.graph.graph.get("num_communities", 0):
             logger.info(f"# communities: {num_communities}")
         logger.info(f"# nodes: {self.graph.number_of_nodes() - num_communities}")
         logger.info(f"# edges: {self.graph.number_of_edges()}")
-
-    def add_article(
-        self,
-        article: PubTatorArticle,
-        use_mesh_vocabulary: bool = True,
-    ):
-        self._updated = True
-        self.num_articles += 1
-
-        node_collection = PubTatorNodeCollection(
-            mesh_only=self._mesh_only, use_mesh_vocabulary=use_mesh_vocabulary
-        )
-        for annotation in article.annotations:
-            node_collection.add_node(annotation)
-
-        edges = []
-        if self.node_type != "relation":
-            edges += self._create_complete_graph_edges(
-                list(node_collection.nodes.keys()), article.pmid
-            )
-
-        edges += self._create_relation_edges(
-            list(node_collection.mesh_nodes.keys()), article.relations
-        )
-
-        self._add_attributes(article)
-        self._add_nodes(node_collection.nodes)
-        self._add_edges(edges)
 
     def _create_complete_graph_edges(
         self, node_ids: Sequence[str], pmid: str
@@ -601,12 +381,12 @@ class PubTatorGraph:
 
         return edges
 
-    def _add_nodes(self, nodes: Mapping[str, PubTatorNodeData]):
+    def _add_nodes(self, nodes: Mapping[str, PubTatorNode]):
         for node_id, data in nodes.items():
             if self.graph.has_node(node_id):
                 self.graph.nodes[node_id]["pmids"].add(data.pmid)
             else:
-                node_data = GraphNodeData(
+                node_data = GraphNode(
                     _id=generate_uuid(),
                     color=NODE_COLOR_MAP[data.type],
                     label_color="#000000",
@@ -634,8 +414,9 @@ class PubTatorGraph:
                 else:
                     relation_dict[edge.pmid].add(edge.relation)
             else:
-                edge_data = GraphEdgeData(
+                edge_data = GraphEdge(
                     _id=generate_uuid(),
+                    type="node",
                     relations={edge.pmid: {edge.relation}},
                     num_relations=None,
                     weighted_num_relations=None,
@@ -651,3 +432,32 @@ class PubTatorGraph:
 
     def _init_graph_attributes(self):
         self.graph.graph["pmid_title"] = {}
+
+
+def save_graph(
+    G: nx.Graph,
+    savepath: str | Path,
+    output_filetype: Literal["xgmml", "html", "json", "pickle"],
+):
+    format_function_map = {
+        "xgmml": "netmedex.cytoscape_xgmml.save_as_xgmml",
+        "html": "netmedex.cytoscape_js.save_as_html",
+        "json": "netmedex.cytoscape_js.save_as_json",
+    }
+    if output_filetype == "pickle":
+        with open(savepath, "wb") as f:
+            pickle.dump(G, f)
+    else:
+        module_path, func_name = format_function_map[output_filetype].rsplit(".", 1)
+        module = importlib.import_module(module_path)
+        save_func = getattr(module, func_name)
+        save_func(G, savepath)
+
+    logger.info(f"Save graph to {savepath}")
+
+
+def load_graph(graph_pickle_path: str):
+    with open(graph_pickle_path, "rb") as f:
+        G = pickle.load(f)
+
+    return G
