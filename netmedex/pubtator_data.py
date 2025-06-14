@@ -2,8 +2,9 @@ import logging
 import re
 from collections.abc import Sequence
 from dataclasses import dataclass, field
-from typing import Any, TypedDict
+from typing import Any
 
+from netmedex.headers import USE_MESH_VOCABULARY
 from netmedex.stemmers import s_stemmer
 
 HEADER_SYMBOL = "##"
@@ -179,7 +180,7 @@ class PubTatorCollection:
     ):
         headers = []
         if annotation_use_identifier_name:
-            headers = "USE-MESH-VOCABULARY"
+            headers.append(USE_MESH_VOCABULARY)
         return (
             "\n".join([HEADER_SYMBOL + header for header in headers])
             + "\n"
@@ -188,11 +189,6 @@ class PubTatorCollection:
                 for article in self.articles
             )
         )
-
-
-class PubTatorHeaderResult(TypedDict):
-    headers: list[str]
-    non_header_line: str | None
 
 
 class PubTatorRelationParser:
