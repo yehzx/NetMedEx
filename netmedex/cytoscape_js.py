@@ -50,6 +50,10 @@ def create_cytoscape_node(node):
             "label_color": node_attr["label_color"],
             "label": node_attr["name"],
             "shape": convert_shape(node_attr["shape"]),
+            "pmids": list(node_attr["pmids"]),
+            "num_articles": node_attr["num_articles"],
+            "standardized_id": node_attr["mesh"],
+            "node_type": node_attr["type"],
         },
         "position": {
             "x": round(node_attr["pos"][0], 3),
@@ -78,6 +82,7 @@ def create_cytoscape_edge(edge, G, with_id=True):
             "label": f"{G.nodes[node_id_1]['name']} (interacts with) {G.nodes[node_id_2]['name']}",
             "weight": round(max(float(edge_attr["edge_width"]), 1), 1),
             "pmids": pmids,
+            "num_relations": edge_attr["num_relations"],
             "edge_type": edge_attr["type"],
         }
     }

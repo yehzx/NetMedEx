@@ -30,6 +30,7 @@ class GraphNode:
     label_color: str
     shape: str
     type: str
+    mesh: str
     name: str
     pmids: set[str]
     num_articles: int | None = None
