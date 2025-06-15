@@ -2,6 +2,9 @@
 requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+license-files = []
+
 [tool.setuptools.packages.find]
 include = ["netmedex*", "webapp*"]
 
