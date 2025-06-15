@@ -1,4 +1,95 @@
 window.dash_clientside = window.dash_clientside || {}
+
+function create_pmid_table(pmids, pmid_title) {
+  const pubtator_href = "https://www.ncbi.nlm.nih.gov/research/pubtator3/publication/"
+  const pmid_table = {
+    type: "Table",
+    namespace: "dash_html_components",
+    props: {
+      className: "table table-bordered table-striped table-sm",
+      children: [
+        {
+          type: "Thead",
+          namespace: "dash_html_components",
+          props: {
+            children: [
+              {
+                type: "Tr",
+                namespace: "dash_html_components",
+                props: {
+                  children: [
+                    {
+                      type: "Th",
+                      namespace: "dash_html_components",
+                      props: { children: "No." }
+                    },
+                    {
+                      type: "Th",
+                      namespace: "dash_html_components",
+                      props: { children: "PMID" }
+                    },
+                    {
+                      type: "Th",
+                      namespace: "dash_html_components",
+                      props: { children: "Title" }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          type: "Tbody",
+          namespace: "dash_html_components",
+          props: { children: [] }
+        }
+      ]
+    }
+  }
+
+  const table_entry = pmid_table.props.children[1].props.children
+  pmids.forEach((pmid, index) => {
+    const title = pmid_title[pmid]
+
+    table_entry.push({
+      type: "Tr",
+      namespace: "dash_html_components",
+      props: {
+        children: [
+          {
+            type: "Td",
+            namespace: "dash_html_components",
+            props: { children: `${index + 1}` }
+          },
+          {
+            type: "Td",
+            namespace: "dash_html_components",
+            props: {
+              children: {
+                type: "A",
+                namespace: "dash_html_components",
+                props: {
+                  href: pubtator_href + pmid,
+                  target: "_blank",
+                  children: pmid,
+                }
+              }
+            }
+          },
+          {
+            type: "Td",
+            namespace: "dash_html_components",
+            props: { children: `${title}` }
+          }
+        ]
+      }
+    })
+  })
+
+  return pmid_table
+}
+
 window.dash_clientside.clientside = {
   info_scroll: function (trigger) {
     const infoElements = document.querySelectorAll("[data-tooltip]")
@@ -40,7 +131,6 @@ window.dash_clientside.clientside = {
         return [{ "visibility": visibility, "zIndex": get_z_index(visibility) }, elements]
       }
 
-      const pubtator_href = "https://www.ncbi.nlm.nih.gov/research/pubtator3/publication/"
       const [node_1, node_2] = tap_edge.label.split(" (interacts with) ")
       let edge_type
       if (tap_edge.edge_type === "node") {
@@ -50,108 +140,76 @@ window.dash_clientside.clientside = {
       }
       elements.push({ props: { children: `${edge_type} 1: ${node_1}` }, type: "P", namespace: "dash_html_components" })
       elements.push({ props: { children: `${edge_type} 2: ${node_2}` }, type: "P", namespace: "dash_html_components" })
-      // elements.push({ props: { children: "Evidence:" }, type: "P", namespace: "dash_html_components" })
-      const edge_table = {
-        type: "Table",
-        namespace: "dash_html_components",
-        props: {
-          className: "table table-bordered table-striped table-sm",
-          children: [
-            {
-              type: "Thead",
-              namespace: "dash_html_components",
-              props: {
-                children: [
-                  {
-                    type: "Tr",
-                    namespace: "dash_html_components",
-                    props: {
-                      children: [
-                        {
-                          type: "Th",
-                          namespace: "dash_html_components",
-                          props: {
-                            children: "No.",
-                          }
-                        },
-                        {
-                          type: "Th",
-                          namespace: "dash_html_components",
-                          props: {
-                            children: "PMID",
-                          }
-                        },
-                        {
-                          type: "Th",
-                          namespace: "dash_html_components",
-                          props: {
-                            children: "Title",
-                          }
-                        }
-                      ]
-                    }
-                  }
-                ]
-              }
-            },
-            {
-              type: "Tbody",
-              namespace: "dash_html_components",
-              props: {
-                children: [],
-              }
-            }
-          ]
-        }
-      }
-
-      const table_entry = edge_table.props.children[1].props.children
-      tap_edge.pmids.forEach((pmid, index) => {
-        const title = pmid_title[pmid]
-
-        table_entry.push({
-          type: "Tr",
-          namespace: "dash_html_components",
-          props: {
-            children: [
-              {
-                type: "Td",
-                namespace: "dash_html_components",
-                props: {
-                  children: `${index + 1}`,
-                }
-              },
-              {
-                type: "Td",
-                namespace: "dash_html_components",
-                props: {
-                  children: {
-                    type: "A",
-                    namespace: "dash_html_components",
-                    props: {
-                      href: pubtator_href + pmid,
-                      target: "_blank",
-                      children: pmid,
-                    }
-                  }
-                }
-              },
-              {
-                type: "Td",
-                namespace: "dash_html_components",
-                props: {
-                  children: `${title}`,
-                }
-              }
-            ]
-          }
-        })
-      })
-
+      const edge_table = create_pmid_table(tap_edge.pmids, pmid_title)
       visibility = "visible"
       elements.push(edge_table)
     }
 
+
+    return [{ "visibility": visibility, "zIndex": get_z_index(visibility) }, elements]
+  },
+  show_node_info: function (selected_nodes, tap_node, pmid_title) {
+    function check_if_selected(tap_node) {
+      for (let i = 0; i < selected_nodes.length; i++) {
+        if (selected_nodes[i].id === tap_node.id) {
+          return true
+        }
+      }
+      return false
+    }
+
+    function get_z_index(visibility) {
+      return visibility === "hidden" ? -100 : 100
+    }
+
+    let elements = []
+    let visibility = "hidden"
+
+    if (tap_node !== undefined) {
+      if (!check_if_selected(tap_node)) {
+        return [{ "visibility": visibility, "zIndex": get_z_index(visibility) }, elements]
+      }
+
+      elements.push({ props: { children: `Name: ${tap_node.label}` }, type: "P", namespace: "dash_html_components" })
+
+      let identifier = tap_node.standardized_id
+      const node_type = tap_node.node_type
+      let href = null
+
+      const NCBI_TAXONOMY = "https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id="
+      const NCBI_GENE = "https://www.ncbi.nlm.nih.gov/gene/"
+      const NCBI_MESH = "https://meshb.nlm.nih.gov/record/ui?ui="
+
+      if (identifier !== "-" && identifier !== "") {
+        if (node_type === "Species") {
+          href = NCBI_TAXONOMY + identifier
+        } else if (node_type === "Gene") {
+          href = NCBI_GENE + identifier
+        } else if (node_type === "Chemical" || node_type === "Disease") {
+          href = NCBI_MESH + identifier
+        }
+      }
+
+      if (href) {
+        elements.push({
+          type: "P",
+          namespace: "dash_html_components",
+          props: {
+            children: ["Identifier: ", {
+              type: "A",
+              namespace: "dash_html_components",
+              props: { href: href, target: "_blank", children: identifier }
+            }]
+          }
+        })
+      } else {
+        elements.push({ props: { children: `Identifier: ${identifier}` }, type: "P", namespace: "dash_html_components" })
+      }
+
+      const node_table = create_pmid_table(tap_node.pmids, pmid_title)
+      visibility = "visible"
+      elements.push(node_table)
+    }
 
     return [{ "visibility": visibility, "zIndex": get_z_index(visibility) }, elements]
   }
