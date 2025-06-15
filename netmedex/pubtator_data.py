@@ -150,14 +150,13 @@ class PubTatorArticle:
             for relation in self.relations
         ]
 
-        return (
-            title_str
-            + abstract_str
-            + "\n".join(annotation_str)
-            + "\n"
-            + "\n".join(relation_str)
-            + "\n\n"
-        )
+        pubtator_str = title_str + abstract_str
+        if len(annotation_str) > 0:
+            pubtator_str += "\n".join(annotation_str) + "\n"
+        if len(relation_str) > 0:
+            pubtator_str += "\n".join(relation_str) + "\n"
+
+        return pubtator_str
 
 
 @dataclass
@@ -181,14 +180,16 @@ class PubTatorCollection:
         headers = []
         if annotation_use_identifier_name:
             headers.append(USE_MESH_VOCABULARY)
-        return (
-            "\n".join([HEADER_SYMBOL + header for header in headers])
-            + "\n"
-            + "\n".join(
-                article.to_pubtator_str(annotation_use_identifier_name, relation_use_identifier)
-                for article in self.articles
-            )
+
+        pubtator_str = ""
+        if len(headers) > 0:
+            pubtator_str += "\n".join([HEADER_SYMBOL + header for header in headers]) + "\n"
+        pubtator_str += "\n".join(
+            article.to_pubtator_str(annotation_use_identifier_name, relation_use_identifier)
+            for article in self.articles
         )
+
+        return pubtator_str
 
 
 class PubTatorRelationParser:

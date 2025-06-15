@@ -74,53 +74,45 @@ class PubTatorIterator:
         if line is None:
             raise StopIteration
 
-        if (title := self._get_title(line)) is not None:
-            pmid = line.split("|", 1)[0]
-            has_tried_getting_abstract = False
+        while (title := self._get_title(line)) is None:
+            line = next(self.stream)
 
-            for line in self.stream:
-                # Next article
-                if self._get_title(line) is not None:
-                    break
+        pmid = line.split("|", 1)[0]
+        has_tried_getting_abstract = False
 
-                # Sometimes an article won't have a abstract, so use `has_tried_getting_abstract`
-                if not has_tried_getting_abstract:
-                    if (abstract := self._get_abstract(line)) is not None:
-                        has_tried_getting_abstract = True
-                        continue
+        for line in self.stream:
+            # See if the next line is the next article
+            if self._get_title(line) is not None:
+                break
 
-                line_instance = PubTatorLine.parse(line)
-                if isinstance(line_instance, PubTatorAnnotation):
+            # Sometimes an article won't have a abstract, so use `has_tried_getting_abstract`
+            if not has_tried_getting_abstract:
+                if (abstract := self._get_abstract(line)) is not None:
                     has_tried_getting_abstract = True
-                    annotations.append(line_instance)
-                elif isinstance(line_instance, PubTatorRelation):
-                    has_tried_getting_abstract = True
-                    relations.append(line_instance)
-        else:
-            # Happens when the title is not followed by the headers
-            for line in self.stream:
-                if self._get_title(line) is not None:
-                    break
-            else:
-                line = None
+                    continue
+
+            line_instance = PubTatorLine.parse(line)
+            if isinstance(line_instance, PubTatorAnnotation):
+                has_tried_getting_abstract = True
+                annotations.append(line_instance)
+            elif isinstance(line_instance, PubTatorRelation):
+                has_tried_getting_abstract = True
+                relations.append(line_instance)
 
         # The first line of the next article
         self._line = line
 
-        if title is None or pmid is None:
-            return None
-        else:
-            return PubTatorArticle(
-                pmid=pmid,
-                date=None,
-                journal=None,
-                title=title,
-                abstract=abstract,
-                annotations=annotations,
-                relations=relations,
-                identifiers=None,
-                metadata=None,
-            )
+        return PubTatorArticle(
+            pmid=pmid,
+            date=None,
+            journal=None,
+            title=title,
+            abstract=abstract,
+            annotations=annotations,
+            relations=relations,
+            identifiers=None,
+            metadata=None,
+        )
 
     @staticmethod
     def _get_title(line: str) -> str | None:
