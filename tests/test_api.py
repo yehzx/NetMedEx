@@ -99,7 +99,7 @@ def test_empty_input():
 
 
 def test_batch_publication_queue(stub_network):
-    pmids = ["1", "2", "3", "4"]
+    pmids = [str(i) for i in range(1, 102)]
     queue: Queue[str | None] = Queue()
 
     api = PubTatorAPI(pmid_list=pmids, queue=queue)
@@ -112,7 +112,7 @@ def test_batch_publication_queue(stub_network):
         if msg is None:
             break
 
-    assert progress == ["get/4/4", None]
+    assert progress == ["get/100/101", "get/101/101", "get/101/101", None]
 
 
 def test_load_pmids_file(paths):
