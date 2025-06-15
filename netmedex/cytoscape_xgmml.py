@@ -192,7 +192,7 @@ def _create_edge_xml(edge, G):
             )
         ),
         E.att(name_value("edge weight", str(edge_attr["edge_weight"]), with_type="double")),
-        E.att(name_value("edge width", str(edge_attr["edge_width"]), with_type="integer")),
+        E.att(name_value("edge width", str(edge_attr["edge_width"]), with_type="double")),
         E.att(name_value("pubmed id", pmids)),
         E.graphics(
             _graphics_attr,
