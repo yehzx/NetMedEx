@@ -228,6 +228,9 @@ class PubTatorGraphBuilder:
                 self.graph, "weighted_num_relations"
             )
             max_weight = max(edge_weights.values())
+
+            # This only scales down the width. If # supporting relations is
+            # smaller than MAX_EDGE_WIDTH, the edge width will equal the weight
             scale_factor = min(MAX_EDGE_WIDTH / max_weight, 1)
 
         # Update scaled weights for edges
