@@ -66,14 +66,17 @@ def create_cytoscape_node(node):
 
 def create_cytoscape_edge(edge, G, with_id=True):
     node_id_1, node_id_2, edge_attr = edge
-
+    if edge_attr["type"] == "community":
+        pmids = ",".join(list(edge_attr["pmids"]))
+    else:
+        pmids = ",".join(list(edge_attr["relations"].keys()))
     edge_info = {
         "data": {
             "source": G.nodes[node_id_1]["_id"],
             "target": G.nodes[node_id_2]["_id"],
             "label": f"{G.nodes[node_id_1]['name']} (interacts with) {G.nodes[node_id_2]['name']}",
             "weight": round(max(float(edge_attr["edge_width"]), 1), 1),
-            "pmids": list(edge_attr["relations"].keys()),
+            "pmids": pmids,
             "edge_type": edge_attr["type"],
         }
     }

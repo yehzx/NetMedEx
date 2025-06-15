@@ -209,6 +209,8 @@ class PubTatorAPI:
                     f"Missing output: expected {len(article_id_lists)} batch outputs but only have {len(pages)}."
                 )
             pbar.n = pbar.total
+            if self.queue is not None:
+                self.queue.put(progress_message("search-search", pbar.n, pbar.total))
 
         for article_ids in article_id_lists:
             collected_article_ids.extend(article_ids)
@@ -290,6 +292,8 @@ class PubTatorAPI:
                         f"Missing output: expected {len(res_list)} batch outputs but only have {len(batches)}."
                     )
                 pbar.n = pbar.total
+                if self.queue is not None:
+                    self.queue.put(progress_message("get", pbar.n, pbar.total))
 
         # End frontend progress display
         if self.queue is not None:

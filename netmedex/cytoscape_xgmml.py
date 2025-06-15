@@ -161,6 +161,10 @@ def _create_edge_xml(edge, G):
     }
 
     _graphics_attr = {"width": str(edge_attr["edge_width"]), "fill": "#848484"}
+    if edge_attr["type"] == "community":
+        pmids = ",".join(list(edge_attr["pmids"]))
+    else:
+        pmids = ",".join(list(edge_attr["relations"].keys()))
 
     edge = E.edge(
         _edge_attr,
@@ -189,7 +193,7 @@ def _create_edge_xml(edge, G):
         ),
         E.att(name_value("edge weight", str(edge_attr["edge_weight"]), with_type="double")),
         E.att(name_value("edge width", str(edge_attr["edge_width"]), with_type="integer")),
-        E.att(name_value("pubmed id", ",".join(list(edge_attr["relations"].keys())))),
+        E.att(name_value("pubmed id", pmids)),
         E.graphics(
             _graphics_attr,
             # E.att(name_value("EDGE_TOOLTIP", "")),
