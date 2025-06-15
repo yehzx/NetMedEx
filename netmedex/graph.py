@@ -152,10 +152,6 @@ class PubTatorGraphBuilder:
     ):
         """Build the co-mention network with edge weights
 
-        Add node attributes: num_articles, num_edges?
-        Add edge attributes: npmi, occurrence_weight, scaled_weight, ...
-        Add graph attributes: num_articles
-
         Args:
             pmid_weights (dict[str, int | float], optional):
                 The weight (importance) of each article.
@@ -172,17 +168,17 @@ class PubTatorGraphBuilder:
         self._build_nodes(pmid_weights)
         self._build_edges(pmid_weights, weighting_method)
 
-        self._remove_edges_by_weight(edge_weight_cutoff)
-        self._remove_edges_by_rank(max_edges)
+        self._remove_edges_by_weight(self.graph, edge_weight_cutoff)
+        self._remove_edges_by_rank(self.graph, max_edges)
 
-        self._remove_isolated_nodes()
+        self._remove_isolated_nodes(self.graph)
 
-        self._check_graph_properties()
+        self._check_graph_properties(self.graph)
 
-        self._set_network_layout()
+        self._set_network_layout(self.graph)
 
         if community:
-            self._set_network_communities()
+            self._set_network_communities(self.graph)
 
         self._log_graph_info()
         self._updated = False
@@ -244,72 +240,76 @@ class PubTatorGraphBuilder:
                 }
             )
 
-    def _remove_edges_by_weight(self, edge_weight_cutoff: int | float):
+    @staticmethod
+    def _remove_edges_by_weight(graph: nx.Graph, edge_weight_cutoff: int | float):
         to_remove = []
-        for u, v, edge_attrs in self.graph.edges(data=True):
+        for u, v, edge_attrs in graph.edges(data=True):
             if edge_attrs["edge_width"] < edge_weight_cutoff:
                 to_remove.append((u, v))
-        self.graph.remove_edges_from(to_remove)
+        graph.remove_edges_from(to_remove)
 
-    def _remove_edges_by_rank(self, max_edges: int):
+    @staticmethod
+    def _remove_edges_by_rank(graph: nx.Graph, max_edges: int):
         if max_edges <= 0:
             return
 
-        if self.graph.number_of_edges() > max_edges:
+        if graph.number_of_edges() > max_edges:
             edges = sorted(
                 # u, v, data
-                self.graph.edges(data=True),
+                graph.edges(data=True),
                 key=lambda x: x[2]["edge_weight"],
                 reverse=True,
             )
             for edge in edges[max_edges:]:
-                self.graph.remove_edge(edge[0], edge[1])
+                graph.remove_edge(edge[0], edge[1])
 
-    def _remove_isolated_nodes(self):
-        self.graph.remove_nodes_from(list(nx.isolates(self.graph)))
+    @staticmethod
+    def _remove_isolated_nodes(graph: nx.Graph):
+        graph.remove_nodes_from(list(nx.isolates(graph)))
 
-    def _check_graph_properties(self):
-        num_selfloops = nx.number_of_selfloops(self.graph)
+    @staticmethod
+    def _check_graph_properties(graph: nx.Graph):
+        num_selfloops = nx.number_of_selfloops(graph)
         if num_selfloops != 0:
             logger.warning(f"[Error] Find {num_selfloops} selfloops")
 
-    def _set_network_layout(self):
-        if self.graph.number_of_edges() > 1000:
-            pos = nx.circular_layout(self.graph, scale=300)
+    @staticmethod
+    def _set_network_layout(graph: nx.Graph):
+        if graph.number_of_edges() > 1000:
+            pos = nx.circular_layout(graph, scale=300)
         else:
-            pos = nx.spring_layout(
-                self.graph, weight="scaled_edge_weight", scale=300, k=0.25, iterations=15
-            )
-        nx.set_node_attributes(self.graph, pos, "pos")
+            pos = nx.spring_layout(graph, weight="edge_weight", scale=300, k=0.25, iterations=15)
+        nx.set_node_attributes(graph, pos, "pos")
 
-    def _set_network_communities(self, seed: int = 1):
-        communities = nx.community.louvain_communities(self.graph, seed=seed, weight="edge_weight")  # type: ignore
+    @staticmethod
+    def _set_network_communities(graph: nx.Graph, seed: int = 1):
+        communities = nx.community.louvain_communities(graph, seed=seed, weight="edge_weight")  # type: ignore
         community_labels = set()
         for c_idx, community in enumerate(communities):
             highest_degree_node = max(
-                self.graph.degree(community, weight="edge_weight"),  # type: ignore
+                graph.degree(community, weight="edge_weight"),  # type: ignore
                 key=itemgetter(1),
             )[0]
             community_node = f"c{c_idx}"
             community_labels.add(community_node)
-            community_attrs = self.graph.nodes[highest_degree_node].copy()
+            community_attrs = graph.nodes[highest_degree_node].copy()
             community_attrs.update(
                 {"label_color": "#dd4444", "parent": None, "_id": community_node}
             )
             node_data = GraphNode(**community_attrs)
-            self.graph.add_node(community_node, **asdict(node_data))
+            graph.add_node(community_node, **asdict(node_data))
 
             for node in community:
-                self.graph.nodes[node]["parent"] = community_node
+                graph.nodes[node]["parent"] = community_node
 
-        self.graph.graph["num_communities"] = len(community_labels)
+        graph.graph["num_communities"] = len(community_labels)
 
         # Gather edges between communities
         inter_edge_weight = defaultdict(float)
         inter_edge_pmids = defaultdict(dict)
         to_remove = []
-        for u, v, attrs in self.graph.edges(data=True):
-            if (c_0 := self.graph.nodes[u]["parent"]) != (c_1 := self.graph.nodes[v]["parent"]):
+        for u, v, attrs in graph.edges(data=True):
+            if (c_0 := graph.nodes[u]["parent"]) != (c_1 := graph.nodes[v]["parent"]):
                 if c_0 is None or c_1 is None:
                     logger.warning(f"[Error] Node {u} or {v} is not in any community")
                     continue
@@ -318,7 +318,7 @@ class PubTatorGraphBuilder:
                 inter_edge_weight[community_edge] += attrs["edge_weight"]
                 inter_edge_pmids[community_edge].update(attrs["relations"])
 
-        self.graph.remove_edges_from(to_remove)
+        graph.remove_edges_from(to_remove)
         for (c_0, c_1), weight in inter_edge_weight.items():
             # Log-adjusted weight for balance
             try:
@@ -334,7 +334,7 @@ class PubTatorGraphBuilder:
                 edge_width=max(weight, MIN_EDGE_WIDTH),
                 pmids=set(pmids),
             )
-            self.graph.add_edge(c_0, c_1, **asdict(edge_data))
+            graph.add_edge(c_0, c_1, **asdict(edge_data))
 
     def _log_graph_info(self):
         logger.info(f"# articles: {len(self.graph.graph['pmid_title'])}")
