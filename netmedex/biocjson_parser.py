@@ -61,7 +61,9 @@ def biocjson_to_pubtator(
                 annotations=annotation_list,
                 relations=relation_list,
                 identifiers={
-                    annotation.mesh: annotation.identifier_name for annotation in annotation_list
+                    annotation.mesh: annotation.identifier_name
+                    for annotation in annotation_list
+                    if annotation.mesh != "-"
                 },
             )
         )
