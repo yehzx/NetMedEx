@@ -6,7 +6,7 @@
     --MAIN-BACKGROUND: #eeeeee;
     --SIDEBAR-BACKGROUND: #508c9b;
     --TEXT: #1f0737;
-    --SETTINGS-BACKGROUND: #e2dad6; 
+    --SETTINGS-BACKGROUND: #e2dad6;
     --GRAY-TEXT: #585858;
     --tooltip-x: 0px;
     --tooltip-y: 0px;
@@ -24,7 +24,10 @@ body {
     font-family: 'Roboto', sans-serif;
 }
 
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
     color: var(--TEXT);
     text-align: center;
 }
@@ -231,6 +234,10 @@ a:hover {
     margin-bottom: 0;
 }
 
+#node-info p {
+    margin-bottom: 0;
+}
+
 #export-edge-btn {
     position: absolute;
     right: 10px;
@@ -241,7 +248,7 @@ a:hover {
     overflow-y: "scroll";
     height: 100px;
     background-color: var(--SETTINGS-BACKGROUND);
-    border: 1px solid var(--TEXT); 
+    border: 1px solid var(--TEXT);
     padding: 3px;
     margin-bottom: 0;
 }
@@ -300,11 +307,11 @@ a:hover {
     visibility: visible;
 }
 
-.info-right[data-tooltip]:hover:before  {
+.info-right[data-tooltip]:hover:before {
     right: calc(100% - var(--tooltip-x));
 }
 
-.info-left[data-tooltip]:hover:before  {
+.info-left[data-tooltip]:hover:before {
     left: var(--tooltip-x);
 }
 

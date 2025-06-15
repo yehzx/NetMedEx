@@ -170,7 +170,7 @@ window.dash_clientside.clientside = {
         return [{ "visibility": visibility, "zIndex": get_z_index(visibility) }, elements]
       }
 
-      elements.push({ props: { children: `Name: ${tap_node.label}` }, type: "P", namespace: "dash_html_components" })
+      elements.push({ props: { children: `Name: ${tap_node.label.trim()}` }, type: "P", namespace: "dash_html_components" })
 
       let identifier = tap_node.standardized_id
       const node_type = tap_node.node_type
@@ -183,10 +183,16 @@ window.dash_clientside.clientside = {
       if (identifier !== "-" && identifier !== "") {
         if (node_type === "Species") {
           href = NCBI_TAXONOMY + identifier
+          // Prepend "NCBI Taxonomy:"
+          identifer = "NCBI Taxonomy: " + identifier
         } else if (node_type === "Gene") {
           href = NCBI_GENE + identifier
+          // Prepend "NCBI Gene:"
+          identifer = "NCBI Gene: " + identifier
         } else if (node_type === "Chemical" || node_type === "Disease") {
-          href = NCBI_MESH + identifier
+          if (identifier.startsWith("MESH:")) {
+            href = NCBI_MESH + identifier.replace("MESH:", "")
+          }
         }
       }
 

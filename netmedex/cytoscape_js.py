@@ -82,7 +82,6 @@ def create_cytoscape_edge(edge, G, with_id=True):
             "label": f"{G.nodes[node_id_1]['name']} (interacts with) {G.nodes[node_id_2]['name']}",
             "weight": round(max(float(edge_attr["edge_width"]), 1), 1),
             "pmids": pmids,
-            "num_relations": edge_attr["num_relations"],
             "edge_type": edge_attr["type"],
         }
     }
