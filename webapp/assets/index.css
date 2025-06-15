@@ -183,6 +183,19 @@ a:hover {
     box-shadow: 1px 1px 10px 1px rgba(0, 0, 0, 0.2);
 }
 
+#node-info-container {
+    position: relative;
+    overflow-y: auto;
+    height: 200px;
+    border-right: 10px;
+    display: inline-block;
+    background-color: whitesmoke;
+    border-radius: 4px;
+    padding: 0 5px;
+    margin-right: 5px;
+    box-shadow: 1px 1px 10px 1px rgba(0, 0, 0, 0.2);
+}
+
 #legend-container {
     padding: 5px;
     background-color: var(--MAIN-BACKGROUND);
@@ -194,11 +207,23 @@ a:hover {
     width: 100%;
 }
 
+#node-info {
+    width: 100%;
+}
+
 #edge-info-container p {
     color: var(--GRAY-TEXT);
 }
 
+#node-info-container p {
+    color: var(--GRAY-TEXT);
+}
+
 #edge-info-container h5 {
+    color: var(--TEXT);
+}
+
+#node-info-container h5 {
     color: var(--TEXT);
 }
 
