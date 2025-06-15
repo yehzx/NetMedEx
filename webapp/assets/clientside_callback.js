@@ -119,16 +119,22 @@ window.dash_clientside.clientside = {
       return false
     }
 
-    function get_z_index(visibility) {
-      return visibility === "hidden" ? -100 : 100
+    function get_z_index(display) {
+      return display === "none" ? -100 : 100
     }
 
     let elements = []
-    let visibility = "hidden"
+    let display = "none"
+
+    const nodeContainer = document.getElementById("node-info-container")
+    if (nodeContainer) {
+      nodeContainer.style.display = "none"
+      nodeContainer.style.zIndex = -100
+    }
 
     if (tap_edge !== undefined) {
       if (!check_if_selected(tap_edge)) {
-        return [{ "visibility": visibility, "zIndex": get_z_index(visibility) }, elements]
+        return [{ "display": display, "zIndex": get_z_index(display) }, elements]
       }
 
       const [node_1, node_2] = tap_edge.label.split(" (interacts with) ")
@@ -141,12 +147,18 @@ window.dash_clientside.clientside = {
       elements.push({ props: { children: `${edge_type} 1: ${node_1}` }, type: "P", namespace: "dash_html_components" })
       elements.push({ props: { children: `${edge_type} 2: ${node_2}` }, type: "P", namespace: "dash_html_components" })
       const edge_table = create_pmid_table(tap_edge.pmids, pmid_title)
-      visibility = "visible"
+      display = "block"
       elements.push(edge_table)
     }
 
 
-    return [{ "visibility": visibility, "zIndex": get_z_index(visibility) }, elements]
+    return [
+      {
+        display: display,
+        zIndex: get_z_index(display),
+      },
+      elements,
+    ]
   },
   show_node_info: function (selected_nodes, tap_node, pmid_title) {
     function check_if_selected(tap_node) {
@@ -158,16 +170,22 @@ window.dash_clientside.clientside = {
       return false
     }
 
-    function get_z_index(visibility) {
-      return visibility === "hidden" ? -100 : 100
+    function get_z_index(display) {
+      return display === "none" ? -100 : 100
     }
 
     let elements = []
-    let visibility = "hidden"
+    let display = "none"
+
+    const edgeContainer = document.getElementById("edge-info-container")
+    if (edgeContainer) {
+      edgeContainer.style.display = "none"
+      edgeContainer.style.zIndex = -100
+    }
 
     if (tap_node !== undefined) {
       if (!check_if_selected(tap_node)) {
-        return [{ "visibility": visibility, "zIndex": get_z_index(visibility) }, elements]
+        return [{ "display": display, "zIndex": get_z_index(display) }, elements]
       }
 
       elements.push({ props: { children: `Name: ${tap_node.label.trim()}` }, type: "P", namespace: "dash_html_components" })
@@ -213,10 +231,16 @@ window.dash_clientside.clientside = {
       }
 
       const node_table = create_pmid_table(tap_node.pmids, pmid_title)
-      visibility = "visible"
+      display = "block"
       elements.push(node_table)
     }
 
-    return [{ "visibility": visibility, "zIndex": get_z_index(visibility) }, elements]
+    return [
+      {
+        display: display,
+        zIndex: get_z_index(display),
+      },
+      elements,
+    ]
   }
 }
