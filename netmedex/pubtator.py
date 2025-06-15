@@ -246,7 +246,10 @@ class PubTatorAPI:
         return pmid_list[:n_articles_to_request]
 
     async def batch_publication_search(self, pmid_list: Sequence[str]):
-        logger.info("Step 2/2: Requesting article annotations...")
+        if self.query is None:
+            logger.info("Step 1/1: Requesting article annotations...")
+        else:
+            logger.info("Step 2/2: Requesting article annotations...")
 
         async with ClientSession() as session:
 
