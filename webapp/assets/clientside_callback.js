@@ -3,7 +3,7 @@ window.dash_clientside.clientside = {
   info_scroll: function (trigger) {
     const infoElements = document.querySelectorAll("[data-tooltip]")
     const rootElement = document.querySelector(":root")
-    
+
     infoElements.forEach((infoElement) => {
       infoElement.addEventListener("mouseover", () => {
         const position = infoElement.getBoundingClientRect()
@@ -12,10 +12,10 @@ window.dash_clientside.clientside = {
         } else {
           rootElement.style.setProperty("--tooltip-x", `${position.left}px`)
         }
-          rootElement.style.setProperty("--tooltip-y", `${position.bottom}px`)
+        rootElement.style.setProperty("--tooltip-y", `${position.bottom}px`)
       })
-    }) 
-    
+    })
+
     return null
   },
   show_edge_info: function (selected_edges, tap_edge, pmid_title) {

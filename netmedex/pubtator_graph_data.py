@@ -131,7 +131,7 @@ class MeshNodeCollection(NodeCollection):
 
     @override
     def to_clean_pubtator_nodes(self) -> dict[str, PubTatorNode]:
-        """Parse and convert MeshNodeData to PubTatorNodeData
+        """Parse and convert MeshNode to PubTatorNode
 
         MeSH terms are always indexed by their MeSH IDs. If users choose to keep
         the raw text of MeSH terms, we pick the most frequently occurring one

@@ -395,6 +395,7 @@ class PubTatorGraphBuilder:
                     label_color="#000000",
                     shape=NODE_SHAPE_MAP[data.type],
                     type=data.type,
+                    mesh=data.mesh,
                     name=data.name,
                     pmids={data.pmid},
                     num_articles=None,
