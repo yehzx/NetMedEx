@@ -1,6 +1,7 @@
 import logging
 import re
 from collections.abc import Sequence
+from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -115,6 +116,7 @@ class PubTatorArticle:
     pmid: str
     date: str | None
     journal: str | None
+    doi: str | None
     title: str
     abstract: str | None
     annotations: list[PubTatorAnnotation]
@@ -255,3 +257,25 @@ class PubTatorRelationParser:
                 break
 
         return matched_node_id
+
+
+def load_from_collection_json(collection_json: dict[str, Any]) -> PubTatorCollection:
+    collection_copy = deepcopy(collection_json)
+
+    # Post initialization handles this
+    del collection_copy["num_articles"]
+
+    parsed_articles = []
+    for article_dict in collection_copy["articles"]:
+        annotations = [PubTatorAnnotation(**a) for a in article_dict.get("annotations", [])]
+        relations = [PubTatorRelation(**r) for r in article_dict.get("relations", [])]
+        article = PubTatorArticle(
+            **{k: v for k, v in article_dict.items() if k not in ("annotations", "relations")},
+            annotations=annotations,
+            relations=relations,
+        )
+        parsed_articles.append(article)
+
+    collection_copy["articles"] = parsed_articles
+
+    return PubTatorCollection(**collection_copy)

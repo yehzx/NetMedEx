@@ -1,4 +1,5 @@
 import logging
+import re
 from collections import defaultdict
 from datetime import datetime
 from typing import Any
@@ -6,6 +7,8 @@ from typing import Any
 from netmedex.pubtator_data import PubTatorAnnotation, PubTatorArticle, PubTatorRelation
 
 logger = logging.getLogger(__name__)
+
+DOI_PATTERN = re.compile(r"doi:\s?(10\.\d{4,}/[\S]+)\.", re.IGNORECASE)
 
 
 def biocjson_to_pubtator(
@@ -75,11 +78,27 @@ def _biocjson_to_pubtator(
         # There may be multiple abstract passages
         abstract = " ".join(abstract_passage["text"])
 
+        # doi
+        doi = None
+        try:
+            # Abstract only biocjson file
+            if (
+                match := DOI_PATTERN.search(each_res_json["passages"][0]["infons"]["journal"])
+            ) is not None:
+                doi = match.group(1)
+        except Exception:
+            # Full-text biocjson file
+            try:
+                doi = each_res_json["passages"][0]["infons"]["article-id_doi"]
+            except Exception:
+                pass
+
         output.append(
             PubTatorArticle(
                 pmid=pmid,
                 date=date,
                 journal=journal,
+                doi=doi,
                 title=title,
                 abstract=abstract,
                 annotations=annotation_list,
