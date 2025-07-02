@@ -42,7 +42,7 @@ class PubTatorAnnotation:
     name: str
     identifier_name: str | None
     type: str
-    mesh: str
+    mesh: str  # TODO: better name for this should be 'identifier' rather than 'mesh' since not all IDs are MeSH terms
 
     def get_standardized_name(self) -> str:
         return s_stemmer(self.name.strip().lower())
