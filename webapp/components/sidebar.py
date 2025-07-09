@@ -7,7 +7,12 @@ from webapp.components.graph_tools import (
     graph_layout,
     minimal_degree,
 )
-from webapp.components.utils import generate_param_title, icon_download
+from webapp.components.utils import (
+    generate_param_title,
+    icon_download,
+    icon_graph,
+    icon_search,
+)
 from webapp.utils import display, visibility
 
 api_or_file = html.Div(
@@ -235,7 +240,7 @@ export_buttons = html.Div(
         dbc.Button([icon_download(), "XGMML"], id="export-btn-xgmml", className="export-btn"),
         dcc.Download(id="export-xgmml"),
     ],
-    className="param",
+    className="param export-container",
 )
 
 search_panel = html.Div(
@@ -251,13 +256,19 @@ graph_settings_panel = html.Div(
 
 sidebar_toggle = dbc.RadioItems(
     id="sidebar-panel-toggle",
-    options=[{"label": "Search", "value": "search"}, {"label": "Graph", "value": "graph"}],
+    options=[
+        {"label": [icon_search(), "Search"], "value": "search"},
+        {"label": [icon_graph(), "Graph"], "value": "graph"},
+    ],
     value="search",
     inline=True,
-    className="mb-3",
+    className="mb-3 sidebar-toggle",
+    labelClassName="toggle-label",
+    labelCheckedClassName="toggle-selected",
 )
 
 sidebar = html.Div(
     [sidebar_toggle, search_panel, graph_settings_panel],
     className="sidebar",
+    id="sidebar-container",
 )

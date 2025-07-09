@@ -33,10 +33,11 @@ def callbacks(app):
     @app.callback(
         Output("search-panel", "style"),
         Output("graph-settings-panel", "style"),
+        Output("sidebar-container", "className"),
         Input("sidebar-panel-toggle", "value"),
     )
     def toggle_panels(toggle_value):
         if toggle_value == "graph":
-            return display.none, display.block
-        return display.block, display.none
+            return display.none, display.block, "sidebar graph-mode"
+        return display.block, display.none, "sidebar"
 
