@@ -55,6 +55,7 @@ dev = [
   "pytest-mock",
   "ruff==0.8.0",
   "pre-commit",
+  "mkdocs",
 ]
 
 [project.scripts]
