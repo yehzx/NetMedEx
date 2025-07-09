@@ -2,30 +2,34 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://yehzx.github.io/NetMedEx/</loc>
-         <lastmod>2024-12-19</lastmod>
+         <lastmod>2025-07-09</lastmod>
+    </url>
+    <url>
+         <loc>https://yehzx.github.io/NetMedEx/api_usage/</loc>
+         <lastmod>2025-07-09</lastmod>
     </url>
     <url>
          <loc>https://yehzx.github.io/NetMedEx/cli_guides/</loc>
-         <lastmod>2024-12-19</lastmod>
+         <lastmod>2025-07-09</lastmod>
     </url>
     <url>
          <loc>https://yehzx.github.io/NetMedEx/installation/</loc>
-         <lastmod>2024-12-19</lastmod>
+         <lastmod>2025-07-09</lastmod>
     </url>
     <url>
          <loc>https://yehzx.github.io/NetMedEx/reference/</loc>
-         <lastmod>2024-12-19</lastmod>
+         <lastmod>2025-07-09</lastmod>
     </url>
     <url>
          <loc>https://yehzx.github.io/NetMedEx/web_app_guides/</loc>
-         <lastmod>2024-12-19</lastmod>
+         <lastmod>2025-07-09</lastmod>
     </url>
     <url>
          <loc>https://yehzx.github.io/NetMedEx/use_cases/</loc>
-         <lastmod>2024-12-19</lastmod>
+         <lastmod>2025-07-09</lastmod>
     </url>
     <url>
          <loc>https://yehzx.github.io/NetMedEx/use_cases/text_query/</loc>
-         <lastmod>2024-12-19</lastmod>
+         <lastmod>2025-07-09</lastmod>
     </url>
 </urlset>

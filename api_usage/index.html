@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://yehzx.github.io/NetMedEx/web_app_guides/">
+        <link rel="canonical" href="https://yehzx.github.io/NetMedEx/api_usage/">
       
       
-        <link rel="prev" href="../installation/">
+        <link rel="prev" href="../cli_guides/">
       
       
-        <link rel="next" href="../cli_guides/">
+        <link rel="next" href="../reference/">
       
       
       <link rel="icon" href="../img/NetMedEx_icon.png">
@@ -24,7 +24,7 @@
     
     
       
-        <title>Web App Guides - NetMedEx</title>
+        <title>Python API Usage - NetMedEx</title>
       
     
     
@@ -87,7 +87,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#web-application" class="md-skip">
+        <a href="#python-api-usage" class="md-skip">
           Skip to content
         </a>
       
@@ -122,7 +122,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Web App Guides
+              Python API Usage
             
           </span>
         </div>
@@ -318,28 +318,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  <span class="md-ellipsis">
-    Web App Guides
-  </span>
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../web_app_guides/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -348,81 +330,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#web-application" class="md-nav__link">
-    <span class="md-ellipsis">
-      Web Application
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#usage" class="md-nav__link">
-    <span class="md-ellipsis">
-      Usage
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Usage">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#search-articles-and-generate-networks-default" class="md-nav__link">
-    <span class="md-ellipsis">
-      Search Articles and Generate Networks (Default)
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Search Articles and Generate Networks (Default)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#interactive-network" class="md-nav__link">
-    <span class="md-ellipsis">
-      Interactive Network
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#generate-networks-from-pubtator-files" class="md-nav__link">
-    <span class="md-ellipsis">
-      Generate Networks from PubTator Files
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -451,10 +358,30 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../api_usage/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Python API Usage
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -463,6 +390,53 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#retrieve-articles" class="md-nav__link">
+    <span class="md-ellipsis">
+      Retrieve Articles
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#save-and-load-collections" class="md-nav__link">
+    <span class="md-ellipsis">
+      Save and Load Collections
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#build-and-export-a-network" class="md-nav__link">
+    <span class="md-ellipsis">
+      Build and Export a Network
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -504,6 +478,8 @@
   
   
   
+    
+  
   
     <label class="md-nav__title" for="__toc">
       <span class="md-nav__icon md-icon"></span>
@@ -512,59 +488,29 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#web-application" class="md-nav__link">
+  <a href="#retrieve-articles" class="md-nav__link">
     <span class="md-ellipsis">
-      Web Application
+      Retrieve Articles
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#usage" class="md-nav__link">
+  <a href="#save-and-load-collections" class="md-nav__link">
     <span class="md-ellipsis">
-      Usage
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Usage">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#search-articles-and-generate-networks-default" class="md-nav__link">
-    <span class="md-ellipsis">
-      Search Articles and Generate Networks (Default)
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="Search Articles and Generate Networks (Default)">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#interactive-network" class="md-nav__link">
-    <span class="md-ellipsis">
-      Interactive Network
+      Save and Load Collections
     </span>
   </a>
   
 </li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#generate-networks-from-pubtator-files" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#build-and-export-a-network" class="md-nav__link">
     <span class="md-ellipsis">
-      Generate Networks from PubTator Files
+      Build and Export a Network
     </span>
   </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
@@ -586,67 +532,43 @@
   
 
 
-  <h1>Web App Guides</h1>
+<h1 id="python-api-usage">Python API Usage</h1>
+<p>NetMedEx supports Python <strong>3.11</strong> and above. This page demonstrates how to use the library programmatically. The <code>PubTatorAPI</code> class retrieves articles from PubTator3, and <code>PubTatorGraphBuilder</code> constructs the co-occurrence network.</p>
+<h2 id="retrieve-articles">Retrieve Articles</h2>
+<pre><code class="language-python">from netmedex.pubtator import PubTatorAPI
 
-<h2 id="web-application">Web Application</h2>
-<p>This is the typical interface when you open the app in your browser (<code>NetMedEx v0.3.0</code>).</p>
-<p><a class="glightbox" data-desc-position="bottom" data-height="auto" data-type="image" data-width="auto" href="../img/netmedex_interface.png"><img alt="NetMedEx Interface" src="../img/netmedex_interface.png"/></a></p>
-<p><em>Note: The interface may vary slightly between versions.</em></p>
-<p>The interface consists of a sidebar (background: <span style="display:inline-block; width:10px; height:10px; background-color:#518c9c;"></span>) and a region for network display (background: <span style="display:inline-block; width:10px; height:10px; background-color:#eeeeee;"></span>).</p>
-<h2 id="usage">Usage</h2>
-<h3 id="search-articles-and-generate-networks-default">Search Articles and Generate Networks (Default)</h3>
-<ol>
-<li>Select <code>PubTator3 API</code> in Source.</li>
-<li>Select your <a href="../reference/#search-type">Search Type</a>.</li>
-<li>Enter the corresponding inputs in the box below.</li>
-<li>Adjust parameters in the sidebar and in the config panel (<a class="glightbox" data-desc-position="bottom" data-height="auto" data-type="image" data-width="auto" href="img/icon_config.svg"><svg height="15px" id="inline_svg" style="max-width: 15px" version="1.1" viewbox="0 0 93.5 93.5" width="15px">
-<g>
-<g>
-<path d="M93.5,40.899c0-2.453-1.995-4.447-4.448-4.447H81.98c-0.74-2.545-1.756-5.001-3.035-7.331l4.998-5
-			c0.826-0.827,1.303-1.973,1.303-3.146c0-1.19-0.462-2.306-1.303-3.146L75.67,9.555c-1.613-1.615-4.673-1.618-6.29,0l-5,5
-			c-2.327-1.28-4.786-2.296-7.332-3.037v-7.07C57.048,1.995,55.053,0,52.602,0H40.899c-2.453,0-4.447,1.995-4.447,4.448v7.071
-			c-2.546,0.741-5.005,1.757-7.333,3.037l-5-5c-1.68-1.679-4.609-1.679-6.288,0L9.555,17.83c-1.734,1.734-1.734,4.555,0,6.289
-			l4.999,5c-1.279,2.33-2.295,4.788-3.036,7.333h-7.07C1.995,36.452,0,38.447,0,40.899V52.6c0,2.453,1.995,4.447,4.448,4.447h7.071
-			c0.74,2.545,1.757,5.003,3.036,7.332l-4.998,4.999c-0.827,0.827-1.303,1.974-1.303,3.146c0,1.189,0.462,2.307,1.302,3.146
-			l8.274,8.273c1.614,1.615,4.674,1.619,6.29,0l5-5c2.328,1.279,4.786,2.297,7.333,3.037v7.071c0,2.453,1.995,4.448,4.447,4.448
-			h11.702c2.453,0,4.446-1.995,4.446-4.448V81.98c2.546-0.74,5.005-1.756,7.332-3.037l5,5c1.681,1.68,4.608,1.68,6.288,0
-			l8.275-8.273c1.734-1.734,1.734-4.555,0-6.289l-4.998-5.001c1.279-2.329,2.295-4.787,3.035-7.332h7.071
-			c2.453,0,4.448-1.995,4.448-4.446V40.899z M62.947,46.75c0,8.932-7.266,16.197-16.197,16.197c-8.931,0-16.197-7.266-16.197-16.197
-			c0-8.931,7.266-16.197,16.197-16.197C55.682,30.553,62.947,37.819,62.947,46.75z" fill="#bfbfbf"></path>
-</g>
-</g>
-</svg></a>) as needed (see <a href="../reference/">Reference</a>).</li>
-<li>Press <code>Submit</code>.</li>
-</ol>
-<blockquote>
-<p><strong>Note for Step 3:</strong> If your search type is <code>Text Search</code>, use double quotes for keywords containing spaces and logical operators (e.g., AND/OR) to combine keywords. For example, "COVID 19" AND "PON1".</p>
-</blockquote>
-<p>Once the program finishes generating the network, the sidebar will switch to the <strong>Graph</strong> panel and the resulting network will be displayed on the right:</p>
-<p><a class="glightbox" data-desc-position="bottom" data-height="auto" data-type="image" data-width="auto" href="../img/netmedex_network.png"><img alt="NetMedEx Network" src="../img/netmedex_network.png"/></a></p>
-<p><em>Note: In the default layout, some nodes may overlap. You can manually drag them to rearrange the network as desired.</em></p>
-<p>In the sidebar, you will find buttons to download the network or adjust settings:</p>
-<ul>
-<li><code>PubTator</code>: Download the corresponding PubTator file for reuse (see <a href="#generate-networks-from-pubtator-files">Generate Networks from PubTator Files</a>).</li>
-<li><code>HTML</code>: Export the network in HTML format.</li>
-<li><code>XGMML</code>: Export the network in a Cytoscape-compatible format (see <a href="../reference/#network-output-format">Network Output Format</a>).</li>
-</ul>
-<p>Graph settings include graph layout, edge weight cutoff, minimum node degree, etc (see <a href="../reference/#network-visualization-tools-web-app-only">Network Visualization Tools</a>).</p>
-<blockquote>
-<p>Tip: Adjusting <code>edge weight cutoff</code> is particularly useful if you think the current network is overcrowded or too sparse.</p>
-</blockquote>
-<h4 id="interactive-network">Interactive Network</h4>
-<p>The nodes in the network can be dragged around. Additionally, when you click on an edge, its information is displayed in the box at the bottom.</p>
-<p><a class="glightbox" data-desc-position="bottom" data-height="auto" data-type="image" data-width="auto" href="../img/netmedex_edge-info.png"><img alt="NetMedEx Edge Info" src="../img/netmedex_edge-info.png"/></a></p>
-<p>The evidence for the co-occurrence of two biological concepts that constitute the edge will be displayed as a table. This table is available as a CSV file.</p>
-<p>If the <code>Community</code> parameter is enabled, the edges between nodes in different communities will be collapsed into a single community edge, which may include a long list of articles. To identify the evidence for nodes in separate communities, please disable the <code>Community</code> parameter and generate the network again.</p>
-<h3 id="generate-networks-from-pubtator-files">Generate Networks from PubTator Files</h3>
-<p>The downloaded PubTator files can be reused to generate networks without performing article searches. To generate networks from PubTator files:</p>
-<ol>
-<li>Switch to the <code>Search</code> panel and select <code>PubTator File</code> in Source.</li>
-<li>Upload the PubTator file.</li>
-<li>Adjust the parameters as needed (see <a href="../reference/">Reference</a>).</li>
-<li>Press <code>Submit</code>.</li>
-</ol>
+collection = PubTatorAPI(
+    query='"covid-19" AND "PON1"',
+    sort="score",
+    max_articles=100,
+).run()
+</code></pre>
+<h2 id="save-and-load-collections">Save and Load Collections</h2>
+<pre><code class="language-python">import json
+
+# Save to JSON
+with open("collection.json", "w") as f:
+    json.dump(collection.to_json(), f)
+
+# Load from JSON
+from netmedex.pubtator_data import PubTatorCollection
+with open("collection.json") as f:
+    loaded = PubTatorCollection.from_json(json.load(f))
+
+# Or load from a PubTator file
+from netmedex.pubtator_parser import PubTatorIO
+loaded = PubTatorIO.parse("collection.pubtator")
+</code></pre>
+<h2 id="build-and-export-a-network">Build and Export a Network</h2>
+<pre><code class="language-python">from netmedex.graph import PubTatorGraphBuilder, save_graph
+
+builder = PubTatorGraphBuilder(node_type="all")
+builder.add_collection(loaded)
+graph = builder.build(weighting_method="freq", edge_weight_cutoff=1)
+
+save_graph(graph, "network.html", output_filetype="html")
+</code></pre>
+<p>The notebook <code>notebooks/netmedex_usage.ipynb</code> contains a complete demonstration of these steps.</p>
 
 
 
@@ -667,7 +589,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-07-09T23:21:54+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-07-09</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-07-09T22:37:25+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-07-09</span>
   </span>
 
     
@@ -703,7 +625,7 @@
       <nav class="md-footer__inner md-grid" aria-label="Footer" >
         
           
-          <a href="../installation/" class="md-footer__link md-footer__link--prev" aria-label="Previous: Installation">
+          <a href="../cli_guides/" class="md-footer__link md-footer__link--prev" aria-label="Previous: CLI Guides">
             <div class="md-footer__button md-icon">
               
               <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
@@ -713,20 +635,20 @@
                 Previous
               </span>
               <div class="md-ellipsis">
-                Installation
+                CLI Guides
               </div>
             </div>
           </a>
         
         
           
-          <a href="../cli_guides/" class="md-footer__link md-footer__link--next" aria-label="Next: CLI Guides">
+          <a href="../reference/" class="md-footer__link md-footer__link--next" aria-label="Next: Reference">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                CLI Guides
+                Reference
               </div>
             </div>
             <div class="md-footer__button md-icon">

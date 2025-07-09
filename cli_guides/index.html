@@ -16,7 +16,7 @@
         <link rel="prev" href="../web_app_guides/">
       
       
-        <link rel="next" href="../reference/">
+        <link rel="next" href="../api_usage/">
       
       
       <link rel="icon" href="../img/NetMedEx_icon.png">
@@ -481,6 +481,26 @@
   
   
     <li class="md-nav__item">
+      <a href="../api_usage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Python API Usage
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../reference/" class="md-nav__link">
         
   
@@ -681,7 +701,7 @@ options:
                        [--use_mesh] [--debug]
 
 options:
-  -h, --help            Show this help message and exit
+  -h, --help            show this help message and exit
   -q QUERY, --query QUERY
                         Query string
   -o OUTPUT, --output OUTPUT
@@ -691,11 +711,11 @@ options:
   -f PMID_FILE, --pmid_file PMID_FILE
                         Filepath to load PMIDs (one per line)
   -s {score,date}, --sort {score,date}
-                        Sort articles in descending order (default: date)
+                        Sort articles in descending order by (default: date)
   --max_articles MAX_ARTICLES
-                        Maximum articles to request (default: 1000)
+                        Maximal articles to request from the searching result (default: 1000)
   --full_text           Collect full-text annotations if available
-  --use_mesh            Use MeSH vocabulary instead of common text
+  --use_mesh            Use MeSH vocabulary instead of the most commonly used original text in articles
   --debug               Print debug information
 </code></pre>
 <h3 id="network-command">Network Command</h3>
@@ -703,25 +723,25 @@ options:
                         [--weighting_method {freq,npmi}] [--pmid_weight PMID_WEIGHT] [--debug] [--community] [--max_edges MAX_EDGES]
 
 options:
-  -h, --help            Show this help message and exit
+  -h, --help            show this help message and exit
   -i INPUT, --input INPUT
                         Path to the pubtator file
   -o OUTPUT, --output OUTPUT
                         Output path (default: [INPUT_DIR].[FORMAT_EXT])
   -w CUT_WEIGHT, --cut_weight CUT_WEIGHT
-                        Discard edges with weight smaller than the specified value (default: 2)
-  -f {xgmml,html,json}, --format {xgmml,html,json}
+                        Discard the edges with weight smaller than the specified value (default: 2)
+  -f {xgmml,html,json,pickle}, --format {xgmml,html,json,pickle}
                         Output format (default: html)
   --node_type {all,mesh,relation}
                         Keep specific types of nodes (default: all)
   --weighting_method {freq,npmi}
-                        Weighting method for network edges (default: freq)
+                        Weighting method for network edge (default: freq)
   --pmid_weight PMID_WEIGHT
-                        CSV file for the article weights (default: 1)
+                        CSV file for the weight of the edge from a PMID (default: 1)
   --debug               Print debug information
-  --community           Divide nodes into communities using the Louvain method
+  --community           Divide nodes into distinct communities by the Louvain method
   --max_edges MAX_EDGES
-                        Maximum number of edges (default: 0, no limit)
+                        Maximum number of edges to display (default: 0, no limit)
 </code></pre>
 <p>More detailed explanation of each command is available in <a href="../reference/">Reference</a>.</p>
 
@@ -744,7 +764,7 @@ options:
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2024-12-19T10:48:21+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2024-12-19</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-timeago"><span class="timeago" datetime="2025-07-09T22:15:55+00:00" locale="en"></span></span><span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-iso_date">2025-07-09</span>
   </span>
 
     
@@ -797,13 +817,13 @@ options:
         
         
           
-          <a href="../reference/" class="md-footer__link md-footer__link--next" aria-label="Next: Reference">
+          <a href="../api_usage/" class="md-footer__link md-footer__link--next" aria-label="Next: Python API Usage">
             <div class="md-footer__title">
               <span class="md-footer__direction">
                 Next
               </span>
               <div class="md-ellipsis">
-                Reference
+                Python API Usage
               </div>
             </div>
             <div class="md-footer__button md-icon">
