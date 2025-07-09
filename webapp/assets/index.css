@@ -89,6 +89,39 @@ a:hover {
     background-color: var(--SIDEBAR-BACKGROUND);
 }
 
+.sidebar.graph-mode {
+    background-color: #4d5b7b;
+}
+
+.sidebar-toggle {
+    display: flex;
+    border: 1px solid var(--SIDEBAR-TEXT);
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.sidebar-toggle .form-check {
+    flex: 1;
+}
+
+.sidebar-toggle input[type="radio"] {
+    display: none;
+}
+
+.sidebar-toggle .toggle-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 5px 10px;
+    cursor: pointer;
+    color: var(--SIDEBAR-TEXT);
+}
+
+.sidebar-toggle .toggle-selected {
+    background-color: var(--SIDEBAR-BTN);
+}
+
 #cytoscape-graph {
     height: calc(99% - 20px - 2rem);
 }
@@ -130,6 +163,10 @@ a:hover {
 .export-btn {
     display: inline-block;
     margin: 2px;
+}
+
+.export-container {
+    text-align: center;
 }
 
 .settings {
