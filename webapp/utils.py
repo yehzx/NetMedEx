@@ -38,5 +38,6 @@ def get_data_savepath(session_id: str):
     return savepath
 
 
-def cleanup_savedir():
-    shutil.rmtree(BASE_SAVEDIR, ignore_errors=True)
+def cleanup_tempdir():
+    if os.getenv("SAVEDIR") is None:
+        shutil.rmtree(BASE_SAVEDIR, ignore_errors=True)

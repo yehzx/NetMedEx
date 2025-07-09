@@ -233,12 +233,18 @@ progress = html.Div(
 export_buttons = html.Div(
     [
         html.H5("Export", className="text-center"),
-        dbc.Button([icon_download(), "PubTator"], id="download-pubtator-btn", className="export-btn", color="success", style=visibility.hidden),
-        dcc.Download(id="download-pubtator"),
         dbc.Button([icon_download(), "HTML"], id="export-btn-html", className="export-btn"),
         dcc.Download(id="export-html"),
         dbc.Button([icon_download(), "XGMML"], id="export-btn-xgmml", className="export-btn"),
         dcc.Download(id="export-xgmml"),
+        dbc.Button(
+            [icon_download(), "PubTator"],
+            id="download-pubtator-btn",
+            className="export-btn",
+            color="success",
+            style=visibility.hidden,
+        ),
+        dcc.Download(id="download-pubtator"),
     ],
     className="param export-container",
 )
