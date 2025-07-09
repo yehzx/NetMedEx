@@ -2,7 +2,7 @@ import logging
 import re
 from collections.abc import Sequence
 from copy import deepcopy
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from typing import Any
 
 from netmedex.headers import USE_MESH_VOCABULARY
@@ -178,7 +178,7 @@ class PubTatorCollection:
         self,
         annotation_use_identifier_name: bool = True,
         relation_use_identifier: bool = True,
-    ):
+    ) -> str:
         headers = []
         if annotation_use_identifier_name:
             headers.append(USE_MESH_VOCABULARY)
@@ -192,6 +192,31 @@ class PubTatorCollection:
         )
 
         return pubtator_str
+
+    def to_json(self):
+        return asdict(self)
+
+    @classmethod
+    def from_json(cls, collection_json: dict[str, Any]) -> "PubTatorCollection":
+        collection_copy = deepcopy(collection_json)
+
+        # Post initialization handles this
+        del collection_copy["num_articles"]
+
+        parsed_articles = []
+        for article_dict in collection_copy["articles"]:
+            annotations = [PubTatorAnnotation(**a) for a in article_dict.get("annotations", [])]
+            relations = [PubTatorRelation(**r) for r in article_dict.get("relations", [])]
+            article = PubTatorArticle(
+                **{k: v for k, v in article_dict.items() if k not in ("annotations", "relations")},
+                annotations=annotations,
+                relations=relations,
+            )
+            parsed_articles.append(article)
+
+        collection_copy["articles"] = parsed_articles
+
+        return cls(**collection_copy)
 
 
 class PubTatorRelationParser:
@@ -260,22 +285,4 @@ class PubTatorRelationParser:
 
 
 def load_from_collection_json(collection_json: dict[str, Any]) -> PubTatorCollection:
-    collection_copy = deepcopy(collection_json)
-
-    # Post initialization handles this
-    del collection_copy["num_articles"]
-
-    parsed_articles = []
-    for article_dict in collection_copy["articles"]:
-        annotations = [PubTatorAnnotation(**a) for a in article_dict.get("annotations", [])]
-        relations = [PubTatorRelation(**r) for r in article_dict.get("relations", [])]
-        article = PubTatorArticle(
-            **{k: v for k, v in article_dict.items() if k not in ("annotations", "relations")},
-            annotations=annotations,
-            relations=relations,
-        )
-        parsed_articles.append(article)
-
-    collection_copy["articles"] = parsed_articles
-
-    return PubTatorCollection(**collection_copy)
+    return PubTatorCollection.from_json(collection_json)
