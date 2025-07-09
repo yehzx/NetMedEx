@@ -90,7 +90,7 @@ a:hover {
 }
 
 .sidebar.graph-mode {
-    background-color: #4d5b7b;
+    background-color: #509B84;
 }
 
 .sidebar-toggle {
@@ -198,7 +198,7 @@ a:hover {
 
 #advanced-settings {
     position: absolute;
-    top: 5px;
+    top: 68px;
 }
 
 #bottom-container {
